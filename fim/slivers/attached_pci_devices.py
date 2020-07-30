@@ -23,38 +23,53 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
-import fim.slivers.BaseElement
-import fim.slivers.InterfaceInfo
+
+from .base_sliver import BaseElement
 
 
-class NetworkAttachedStorage(BaseElement):
-    def __init__(self):
+class AttachedPCIDeviceEntry(BaseElement):
+    def __init__(self, pci_id: str = None, pci_slot: str = None):
         super().__init__()
-        self.technology = None
-        self.service_endpoint = None
-        self.size = 0
+        self.pci_id = pci_id
+        self.pci_slot = pci_slot
+        self.disk_size = 0
         self.interface_info = None
 
-    def get_technology(self) -> str:
-        return self.technology
+    def set_pci_id(self, pci_id: str):
+        self.pci_id = pci_id
 
-    def set_technology(self, technology: str):
-        self.technology = technology
+    def get_pci_id(self) -> str:
+        return self.pci_id
 
-    def set_service_endpoint(self, service_endpoint: str):
-        self.service_endpoint = service_endpoint
+    def set_pci_slot(self, pci_slot: str):
+        self.pci_slot = pci_slot
 
-    def get_service_endpoint(self) -> str:
-        return self.service_endpoint
+    def get_pci_slot(self) -> str:
+        return self.pci_slot
 
-    def set_size(self, size: int):
-        self.size = size
+    def set_disk_size(self, disk_size: int):
+        self.disk_size = disk_size
 
-    def get_size(self) -> int:
-        return self.size
+    def get_disk_size(self) -> int:
+        return self.disk_size
 
     def set_interface_info(self, interface_info: InterfaceInfo):
         self.interface_info = interface_info
 
     def get_interface_info(self) -> InterfaceInfo:
         return self.interface_info
+
+
+class AttachedPCIDevices:
+    def __init__(self):
+        self.devices = {}
+
+    def add_device(self, device_info: AttachedPCIDeviceEntry):
+        self.devices[device_info.get_pci_id()] = device_info
+
+    def remove_device(self, pci_id: str):
+        if pci_id in self.devices:
+            self.devices.pop(pci_id)
+
+    def get_device(self, pci_id: str):
+        return self.devices.get(pci_id, None)

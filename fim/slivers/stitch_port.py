@@ -23,21 +23,17 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
+from .base_sliver import BaseElement
+from .interface_info import InterfaceInfo
 
 
-class BaseElement:
+class StitchPort(BaseElement):
     def __init__(self):
-        self.resource_type = None
-        self.graph_node_id = None
+        super().__init__()
+        self.interface_info = None
 
-    def set_resource_type(self, resource_type: str):
-        self.resource_type = resource_type
+    def set_interface_info(self, interface_info: InterfaceInfo):
+        self.interface_info = interface_info
 
-    def get_resource_type(self) -> str:
-        return self.resource_type
-
-    def set_graph_node_id(self, graph_node_id: str):
-        self.graph_node_id = graph_node_id
-
-    def get_graph_node_id(self) -> str:
-        return self.graph_node_id
+    def get_interface_info(self) -> InterfaceInfo:
+        return self.interface_info

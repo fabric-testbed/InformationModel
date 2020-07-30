@@ -26,11 +26,12 @@
 import ipaddress
 import uuid
 
-from .BaseElement import BaseElement
+from .base_sliver import BaseElement
 
 
 class InterfaceInfoEntry(BaseElement):
     def __init__(self, interface_id: str = None, interface_name: str = None):
+        super().__init__()
         if interface_id is not None:
             self.interface_id = interface_id
         else:

@@ -25,8 +25,8 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import ipaddress
 
-import fim.slivers.AttachedPCIDevices
-import fim.slivers.BaseElement
+import fim.slivers.attached_pci_devices
+import fim.slivers.base_sliver
 import fim.Slivers.InterfaceInfo
 
 

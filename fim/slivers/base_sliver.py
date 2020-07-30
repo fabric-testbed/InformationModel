@@ -23,38 +23,32 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
+"""
+Base class for all sliver types
+"""
 
-from .BaseElement import BaseElement
-from .InterfaceInfo import InterfaceInfo
+from abc import ABC, abstractmethod
 
+class BaseElement(ABC):
+    """Base class for all sliver types"""
 
-class NetworkLink(BaseElement):
+    @abstractmethod
     def __init__(self):
-        self.bandwidth = 0
-        self.layer = None
-        self.technology = None
-        self.interface_info = None
+        self.resource_type = None
+        self.graph_node_id = None
 
-    def get_bandwidth(self) -> int:
-        return self.bandwidth
+    def set_resource_type(self, resource_type: str):
+        """setter"""
+        self.resource_type = resource_type
 
-    def set_bandwidth(self, bandwidth: int):
-        self.bandwidth = bandwidth
+    def get_resource_type(self) -> str:
+        """getter"""
+        return self.resource_type
 
-    def get_layer(self) -> str:
-        return self.layer
+    def set_graph_node_id(self, graph_node_id: str):
+        """setter"""
+        self.graph_node_id = graph_node_id
 
-    def set_layer(self, layer: str):
-        self.layer = layer
-
-    def get_technology(self) -> str:
-        return self.technology
-
-    def set_technology(self, technology: str):
-        self.technology = technology
-
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
-
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
+    def get_graph_node_id(self) -> str:
+        """getter"""
+        return self.graph_node_id

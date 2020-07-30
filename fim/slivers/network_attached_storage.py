@@ -23,14 +23,35 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
-from .BaseElement import BaseElement
-from .InterfaceInfo import InterfaceInfo
+import fim.slivers.base_sliver
+import fim.slivers.interface_info
 
 
-class StitchPort(BaseElement):
+class NetworkAttachedStorage(BaseElement):
     def __init__(self):
         super().__init__()
+        self.technology = None
+        self.service_endpoint = None
+        self.size = 0
         self.interface_info = None
+
+    def get_technology(self) -> str:
+        return self.technology
+
+    def set_technology(self, technology: str):
+        self.technology = technology
+
+    def set_service_endpoint(self, service_endpoint: str):
+        self.service_endpoint = service_endpoint
+
+    def get_service_endpoint(self) -> str:
+        return self.service_endpoint
+
+    def set_size(self, size: int):
+        self.size = size
+
+    def get_size(self) -> int:
+        return self.size
 
     def set_interface_info(self, interface_info: InterfaceInfo):
         self.interface_info = interface_info
