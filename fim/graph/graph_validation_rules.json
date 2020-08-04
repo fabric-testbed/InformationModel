@@ -1,0 +1,6 @@
+[
+  {
+    "rule": "MATCH (n:Node {GraphID: $graphId}), (m {GraphID: $graphId}) WHERE n.ID=m.ID AND NOT id(n)=id(m) RETURN count(n) = 0",
+    "msg": "All node IDs must be distinct."
+  }
+]
