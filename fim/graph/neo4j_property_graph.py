@@ -12,7 +12,7 @@
 #
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-#
+
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -43,6 +43,7 @@ from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, 
 # to deal with intermittent APOC problems on MAC
 APOC_RETRY_COUNT = 10
 
+
 class Neo4jPropertyGraph(ABCPropertyGraph):
     """
     Neo4j-specific implementation of property graph abstraction
@@ -56,7 +57,11 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         self.pswd = pswd
         self.import_host_dir = import_host_dir
         self.import_dir = import_dir
-        self.driver = GraphDatabase.driver(self.url, auth=(user, pswd))
+        try:
+            self.driver = GraphDatabase.driver(self.url, auth=(user, pswd))
+        except Exception as e:
+            msg = f"Unable to connect to Neo4j: {str(e)}"
+            raise PropertyGraphImportException(graph_id=None, msg=msg)
 
         self.log = logging.getLogger(__name__)
 
@@ -108,16 +113,40 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             with self.driver.session() as session:
                 session.run(
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
-                    'readLabels: true, storeNodeIds: true, '
-                    'defaultRelationshipType: "isPrerequisiteFor" } ) ',
+                    'readLabels: true, storeNodeIds: true } ) ',
                     fileName=graphml_file)
-                # force label on all imported nodes
+                # force one common label on all imported nodes
                 self.log.debug(f"Adding Node label to graph {graph_id}")
-                query_string = "match (n {GraphID: $graphId }) set n:GraphNode"
+                query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
+                session.run(query_string, graphId=graph_id)
+                # convert class property into a label as well
+                self.log.debug(f"Converting class property into Neo4j label for all nodes")
+                query_string = "MATCH (n {GraphID: $graphId }) " \
+                               "CALL apoc.create.addLabels([ id(n) ], [ n.class ]) YIELD node RETURN node"
                 session.run(query_string, graphId=graph_id)
         except Exception as e:
             msg = "Neo4j APOC import error %s", str(e)
             raise PropertyGraphImportException(graph_id=None, msg=msg)
+
+    def enumerate_graph_nodes(self, *, graph_file: str, new_graph_file: str, node_id_prop: str = 'NodeID') -> None:
+        """
+        Read in a graph and add a NodeId property to every node assigning a unique GUID.
+        Save into a new file
+        :param graph_file: original graph file name
+        :param new_graph_file: new file name
+        :param node_id_prop: alternative property name for node id (default NodeId)
+        :return:
+        """
+        assert graph_file is not None
+        assert new_graph_file is not None
+
+        # read using networkx
+        g = nx.read_graphml(graph_file)
+        # add node id to every node
+        for n in list(g.nodes):
+            g.nodes[n][node_id_prop] = str(uuid.uuid4())
+        # save to a new file
+        nx.write_graphml(g, new_graph_file)
 
     def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) -> str:
         """
@@ -154,6 +183,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 time.sleep(1.0)
 
         # remove the file
+        self.log.debug(f"Unlinking temporary file {host_file_name}")
         os.unlink(host_file_name)
 
         if retry == 0:
@@ -211,6 +241,15 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         self.log.debug('Deleting graph %s', graph_id)
         with self.driver.session() as session:
             session.run('match (n:GraphNode {GraphID: $graphId })detach delete n', graphId=graph_id)
+
+    def delete_all_graphs(self) -> None:
+        """
+        Delete all graphs from the database
+        :return:
+        """
+        self.log.debug('Deleting all graphs from the database')
+        with self.driver.session() as session:
+            session.run('match (n) detach delete n')
 
     def get_node_properties(self, *, graph_id: str, node_id: str) -> Dict[str, Any]:
         """

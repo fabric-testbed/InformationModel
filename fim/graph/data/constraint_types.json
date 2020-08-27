@@ -1,0 +1,4 @@
+{
+  "numa": "NUMA constraints for allocation",
+  "vcpu": "vCPU pinning constraints for allocation"
+}

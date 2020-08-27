@@ -1,0 +1,5 @@
+include fim/graph/data/graph_validation_rules.json
+include fim/graph/data/label_types.json
+include LICENSE
+include README.md
+

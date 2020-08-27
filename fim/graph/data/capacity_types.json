@@ -1,0 +1,7 @@
+{
+  "cpu": "CPU capacity (cpu count)",
+  "core": "Core capacity (core count)",
+  "ram": "RAM capacity (GB)",
+  "disk": "Disk capacity (GB)",
+  "bw": "Bandwidth capacity (Gbps)"
+}

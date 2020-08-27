@@ -62,6 +62,17 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
+    def enumerate_graph_nodes(self, *, graph_file: str, new_graph_file: str, node_id_prop: str) -> None:
+        """
+        Read in a graph and add a NodeId property to every node assigning a unique GUID.
+        Save into a new file
+        :param graph_file: original file containing graph
+        :param new_graph_file: new file containing updated graph
+        :param node_id_prop: name of the property of a node to which ID is assigned
+        :return:
+        """
+
+    @abstractmethod
     def validate_graph(self, *, graph_id: str) ->None:
         """
         validate graph according to a built-in set of rules
@@ -75,6 +86,13 @@ class ABCPropertyGraph(ABC):
         delete a graph from the database
         :param graph_id: - graph_id of the graph
         :return: - None
+        """
+
+    @abstractmethod
+    def delete_all_graphs(self) -> None:
+        """
+        delete all graphs from the database
+        :return:
         """
 
     @abstractmethod
@@ -162,6 +180,7 @@ class PropertyGraphException(Exception):
         else:
             super().__init__(("Error %s in graph %s " % (msg, graph_id)))
         self.graph_id = graph_id
+        self.msg = msg
 
 
 class PropertyGraphImportException(PropertyGraphException):
