@@ -1,6 +1,10 @@
 [
   {
-    "rule": "MATCH (n:Node {GraphID: $graphId}), (m {GraphID: $graphId}) WHERE n.ID=m.ID AND NOT id(n)=id(m) RETURN count(n) = 0",
-    "msg": "All node IDs must be distinct."
+    "rule": "MATCH (n:GraphNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE exists(r.Class) AND exists(r.NodeID))",
+    "msg": "All nodes must have class and NodeID properties"
+  },
+  {
+    "rule": "MATCH (n:GraphNode {GraphID: $graphId}), (m {GraphID: $graphId}) WHERE n.NodeID=m.NodeID AND NOT id(n)=id(m) RETURN count(n) = 0",
+    "msg": "All node NodeIDs must be distinct."
   }
 ]

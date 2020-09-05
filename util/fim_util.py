@@ -52,8 +52,10 @@ import argparse
 import sys
 import logging
 import yaml
+import json
 
-from fim.graph.neo4j_property_graph import Neo4jPropertyGraph
+from fim.graph.neo4j_property_graph import Neo4jPropertyGraph, PropertyGraphImportException
+from fim.graph.resources.neo4j_arm import Neo4jARM
 
 FIM_CONFIG_YAML = "fim_config.yaml"
 
@@ -66,7 +68,26 @@ def load_file(*, filename, graph_id, neo4j_config):
     neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
                                      pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
                                      import_dir=neo4j_config["import_dir"])
-    return neo4j_graph.import_graph_from_file(graph_file=filename, graph_id=graph_id)
+    print(f"Loading graph into Neo4j")
+    gid = neo4j_graph.import_graph_from_file(graph_file=filename, graph_id=graph_id)
+    try:
+        return neo4j_graph.validate_graph(graph_id=gid)
+    except PropertyGraphImportException as pe:
+        print(f"Unable to load graph due to error {pe.msg}, deleting")
+        neo4j_graph.delete_graph(graph_id=gid)
+        return None
+
+def load_file_direct(*, filename, neo4j_config):
+    """
+    Load specified file directly with no manipulations or validation
+    :param filename:
+    :param neo4j_config:
+    :return:
+    """
+    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
+                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
+                                     import_dir=neo4j_config["import_dir"])
+    return neo4j_graph.import_graph_from_file_direct(graph_file=filename)
 
 def enumerate_nodes(*, filename, new_filename, neo4j_config):
     """
@@ -95,6 +116,37 @@ def delete_graphs(*, neo4j_config, graph_id=None):
     else:
         neo4j_graph.delete_graph(graph_id=graph_id)
 
+def save_graph(*, outfile, graph_id, neo4j_config):
+    """
+    Save indicated graph id into a file
+    :param outfile:
+    :param graph_id:
+    :param new4j_config:
+    :return:
+    """
+    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
+                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
+                                     import_dir=neo4j_config["import_dir"])
+
+    graph_string = neo4j_graph.serialize_graph(graph_id=graph_id)
+    with open(outfile, 'w') as f:
+        f.write(graph_string)
+
+def test_graph(*, graph_id, neo4j_config):
+    """
+    crutch for running test functions quickly
+    :param graph_id:
+    :param neo4j_config:
+    :return:
+    """
+    neo4j_graph = Neo4jARM(url=neo4j_config["url"], user=neo4j_config["user"],
+                           pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
+                           import_dir=neo4j_config["import_dir"])
+
+    print(neo4j_graph._locate_delegations(graph_id=graph_id))
+    #print(neo4j_graph._find_pool_in_delegation(delegation=json.loads(' { "ipv4": [ "192.168.1.1", "192.168.1.2" ], "vlan": [ "100", "101", "102"], "label_pool": "pool1", "delegation": "del1" }'),
+     #                                    delegation_prop_name=Neo4jPropertyGraph.PROP_LABEL_DELEGATIONS))
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -102,12 +154,16 @@ if __name__ == "__main__":
 
     operations = parser.add_mutually_exclusive_group()
     operations.add_argument("-l", "--load", action="store_true",
-                            help="load specified file into Neo4j (requires -f, optional -g)")
+                            help="load specified file into Neo4j (requires -f, optional -g, -r)")
     operations.add_argument("-w", "--wipe", action="store_true",
                             help="wipe neo4j instance of all graphs (optional -g)")
     operations.add_argument("-e", "--enumerate", action="store_true",
                             help="enumerate all nodes in a graph in specified file"
                                  " assigning them unique GUIDs and save (requires -f and -o)")
+    operations.add_argument("-t", "--test", action="store_true",
+                            help="invoke test action (-g)")
+    operations.add_argument("-s", "--save", action="store_true",
+                            help="save a specific graph into a file (requires -o and -g)")
     parser.add_argument("-c", "--config", action="store", default=FIM_CONFIG_YAML,
                         help="provide alternative configuration file")
     parser.add_argument("-f", "--file", action="store",
@@ -116,6 +172,8 @@ if __name__ == "__main__":
                         help="output GraphML file")
     parser.add_argument("-g", "--graph", action="store",
                         help="identifier of the graph in the Neo4j database")
+    parser.add_argument("-r", "--direct", action="store_true",
+                        help="load file directly without validation or any manipulations")
     parser.add_argument("-d", "--debug", action="count",
                         help="turn on debugging")
 
@@ -138,15 +196,25 @@ if __name__ == "__main__":
             print("Must specify -f option", file=sys.stderr)
         # load a file with a given id (or generated id)
         try:
-            gid = load_file(filename=args.file, neo4j_config=yaml_config["neo4j"], graph_id=args.graph)
-            print(f"Graph successfully loaded with id {gid}")
-            sys.exit(0)
+            if args.direct:
+                gid = load_file_direct(filename=args.file, neo4j_config=yaml_config["neo4j"])
+            else:
+                gid = load_file(filename=args.file, neo4j_config=yaml_config["neo4j"], graph_id=args.graph)
+            if gid is not None:
+                print(f"Graph successfully loaded with id {gid}")
+                sys.exit(0)
+            else:
+                sys.exit(-1)
         except Exception as e:
-            print(f"Unable to load file {args.file} to Neo4j due to {e.args}")
+            print(f"Unable to load file {args.file} to Neo4j due to {e.args}", file=sys.stderr)
             sys.exit(-1)
     elif args.wipe:
         # wipe one graph or whole database
         delete_graphs(neo4j_config=yaml_config["neo4j"], graph_id=args.graph)
+        if args.graph is not None:
+            print(f"Deleted graph {args.graph} from the database")
+        else:
+            print("Deleted all graphs from the database")
     elif args.enumerate:
         # enumerate a file
         file = args.file
@@ -157,3 +225,20 @@ if __name__ == "__main__":
 
         print(f"Enumerating nodes in {file} and saving as {newfile}")
         enumerate_nodes(filename=file, new_filename=newfile, neo4j_config=yaml_config["neo4j"])
+    elif args.save:
+        # save graph
+        outfile = args.outfile
+        graph = args.graph
+        if outfile is None or graph is None:
+            print("Must specify output file and graph id (-o and -g)", file=sys.stderr)
+            sys.exit(-1)
+
+        print(f"Saving graph {graph} into file {outfile}")
+        save_graph(outfile=outfile, graph_id=graph, neo4j_config=yaml_config["neo4j"])
+    elif args.test:
+        # some test action
+        graph = args.graph
+        print(f"Running test command on {graph}")
+        test_graph(graph_id=graph, neo4j_config=yaml_config["neo4j"])
+    else:
+        print("Please specify one of -h, -l, -e or -w", file=sys.stderr)

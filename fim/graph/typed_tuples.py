@@ -26,9 +26,8 @@
 
 """
 Defines various types of typed tuples: labels and capacities for things that are possible in our domain.
-Labels and capacities are represented either as json tuples <ltype, lval> or as a single
-string "ltype:lval". Types are strings. Values are simple strings for labels and integers for
-capacities.
+Labels and capacities are represented either as a single string "ltype:lval". Types are strings.
+Values are simple strings for labels and integers for capacities.
 Obviously ':' cannot be present in type names, however can be present in label values.
 """
 
@@ -133,20 +132,24 @@ class TypedTuple(ABC):
     abstract typed tuple class (for labels and capacities e.g.)
     """
     LABEL_SEPARATOR = ":"
-    LABEL_TYPE = "type"
-    LABEL_VALUE = "val"
 
     @abstractmethod
-    def __init__(self, *, atype: str, aval) -> None:
+    def __init__(self, **kwargs) -> None:
         """ assign, but validate against known types """
         # category and types file are expected to be overwritten
         # in subclasses
         self.lv = TypeValidator(self.category, self.types_file)
+        if 'atype' in kwargs:
+            atype = kwargs['atype']
+            aval = kwargs['aval']
+        elif 'fromstring' in kwargs:
+            atype, aval = kwargs['fromstring'].strip().split(self.LABEL_SEPARATOR, 1)
+
         if self.lv.validate_type(self.category, atype):
             self.type = atype
             self.val = aval
         else:
-            raise TypedTupleException(f"Label {atype} is not among allowed types {self.lv.get_types()}")
+            raise TypedTupleException(f"Tuple type {atype} is not among allowed types {self.lv.get_types()}")
 
     def get_type(self) -> str:
         """
@@ -184,34 +187,6 @@ class TypedTuple(ABC):
             raise TypedTupleException(f"Invalid allocatable type in string {atype}, "
                                       f"allowed types {self.lv.get_types(self.category)}")
 
-
-    def get_as_json(self) -> str:
-        """
-        return label as proper JSON
-        :return:
-        """
-        return json.dumps({self.LABEL_TYPE: self.type, self.LABEL_VALUE: str(self.val)})
-
-    def parse_from_json(self, json_str: str) ->None:
-        """
-        Parse allocatable from a JSON string, overwriting
-        previous type and value
-        :param json_str:
-        :return:
-        """
-        assert json_str is not None
-        d = json.loads(json_str)
-        assert isinstance(d, dict) is True
-        atype = d[self.LABEL_TYPE]
-        aval = d[self.LABEL_VALUE]
-        if self.lv.validate_type(self.category, atype):
-            self.type = atype
-            self.val = aval
-        else:
-            raise TypedTupleException(f"Invalid allocatable type in JSON {atype}, "
-                                      f"allowed types {self.lv.get_types(self.category)}")
-
-
     def check_type(self, label) -> bool:
         """
         make sure we and the other label are of the same type
@@ -228,20 +203,20 @@ class Label(TypedTuple):
     """
     Label expressed as a typed tuple
     """
-    def __init__(self, atype: str, aval: str):
+    def __init__(self, **kwargs):
         self.category = "label"
         self.types_file = "label_types.json"
-        super().__init__(atype=atype, aval=aval)
+        super().__init__(**kwargs)
 
 
 class Capacity(TypedTuple):
     """
     Capacity expressed as a typed tuple
     """
-    def __init__(self, atype: str, aval: int):
+    def __init__(self, **kwargs):
         self.category = "cap"
         self.types_file = "capacity_types.json"
-        super().__init__(atype=atype, aval=aval)
+        super().__init__(**kwargs)
 
 
 class Location(TypedTuple):
@@ -249,20 +224,20 @@ class Location(TypedTuple):
     Location expressed as a typed tuple
     """
 
-    def __init__(self, atype: str, aval: str):
+    def __init__(self, **kwargs):
         self.category = "location"
         self.types_file = "location_types.json"
-        super().__init__(atype=atype, aval=aval)
+        super().__init__(**kwargs)
 
 
 class AllocationConstraint(TypedTuple):
     """
     Allocation constraint expressed as a typed tuple
     """
-    def __init__(self, atype: str, aval: str):
+    def __init__(self, **kwargs):
         self.category = "constraint"
         self.types_file = "constraint_types.json"
-        super().__init__(atype=atype, aval=aval)
+        super().__init__(**kwargs)
 
 
 class TypedTupleException(Exception):
@@ -292,6 +267,13 @@ class LabelException(TypedTupleException):
         assert msg is not None
         super().__init__(f"Label exception: {msg}")
 
+class LabelOrCapacityException(TypedTupleException):
+    """
+    Exception with either label or capacity
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Label or Capacity exception {msg}")
 
 class LocationException(TypedTupleException):
     """

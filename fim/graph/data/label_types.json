@@ -8,5 +8,7 @@
   "asn": "ASN number",
   "vlan": "A single VLAN tag",
   "vlan-range": "A range of VLANs",
-  "node": "A VM, container or worker node identifier"
+  "node": "A VM, container or worker node identifier",
+  "pool": "Shared pool of labels",
+  "label_pool": "Declaration of a pool"
 }

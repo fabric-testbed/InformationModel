@@ -33,6 +33,14 @@ For inclusion in tools, etc, use PyPi
 $ pip install fabric-fim
 ```
 
+## Graph validation
+
+All graphs loaded into Neo4j (whether from files or being passed in as part of query or delegation) 
+must conform to a set of rules expressed as Cypher queries. The basic set of rules for all 
+types of graphs are located in [fim/graph/graph_validation_rules.json](fim/graph/graph_validation_rules.json).
+
+Additional rule files may govern specific model types.
+
 ## Using fim_util.py utility
 
 The utility supports a number of operations on GraphML files - enumerating nodes (for graphs)
@@ -50,6 +58,9 @@ neo4j:
   import_host_dir: /host/directory/seen/by/neo4j/docker/as/imports
   import_dir: /imports
 ```
+Parameters `password` and `import_host_dir` depend on how the Docker container is started in
+the procedure above. Other parameters should remain unchanged from what is shown. 
+
 Run the utility for detailed help for the various operations:
 ```
 (infomodel) $ python fim_util.py -h

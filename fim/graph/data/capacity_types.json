@@ -3,5 +3,8 @@
   "core": "Core capacity (core count)",
   "ram": "RAM capacity (GB)",
   "disk": "Disk capacity (GB)",
-  "bw": "Bandwidth capacity (Gbps)"
+  "bw": "Bandwidth capacity (Gbps)",
+  "unit": "Unit quantity",
+  "pool": "Shared capacity pool",
+  "capacity_pool": "Declaration of a pool"
 }

@@ -46,10 +46,19 @@ class ABCPropertyGraph(ABC):
     @abstractmethod
     def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) ->str:
         """
-        import a graph from string
+        import a graph from string adding GraphID to each node (new graph_id is generated
+        if graph_id is None)
         :param graph: - graph represented by a string (e.g. GraphML)
         :param graph_id: - optional id of the graph in the database
         :return: - assigned graph id (or same as passed in)
+        """
+
+    @abstractmethod
+    def import_graph_from_string_direct(self, *, graph_string: str) ->str:
+        """
+        import a graph from string without any manipulations
+        :param graph_string:
+        :return:
         """
 
     @abstractmethod
@@ -59,6 +68,14 @@ class ABCPropertyGraph(ABC):
         :param graph_file: - path to graph file (GraphML)
         :param graph_id: - optional id of the graph in the database
         :return: - assigned graph id (or same as passed in)
+        """
+
+    @abstractmethod
+    def import_graph_from_file_direct(self, *, graph_file: str) -> str:
+        """
+        import a graph from file without any manipulations
+        :param graph_file:
+        :return:
         """
 
     @abstractmethod
@@ -161,6 +178,22 @@ class ABCPropertyGraph(ABC):
         :param node_b:
         :param kind: - link/relationship type
         :param props:
+        :return:
+        """
+
+    @abstractmethod
+    def list_all_node_ids(self, *, graph_id: str) -> List[str]:
+        """
+        list all NodeID properties of a given graph
+        :param graph_id:
+        :return:
+        """
+
+    @abstractmethod
+    def serialize_graph(self, *, graph_id: str) -> str:
+        """
+        Serialize a given graph into a string
+        :param graph_id:
         :return:
         """
 
