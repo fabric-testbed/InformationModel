@@ -24,19 +24,119 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Label and capacity pools. Each pool knows which node defined it and which nodes it
+Label and capacity delegations and pools. Each delegation knows which node it is
+defined on, each pool knows which node defined it and which nodes it
 applies to and can be set/queried for that information.
 """
 
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Set
 import json
 
 from .neo4j_property_graph import Neo4jPropertyGraph
 
-class PoolType(Enum):
+
+class DelegationType(Enum):
     CAPACITY = 1
     LABEL = 2
+
+
+class Delegation:
+    """Label and capacity delegation. Only on individual resources.
+    Pools are used to define delegations across multiple resources.
+    """
+    def __init__(self, atype: DelegationType, defined_on: str, delegation_id: str):
+        """
+        Define a delegation of resources on a given node
+        :param atype:
+        :param defined_on:
+        :param delegation_id:
+        """
+        assert atype is not None
+        assert defined_on is not None
+        assert delegation_id is not None
+        self.type = atype
+        self.on_ = defined_on
+        self.delegation_id = delegation_id
+        self.delegation_details = None
+
+    def set_details(self, *, dele_dict: Dict) ->None:
+        """
+        set details of the delegation dictionary, removing the delegation
+        identifier field from dictionary
+        :param dele_dict:
+        :return:
+        """
+        assert dele_dict is not None
+        # pop the delegation field
+        dele_dict.pop(Neo4jPropertyGraph.FIELD_DELEGATION, None)
+        self.delegation_details = dele_dict
+
+    def get_details(self) -> Dict:
+        """
+        get delegation details as a dictionary (minus the delegation id)
+        :return:
+        """
+        return self.delegation_details
+
+    def __repr__(self) -> str:
+        return f"{self.type} delegation delegated to {self.delegation_id}: " \
+               f"{self.on_} with {self.delegation_details} "
+
+
+class Delegations:
+    """
+    Multiple delegations references by delegation id
+    """
+    def __init__(self, atype: DelegationType):
+        self.type = atype
+        self.delegations = {}
+
+    def add_delegation(self, *, delegation:Delegation) -> None:
+        """
+        Append a well-formed delegation to the list of delegations matching
+        this id
+        :param delegation:
+        :return:
+        """
+        assert delegation.delegation_id is not None
+        if self.delegations.get(delegation.delegation_id, None) is None:
+            self.delegations[delegation.delegation_id] = []
+
+        self.delegations[delegation.delegation_id].append(delegation)
+
+    def get_by_delegation_id(self, *, delegation_id: str) -> Delegation:
+        """
+        retrieve a delegation by its id or None
+        :param delegation_id:
+        :return:
+        """
+        assert delegation_id is not None
+        return self.delegations.get(delegation_id, None)
+
+    def get_delegation_ids(self) -> Set:
+        """
+        get a set of all delegation ids
+        :return:
+        """
+        return set(self.delegations.keys())
+
+    def get_node_ids(self, *, delegation_id: str) -> Set:
+        """
+        return a set of nodes ids for a given delegation id
+        :param delegation_id:
+        :return:
+        """
+        assert delegation_id is not None
+        ret = set()
+        if delegation_id not in self.delegations.keys():
+            return ret
+        for delegation in self.delegations[delegation_id]:
+            ret.add(delegation.on_)
+        return ret
+
+    def __repr__(self):
+        return f"{self.delegations}"
 
 
 class Pool:
@@ -44,7 +144,7 @@ class Pool:
     Label and capacity pools. Each pool knows which node defined it and which nodes it
     applies to and can be set/queried for that information.
     """
-    def __init__(self, *, atype: PoolType, pool_id: str, delegation_id: str = None,
+    def __init__(self, *, atype: DelegationType, pool_id: str, delegation_id: str = None,
                  defined_on: str = None, defined_for: List[str] = None):
         """
         Define a label or capacity pool and optionally specify where it is defined and for which nodes
@@ -108,17 +208,17 @@ class Pool:
         :return:
         """
         assert pool_dict is not None
-        if self.type == PoolType.CAPACITY:
+        if self.type == DelegationType.CAPACITY:
             pool_dict.pop(Neo4jPropertyGraph.FIELD_CAPACITY_POOL, None)
-        elif self.type == PoolType.LABEL:
+        elif self.type == DelegationType.LABEL:
             pool_dict.pop(Neo4jPropertyGraph.FIELD_LABEL_POOL, None)
         # also pop the delegation field
         pool_dict.pop(Neo4jPropertyGraph.FIELD_DELEGATION, None)
         self.pool_details = pool_dict
 
-    def get_pool_details(self) -> str:
+    def get_pool_details(self) -> Dict:
         """
-        Return pool label or capacity details as a jSON string.
+        Return pool label or capacity details as a dictionary.
         :return:
         """
         return self.pool_details
@@ -164,25 +264,28 @@ class Pool:
     def get_pool_id(self) -> str:
         return self.pool_id
 
-    def get_pool_type(self) -> PoolType:
+    def get_pool_type(self) -> DelegationType:
         return self.type
 
-    def get_delegation(self) -> str:
+    def get_delegation_id(self) -> str:
         return self.delegation_id
 
     def __repr__(self) -> str:
         return f"{self.type} pool {self.pool_id} delegated to {self.delegation_id}: " \
-               f"{self.on_}=> {self.for_} {self.pool_details} "
+               f"{self.on_}=> {self.for_} with {self.pool_details} "
 
 
 class Pools:
     """
     Map between node ids, pools and delegations
     """
-    def __init__(self, atype: PoolType):
+    def __init__(self, atype: DelegationType):
         self.pool_by_id = {}
         self.pools_by_delegation = None
         self.pool_type = atype
+
+    def get_type(self) -> DelegationType:
+        return self.pool_type
 
     def get_pool_by_id(self, *, pool_id: str, strict: bool = False) -> Pool:
         """
@@ -204,28 +307,34 @@ class Pools:
 
     def build_index_by_delegation_id(self) -> None:
         """
-        Index all pools by delegation ids, raise RuntimeError if any of them
-        don't have the delegation id defined
+        Index all pools by delegation ids, raise PoolException if any of them
+        don't have the delegation id defined. Validate that all fields are filled in.
         :return:
         """
         self.pools_by_delegation = {}
         for pool in self.pool_by_id.values():
-            if pool.get_delegation() is None:
+            if pool.get_delegation_id() is None:
                 self.pools_by_delegation = None
-                raise RuntimeError(f"Pool {pool.get_pool_id()} does not have a delegation id defined")
-            self.pools_by_delegation[pool.get_delegation()] = pool
+                raise PoolException(f"Pool {pool.get_pool_id()} does not have a delegation id defined")
+            if pool.get_defined_on() is None or pool.get_pool_details() is None:
+                self.pools_by_delegation = None
+                raise PoolException(f"Pool {pool.get_pool_id()} does not have defined_on or "
+                                    f"the details of the available resources")
+            if self.pools_by_delegation.get(pool.get_delegation_id(), None) is None:
+                self.pools_by_delegation[pool.get_delegation_id()] = []
+            self.pools_by_delegation[pool.get_delegation_id()].append(pool)
 
     def get_pools_by_delegation_id(self, *, delegation_id: str) -> Pool:
         """
-        return a list of Pool(s) for a delegation. raises RuntimeError if the index based on
+        return a list of Pool(s) for a delegation. raises PoolException if the index based on
         delegation ids have not been built yet
         :param delegation_id:
         :return:
         """
         assert delegation_id is not None
         if self.pools_by_delegation is None:
-            raise RuntimeError("Pools are node indexed by delegation, please run build_index_by_delegation_id()")
-        return self.pools_by_delegation[delegation_id]
+            raise PoolException("Pools are node indexed by delegation, please run build_index_by_delegation_id()")
+        return self.pools_by_delegation.get(delegation_id, None)
 
     def add_pool(self, *, pool: Pool) -> None:
         """
@@ -237,5 +346,48 @@ class Pools:
         assert pool.get_pool_id() is not None
         self.pool_by_id[pool.get_pool_id()] = pool
 
+    def get_delegation_ids(self) -> Set:
+        """
+        return a set of all delegation ids
+        :return:
+        """
+        if self.pools_by_delegation is None:
+            raise PoolException("Pools are not indexed by delegation, unable to get set of delegation ids")
+        return set(self.pools_by_delegation.keys())
+
+    def get_node_ids(self, *, delegation_id: str) -> Set:
+        """
+        Get a set of nodes for a given delegation across all pools
+        :param delegation_id:
+        :return:
+        """
+        assert delegation_id is not None
+        if self.pools_by_delegation is None:
+            raise PoolException("Pools are not indexed by delegation, unable to get node ids by delegation id")
+        ret = set()
+        if delegation_id not in self.pools_by_delegation.keys():
+            return ret
+        for pool in self.pools_by_delegation[delegation_id]:
+            ret.update(pool.get_defined_for())
+        return ret
+
     def __repr__(self):
         return f"{self.pool_by_id}"
+
+
+class PoolException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Pool exception: {msg}")
+
+
+class DelegationException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Delegation exception: {msg}")

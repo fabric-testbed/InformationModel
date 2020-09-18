@@ -18,7 +18,7 @@ $ workon infomodel
 ## Installation
 
 Multiple installation options possible. For CF development the recommended method is to
-install from GitHub MASTER branch:
+[install from GitHub MASTER branch](https://codeinthehole.com/tips/using-pip-and-requirementstxt-to-install-from-the-head-of-a-github-branch/):
 ```bash
 $ pip install git+https://github.com/fabric-testbed/InformationModel.git
 ```

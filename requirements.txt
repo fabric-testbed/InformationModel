@@ -6,7 +6,7 @@ colorama==0.4.3
 decorator==4.4.2
 docutils==0.16
 fabric-fim==0.12
--e git+git@github.com:fabric-testbed/InformationModel.git@208df2d720fc040bce5d8ce08116156a1ad1fe7d#egg=fim
+-e git+git@github.com:fabric-testbed/InformationModel.git@0174a66d436754c6e5209c0b1788a6920395f834#egg=fim
 idna==2.10
 importlib-metadata==1.7.0
 isort==4.3.21
@@ -25,6 +25,7 @@ pyparsing==2.4.7
 pytz==2020.1
 PyYAML==5.3.1
 readme-renderer==26.0
+recordclass==0.14.0
 requests==2.24.0
 requests-toolbelt==0.9.1
 rfc3986==1.4.0

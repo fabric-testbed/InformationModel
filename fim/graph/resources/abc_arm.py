@@ -39,7 +39,7 @@ class ABCARMMixin(ABC):
     Interface for an ARM Mixin on top of a property graph
     """
     @abstractmethod
-    def generate_adms(self) -> List[str]:
+    def generate_adms(self) -> List[ABCPropertyGraph]:
         """
         Partition an already loaded ARM model into multiple ADMs, return the GUIDs
         of the ADM partitions

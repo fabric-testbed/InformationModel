@@ -54,28 +54,34 @@ import logging
 import yaml
 import json
 
-from fim.graph.neo4j_property_graph import Neo4jPropertyGraph, PropertyGraphImportException
-from fim.graph.resources.neo4j_arm import Neo4jARM
+from fim.graph.neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter, PropertyGraphImportException
+from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
 FIM_CONFIG_YAML = "fim_config.yaml"
 
+
 def load_file(*, filename, graph_id, neo4j_config):
     """
-    Load specified file
+    load graph from file
     :param filename:
+    :param graph_id:
+    :param neo4j_config:
     :return:
     """
-    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
-                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
-                                     import_dir=neo4j_config["import_dir"])
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
     print(f"Loading graph into Neo4j")
-    gid = neo4j_graph.import_graph_from_file(graph_file=filename, graph_id=graph_id)
+    _graph = neo4j_graph_importer.import_graph_from_file(graph_file=filename, graph_id=graph_id)
+    print(f"Created graph {_graph}")
     try:
-        return neo4j_graph.validate_graph(graph_id=gid)
+        return _graph.validate_graph()
     except PropertyGraphImportException as pe:
         print(f"Unable to load graph due to error {pe.msg}, deleting")
-        neo4j_graph.delete_graph(graph_id=gid)
+        _graph.delete_graph()
         return None
+
 
 def load_file_direct(*, filename, neo4j_config):
     """
@@ -84,10 +90,12 @@ def load_file_direct(*, filename, neo4j_config):
     :param neo4j_config:
     :return:
     """
-    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
-                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
-                                     import_dir=neo4j_config["import_dir"])
-    return neo4j_graph.import_graph_from_file_direct(graph_file=filename)
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
+    return neo4j_graph_importer.import_graph_from_file_direct(graph_file=filename)
+
 
 def enumerate_nodes(*, filename, new_filename, neo4j_config):
     """
@@ -95,26 +103,32 @@ def enumerate_nodes(*, filename, new_filename, neo4j_config):
     a new name
     :param filename:
     :param new_filename:
+    :param neo4j_config
     :return:
     """
-    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
-                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
-                                     import_dir=neo4j_config["import_dir"])
-    neo4j_graph.enumerate_graph_nodes(graph_file=filename, new_graph_file=new_filename)
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
+    neo4j_graph_importer.enumerate_graph_nodes(graph_file=filename, new_graph_file=new_filename)
+
 
 def delete_graphs(*, neo4j_config, graph_id=None):
     """
     Delete a specific graph or all graphs if graph_id is none
+    :param neo4j_config
     :param graph_id:
     :return:
     """
-    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
-                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
+    neo4j_graph = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                     pswd=neo4j_config["pass"],
+                                     import_host_dir=neo4j_config["import_host_dir"],
                                      import_dir=neo4j_config["import_dir"])
     if graph_id is None:
         neo4j_graph.delete_all_graphs()
     else:
         neo4j_graph.delete_graph(graph_id=graph_id)
+
 
 def save_graph(*, outfile, graph_id, neo4j_config):
     """
@@ -124,13 +138,15 @@ def save_graph(*, outfile, graph_id, neo4j_config):
     :param new4j_config:
     :return:
     """
-    neo4j_graph = Neo4jPropertyGraph(url=neo4j_config["url"], user=neo4j_config["user"],
-                                     pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
-                                     import_dir=neo4j_config["import_dir"])
-
-    graph_string = neo4j_graph.serialize_graph(graph_id=graph_id)
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
+    graph = Neo4jPropertyGraph(graph_id=graph_id, importer=neo4j_graph_importer)
+    graph_string = graph.serialize_graph()
     with open(outfile, 'w') as f:
         f.write(graph_string)
+
 
 def test_graph(*, graph_id, neo4j_config):
     """
@@ -139,13 +155,15 @@ def test_graph(*, graph_id, neo4j_config):
     :param neo4j_config:
     :return:
     """
-    neo4j_graph = Neo4jARM(url=neo4j_config["url"], user=neo4j_config["user"],
-                           pswd=neo4j_config["pass"], import_host_dir=neo4j_config["import_host_dir"],
-                           import_dir=neo4j_config["import_dir"])
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
 
-    print(neo4j_graph._locate_delegations(graph_id=graph_id))
-    #print(neo4j_graph._find_pool_in_delegation(delegation=json.loads(' { "ipv4": [ "192.168.1.1", "192.168.1.2" ], "vlan": [ "100", "101", "102"], "label_pool": "pool1", "delegation": "del1" }'),
-     #                                    delegation_prop_name=Neo4jPropertyGraph.PROP_LABEL_DELEGATIONS))
+    arm_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_id, importer=neo4j_graph_importer))
+
+    print(f"Grenerated ADMs: {arm_graph.generate_adms()}")
+
 
 if __name__ == "__main__":
 

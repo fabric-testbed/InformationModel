@@ -1,5 +1,5 @@
 from fim.graph.typed_tuples import Label, Capacity, Location
-from fim.graph.pools import Pool, Pools, PoolType
+from fim.graph.delegations import Pool, Pools, DelegationType
 
 if __name__ == "__main__":
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     print(l.get_type())
     print(l.get_val())
 
-    p = Pool(atype=PoolType.LABEL, pool_id="pool1")
+    p = Pool(atype=DelegationType.LABEL, pool_id="pool1")
     p.set_delegation_id(delegation_id="del1")
     print(p)
 
@@ -45,12 +45,12 @@ if __name__ == "__main__":
     print(p)
 
     print("POOLS")
-    pp = Pools(atype=PoolType.LABEL)
+    pp = Pools(atype=DelegationType.LABEL)
     pp.add_pool(pool=p)
-    p1 = pp.get_pools_by_delegation(delegation="del1")
+    p1 = pp.get_pools_by_delegation(delegation_id="del1")
     print(f"Returned pool {p1}")
     pp.add_pool_defined_for(pool_id="pool1", node_ids=[ "node7"])
-    p1 = pp.get_pools_by_delegation(delegation="del1")
+    p1 = pp.get_pools_by_delegation(delegation_id="del1")
     print(f"Returned pool {p1}")
     p2 = pp.get_pool_by_id(pool_id="pool1")
     assert p1 is p2

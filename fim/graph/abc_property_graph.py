@@ -39,22 +39,166 @@ class ABCPropertyGraph(ABC):
     Could be a delegation, a broker view of resources or a slice.
     """
 
+    FIELD_POOL = "pool"
+    FIELD_CAPACITY_POOL = "capacity_pool"
+    FIELD_LABEL_POOL = "label_pool"
+    FIELD_DELEGATION = "delegation"
+    PROP_CAPACITY_DELEGATIONS = "CapacityDelegations"
+    PROP_LABEL_DELEGATIONS = "LabelDelegations"
+    PROP_CAPACITIES = "Capacities"
+    PROP_LABELS = "Labels"
+    JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS, PROP_CAPACITY_DELEGATIONS]
+
+    @abstractmethod
+    def __init__(self, *, graph_id: str):
+        """
+        New graph with an id
+        :param graph_id:
+        """
+        self.graph_id = graph_id
+
+    def get_graph_id(self):
+        return self.graph_id
+
+    @abstractmethod
+    def validate_graph(self) ->None:
+        """
+        validate graph according to a built-in set of rules
+        :return: - None,
+        """
+
+    @abstractmethod
+    def delete_graph(self) ->None:
+        """
+        delete a graph from the database
+        :return: - None
+        """
+
+    @abstractmethod
+    def get_node_properties(self, *, node_id: str) -> (List[str], Dict[str, Any]):
+        """
+        return all labels and properties of a node node_id in graph graph_id
+        :param node_id:
+        :return: dictionary[string, Any]
+        """
+
+    @abstractmethod
+    def get_link_properties(self, *, node_a: str, node_b: str) -> (str, Dict[str, Any]):
+        """
+        return a tuple of link kind and all properties of a link between two nodes node_a and node_b
+        :param node_a:
+        :param node_b:
+        :param kind: kind of link/edge
+        :return: (str, dictionary[string, Any])
+        """
+
+    @abstractmethod
+    def update_node_property(self, *, node_id: str, prop_name: str,
+                             prop_val: Any) -> None:
+        """
+        update a selected property of a node
+        :param node_id:
+        :param prop_name:
+        :param prop_val:
+        :return:
+        """
+
+    @abstractmethod
+    def update_node_properties(self, *, node_id: str, props: Dict[str, Any]) -> None:
+        """
+        update multiple properties
+        :param node_id:
+        :param props:
+        :return:
+        """
+
+    @abstractmethod
+    def update_link_property(self, *, node_a: str, node_b: str, kind: str,
+                             prop_name: str, prop_val: Any) -> None:
+        """
+        update a link property for a link between node_a and node_b
+        :param node_a:
+        :param node_b:
+        :param kind: - link/relationship type
+        :param prop_name:
+        :param prop_val:
+        :return:
+        """
+
+    @abstractmethod
+    def update_link_properties(self, *, node_a: str, node_b: str, kind: str,
+                               props: Dict[str, Any]) -> None:
+        """
+        update multiple properties on a link between node_a and node_b
+        :param node_a:
+        :param node_b:
+        :param kind: - link/relationship type
+        :param props:
+        :return:
+        """
+
+    @abstractmethod
+    def list_all_node_ids(self) -> List[str]:
+        """
+        list all NodeID properties of a given graph
+        :return:
+        """
+
+    @abstractmethod
+    def serialize_graph(self) -> str:
+        """
+        Serialize a given graph into a string
+        :return:
+        """
+
+    @abstractmethod
+    def clone_graph(self, *, new_graph_id: str):
+        """
+        clone a graph. unfortunately APOC procedures for cloning are not
+        a good fit - they can omit, but not overwrite a property on clone.
+        Instead this procedure serializes graph into a temporary file, then
+        reloads it overwriting the GraphID property.
+        :param new_graph_id:
+        :return:
+        """
+
+    @abstractmethod
+    def graph_exists(self) -> bool:
+        """
+        Does the graph with this ID exist?
+        :return:
+        """
+
+    @abstractmethod
+    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str) -> List:
+        """
+        Get a list of node ids that lie on a shortest path between two nodes. Return empty
+        list if no path can be found.
+        :param node_a:
+        :param node_z:
+        :return:
+        """
+
+    def __repr__(self):
+        return f"Graph with id {self.graph_id}"
+
+class ABCGraphImporter(ABC):
     @abstractmethod
     def __init__(self):
         pass
 
     @abstractmethod
-    def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) ->str:
+    def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) -> ABCPropertyGraph:
         """
         import a graph from string adding GraphID to each node (new graph_id is generated
         if graph_id is None)
-        :param graph: - graph represented by a string (e.g. GraphML)
+        :param graph_string: - graph represented by a string (e.g. GraphML)
         :param graph_id: - optional id of the graph in the database
-        :return: - assigned graph id (or same as passed in)
+        :return: - an instantiation of a property graph
         """
 
     @abstractmethod
-    def import_graph_from_string_direct(self, *, graph_string: str) ->str:
+    def import_graph_from_string_direct(self, *, graph_string: str) -> None:
         """
         import a graph from string without any manipulations
         :param graph_string:
@@ -62,16 +206,16 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
-    def import_graph_from_file(self, *, graph_file: str, graph_id: str = None) ->str:
+    def import_graph_from_file(self, *, graph_file: str, graph_id: str = None) -> ABCPropertyGraph:
         """
         import a graph from a file
         :param graph_file: - path to graph file (GraphML)
         :param graph_id: - optional id of the graph in the database
-        :return: - assigned graph id (or same as passed in)
+        :return: an instantiation of a property graph
         """
 
     @abstractmethod
-    def import_graph_from_file_direct(self, *, graph_file: str) -> str:
+    def import_graph_from_file_direct(self, *, graph_file: str) -> None:
         """
         import a graph from file without any manipulations
         :param graph_file:
@@ -90,110 +234,9 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
-    def validate_graph(self, *, graph_id: str) ->None:
-        """
-        validate graph according to a built-in set of rules
-        :param graph_id: - id of the graph to be validated
-        :return: - None,
-        """
-
-    @abstractmethod
-    def delete_graph(self, *, graph_id: str) ->None:
-        """
-        delete a graph from the database
-        :param graph_id: - graph_id of the graph
-        :return: - None
-        """
-
-    @abstractmethod
     def delete_all_graphs(self) -> None:
         """
         delete all graphs from the database
-        :return:
-        """
-
-    @abstractmethod
-    def get_node_properties(self, *, graph_id: str, node_id: str) -> Dict[str, Any]:
-        """
-        return all properties of a node node_id in graph graph_id
-        :param graph_id:
-        :param node_id:
-        :return: dictionary[string, Any]
-        """
-
-    @abstractmethod
-    def get_link_properties(self, *, graph_id: str, node_a: str, node_b: str, kind: str) -> Dict[str, Any]:
-        """
-        return all properties of a link between two nodes node_a and node_b
-        :param graph_id:
-        :param node_a:
-        :param node_b:
-        :param kind: kind of link/edge
-        :return: dictionary[string, Any]
-        """
-
-    @abstractmethod
-    def update_node_property(self, *, graph_id: str, node_id: str, prop_name: str,
-                             prop_val: Any) -> None:
-        """
-        update a selected property of a node
-        :param graph_id:
-        :param node_id:
-        :param prop_name:
-        :param prop_val:
-        :return:
-        """
-
-    @abstractmethod
-    def update_node_properties(self, *, graph_id: str, node_id: str, props: Dict[str, Any]) -> None:
-        """
-        update multiple properties
-        :param graph_id:
-        :param node_id:
-        :param props:
-        :return:
-        """
-
-    @abstractmethod
-    def update_link_property(self, *, graph_id: str, node_a: str, node_b: str, kind: str,
-                             prop_name: str, prop_val: Any) -> None:
-        """
-        update a link property for a link between node_a and node_b
-        :param graph_id:
-        :param node_a:
-        :param node_b:
-        :param kind: - link/relationship type
-        :param prop_name:
-        :param prop_val:
-        :return:
-        """
-
-    @abstractmethod
-    def update_link_properties(self, *, graph_id: str, node_a: str, node_b: str, kind: str,
-                               props: Dict[str, Any]) -> None:
-        """
-        update multiple properties on a link between node_a and node_b
-        :param graph_id:
-        :param node_a:
-        :param node_b:
-        :param kind: - link/relationship type
-        :param props:
-        :return:
-        """
-
-    @abstractmethod
-    def list_all_node_ids(self, *, graph_id: str) -> List[str]:
-        """
-        list all NodeID properties of a given graph
-        :param graph_id:
-        :return:
-        """
-
-    @abstractmethod
-    def serialize_graph(self, *, graph_id: str) -> str:
-        """
-        Serialize a given graph into a string
-        :param graph_id:
         :return:
         """
 
@@ -220,6 +263,11 @@ class PropertyGraphImportException(PropertyGraphException):
     """
     import exception for a property graph
     """
+    def __init__(self, *, graph_id: str,  msg: str, node_id: str = None):
+        if node_id is None:
+            super().__init__(graph_id=graph_id, msg=msg)
+        else:
+            super().__init__(graph_id=graph_id, msg=f"{msg} error in node {node_id}")
 
 
 class PropertyGraphQueryException(PropertyGraphException):
@@ -235,8 +283,10 @@ class PropertyGraphQueryException(PropertyGraphException):
         :param node_b:
         :param kind:
         """
-        if node_b is not None:
+        if node_b is not None and node_id is not None:
             super().__init__(graph_id=graph_id, msg=f"{msg} in querying for link {kind} between {node_id} and {node_b}")
-        else:
+        elif node_b is None and node_id is not None:
             super().__init__(graph_id=graph_id, msg=f"{msg} in querying node {node_id}")
+        else:
+            super().__init__(graph_id=graph_id, msg=f"{msg}")
         self.node_id = node_id

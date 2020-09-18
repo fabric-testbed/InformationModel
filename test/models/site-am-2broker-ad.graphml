@@ -51,7 +51,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[GPU]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[RTX3600]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[GPU2]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del2" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
@@ -70,7 +70,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[GPU]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[RTX3600]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[GPU1]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del1" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
@@ -89,7 +89,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[SmartNIC]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[ConnectX-6]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[NIC1]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del1" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
@@ -326,7 +326,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[GPU]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[RTX3600]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[GPU3]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del2" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
@@ -345,7 +345,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[SmartNIC]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[ConnectX-6]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[NIC1]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del1" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
@@ -364,7 +364,7 @@
       <data key="d7" xml:space="preserve"><![CDATA[SmartNIC]]></data>
       <data key="d8" xml:space="preserve"><![CDATA[ConnectX-6]]></data>
       <data key="d9" xml:space="preserve"><![CDATA[NIC2]]></data>
-      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1 }]]></data>
+      <data key="d11" xml:space="preserve"><![CDATA[{ "unit": 1, "delegation": "del2" }]]></data>
       <data key="d12" xml:space="preserve"/>
       <data key="d14">
         <y:ShapeNode>
