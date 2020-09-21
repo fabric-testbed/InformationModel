@@ -159,7 +159,7 @@ class ABCPropertyGraph(ABC):
         Instead this procedure serializes graph into a temporary file, then
         reloads it overwriting the GraphID property.
         :param new_graph_id:
-        :return:
+        :return returns a graph:
         """
 
     @abstractmethod
@@ -170,17 +170,52 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
-    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str) -> List:
+    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str, rel: str = None) -> List:
         """
         Get a list of node ids that lie on a shortest path between two nodes. Return empty
-        list if no path can be found.
+        list if no path can be found. Optionally specify the type of relationship that path
+        should consist of.
         :param node_a:
         :param node_z:
+        :param rel:
+        :return:
+        """
+
+    @abstractmethod
+    def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List:
+        """
+        Return a list of ids of nodes of this label related via relationship. List may be empty.
+        :param node_id:
+        :param rel:
+        :param node_label:
+        :return:
+        """
+
+    @abstractmethod
+    def get_first_and_second_neighbor(self, *, node_id: str, rel1: str, node1_label: str,
+                                      rel2: str, node2_label: str) -> List:
+        """
+        Return a list of 2-member lists of node ids related to this node via two specified relationships.
+        List may be empty.
+        :param node_id:
+        :param rel1:
+        :param node1_label:
+        :param rel2:
+        :param node2_label:
+        :return:
+        """
+
+    @abstractmethod
+    def delete_node(self, *, node_id: str):
+        """
+        Delete node from a graph (incident edges automatically deleted)
+        :param node_id:
         :return:
         """
 
     def __repr__(self):
         return f"Graph with id {self.graph_id}"
+
 
 class ABCGraphImporter(ABC):
     @abstractmethod
@@ -196,9 +231,10 @@ class ABCGraphImporter(ABC):
         :param graph_id: - optional id of the graph in the database
         :return: - an instantiation of a property graph
         """
+        query = "match "
 
     @abstractmethod
-    def import_graph_from_string_direct(self, *, graph_string: str) -> None:
+    def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
         import a graph from string without any manipulations
         :param graph_string:
@@ -215,7 +251,7 @@ class ABCGraphImporter(ABC):
         """
 
     @abstractmethod
-    def import_graph_from_file_direct(self, *, graph_file: str) -> None:
+    def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
         """
         import a graph from file without any manipulations
         :param graph_file:
@@ -252,9 +288,12 @@ class PropertyGraphException(Exception):
         :param msg:
         """
         if msg is None:
-            super().__init__(("Unspecified error in graph %s " % graph_id))
+            super().__init__(f"Unspecified error importing graph {graph_id}")
         else:
-            super().__init__(("Error %s in graph %s " % (msg, graph_id)))
+            if graph_id is not None:
+                super().__init__(f"{msg} in {graph_id}")
+            else:
+                super().__init__(msg)
         self.graph_id = graph_id
         self.msg = msg
 
@@ -265,9 +304,9 @@ class PropertyGraphImportException(PropertyGraphException):
     """
     def __init__(self, *, graph_id: str,  msg: str, node_id: str = None):
         if node_id is None:
-            super().__init__(graph_id=graph_id, msg=msg)
+            super().__init__(graph_id=graph_id, msg=f"Error [{msg}] importing graph")
         else:
-            super().__init__(graph_id=graph_id, msg=f"{msg} error in node {node_id}")
+            super().__init__(graph_id=graph_id, msg=f"Error [{msg}] in node {node_id} importing graph")
 
 
 class PropertyGraphQueryException(PropertyGraphException):
@@ -284,9 +323,9 @@ class PropertyGraphQueryException(PropertyGraphException):
         :param kind:
         """
         if node_b is not None and node_id is not None:
-            super().__init__(graph_id=graph_id, msg=f"{msg} in querying for link {kind} between {node_id} and {node_b}")
+            super().__init__(graph_id=graph_id, msg=f"[{msg}] in querying for link {kind} between {node_id} and {node_b}")
         elif node_b is None and node_id is not None:
-            super().__init__(graph_id=graph_id, msg=f"{msg} in querying node {node_id}")
+            super().__init__(graph_id=graph_id, msg=f"[{msg}] in querying node {node_id}")
         else:
-            super().__init__(graph_id=graph_id, msg=f"{msg}")
+            super().__init__(graph_id=graph_id, msg=f"[{msg}]")
         self.node_id = node_id

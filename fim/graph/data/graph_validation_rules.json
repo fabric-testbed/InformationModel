@@ -6,5 +6,29 @@
   {
     "rule": "MATCH (n:GraphNode {GraphID: $graphId}), (m {GraphID: $graphId}) WHERE n.NodeID=m.NodeID AND NOT id(n)=id(m) RETURN count(n) = 0",
     "msg": "All node NodeIDs must be distinct."
+  },
+  {
+    "rule": "MATCH (n:GraphNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Class IN [\"ConnectionPoint\", \"NetworkNode\", \"SwitchFabric\", \"Component\", \"Link\"])",
+    "msg": "All nodes must be of type NetworkNode, Component, ConnectionPoint, SwitchFabric or Link"
+  },
+  {
+    "rule": "MATCH (n:NetworkNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Server\", \"Switch\"])",
+    "msg": "All NetworkNodes muse be of type Server or Switch"
+  },
+  {
+    "rule": "MATCH (n:Component {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"NIC\", \"SmartNIC\", \"GPU\", \"FPGA\", \"NVMe\"])",
+    "msg": "All Components must be of type NIC, SmartNIC, GPU, FPGA or NVMe"
+  },
+  {
+    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Port\"])",
+    "msg": "All ConnectionPoints must be of type Port"
+  },
+  {
+    "rule": "MATCH (n:SwitchFabric {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"SwitchFabric\"])",
+    "msg": "All SwitchFabrics must be of type SwitchFabric"
+  },
+  {
+    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"DAC\", \"Wave\", \"Patch\"])",
+    "msg": "All Links must be of type DAC, Patch or Wave"
   }
 ]

@@ -60,7 +60,7 @@ class Delegation:
         self.delegation_id = delegation_id
         self.delegation_details = None
 
-    def set_details(self, *, dele_dict: Dict) ->None:
+    def set_details(self, *, dele_dict: Dict) -> None:
         """
         set details of the delegation dictionary, removing the delegation
         identifier field from dictionary
@@ -92,7 +92,7 @@ class Delegations:
         self.type = atype
         self.delegations = {}
 
-    def add_delegation(self, *, delegation:Delegation) -> None:
+    def add_delegation(self, *, delegation: Delegation) -> None:
         """
         Append a well-formed delegation to the list of delegations matching
         this id
@@ -105,9 +105,9 @@ class Delegations:
 
         self.delegations[delegation.delegation_id].append(delegation)
 
-    def get_by_delegation_id(self, *, delegation_id: str) -> Delegation:
+    def get_by_delegation_id(self, *, delegation_id: str) -> List[Delegation]:
         """
-        retrieve a delegation by its id or None
+        retrieve a list of delegations by their id or None
         :param delegation_id:
         :return:
         """
@@ -202,17 +202,12 @@ class Pool:
 
     def set_pool_details(self, *, pool_dict: Dict) ->None:
         """
-        set details of the pool dictionary, removing the pool definition and delegation
-        identifier fields from dictionary
+        set details of the pool dictionary, removing delegation
+        identifier field from dictionary
         :param pool_dict:
         :return:
         """
         assert pool_dict is not None
-        if self.type == DelegationType.CAPACITY:
-            pool_dict.pop(Neo4jPropertyGraph.FIELD_CAPACITY_POOL, None)
-        elif self.type == DelegationType.LABEL:
-            pool_dict.pop(Neo4jPropertyGraph.FIELD_LABEL_POOL, None)
-        # also pop the delegation field
         pool_dict.pop(Neo4jPropertyGraph.FIELD_DELEGATION, None)
         self.pool_details = pool_dict
 
@@ -324,7 +319,7 @@ class Pools:
                 self.pools_by_delegation[pool.get_delegation_id()] = []
             self.pools_by_delegation[pool.get_delegation_id()].append(pool)
 
-    def get_pools_by_delegation_id(self, *, delegation_id: str) -> Pool:
+    def get_pools_by_delegation_id(self, *, delegation_id: str) -> List[Pool]:
         """
         return a list of Pool(s) for a delegation. raises PoolException if the index based on
         delegation ids have not been built yet

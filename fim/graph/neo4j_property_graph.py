@@ -151,12 +151,11 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                                                   node_id=None, msg="Unable to list graph nodes")
             return val.data()['nodeids']
 
-
-    def get_node_properties(self, *, node_id: str) -> (List[str],Dict[str, Any]):
+    def get_node_properties(self, *, node_id: str) -> (List[str], Dict[str, Any]):
         """
-        get properties of a node as a dictionary
+        get a tuple of labels (list) and properties (dict) of a node
         :param node_id:
-        :return:
+        :return: (list, dict)
         """
         assert node_id is not None
         query = "MATCH (n:GraphNode {GraphID: $graphId, NodeID: $nodeId}) RETURN labels(n), properties(n)"
@@ -165,7 +164,9 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             if val is None:
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
                                                   node_id=node_id, msg="Unable to find node")
-            return val.data()['labels(n)'], val.data()['properties(n)']
+            labels = val.data()['labels(n)']
+            labels.remove('GraphNode')
+            return labels, val.data()['properties(n)']
 
     def get_link_properties(self, *, node_a: str, node_b: str) -> (str, Dict[str, Any]):
         """
@@ -340,18 +341,25 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 return False
         return True
 
-    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str) -> List:
+    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str, rel: str = None) -> List:
         """
         Get a list of node ids that lie on a shortest path between two nodes. Return empty
         list if no path can be found.
         :param node_a:
         :param node_z:
+        :param rel:
         :return:
         """
-        query = "match (a:GraphNode {GraphID: $graphId, NodeID: $nodeA}) with a match " \
-                "(z:GraphNode {GraphID: $graphId, NodeID: $nodeZ}), " \
-                "p=shortestPath((a) -[*1..]- (z)) with nodes(p) as pathnodes " \
-                "unwind pathnodes as pathnode return collect(pathnode.NodeID) as nodeids"
+        if rel is None:
+            query = "match (a:GraphNode {GraphID: $graphId, NodeID: $nodeA}) with a match " \
+                    "(z:GraphNode {GraphID: $graphId, NodeID: $nodeZ}), " \
+                    "p=shortestPath((a) -[*1..]- (z)) with nodes(p) as pathnodes " \
+                    "unwind pathnodes as pathnode return collect(pathnode.NodeID) as nodeids"
+        else:
+            query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) with a match " \
+                    f"(z:GraphNode {{GraphID: $graphId, NodeID: $nodeZ}}), " \
+                    f"p=shortestPath((a) -[:{rel}*1..]- (z)) with nodes(p) as pathnodes " \
+                    f"unwind pathnodes as pathnode return collect(pathnode.NodeID) as nodeids"
 
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeZ=node_z).single()
@@ -359,6 +367,56 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 return list()
             return val.data()['nodeids']
 
+    def get_first_neighbor(self, *, node_id: str, rel: str, node1_label: str) -> List[str]:
+        """
+        Return a list of ids of nodes of this label related via relationship. List may be empty.
+        :param node_id:
+        :param rel:
+        :param node1_label:
+        :return:
+        """
+        assert node_id is not None
+        assert rel is not None
+        assert node1_label is not None
+        query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[:{rel}]- " \
+                f"(b:{node1_label} {{ GraphID: $graphId}}) return b.NodeID"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeA=node_id).value()
+            if val is None:
+                return None
+            return val
+
+    def get_first_and_second_neighbor(self, *, node_id: str, rel1: str, node1_label: str,
+                                      rel2: str, node2_label: str) -> List:
+        """
+        Return a list of 2-member lists of node ids related to this node via two specified relationships.
+        List may be empty.
+        :param node_id:
+        :param rel1:
+        :param node1_label:
+        :param rel2:
+        :param node2_label:
+        :return:
+        """
+        query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[:{rel1}]- "\
+                f"(b:{node1_label} {{GraphID: $graphId}}) -[:{rel2}]- "\
+                f"(c:{node2_label} {{GraphID: $graphId}}) return b.NodeID, c.NodeID"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeA=node_id).values()
+            if val is None:
+                return None
+            return val
+
+    def delete_node(self, *, node_id: str):
+        """
+        Delete node from a graph (incident edges automatically deleted)
+        :param node_id:
+        :return:
+        """
+        query = "match (n:GraphNode {GraphID: $graphId, NodeID: $nodeId}) " \
+                "call apoc.nodes.delete(n, 10) yield value return *"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeId=node_id).single()
 
 class Neo4jGraphImporter(ABCGraphImporter):
 
@@ -443,6 +501,27 @@ class Neo4jGraphImporter(ABCGraphImporter):
             msg = f"Neo4j APOC import error {str(e)}"
             raise PropertyGraphImportException(graph_id=graph_id, msg=msg)
 
+    def _get_graph_id(self, *, graph_file: str) -> str:
+        """
+        Read graphml file using NetworkX to get GraphID property
+        :param graph_file:
+        :return:
+        """
+        assert graph_file is not None
+        g = nx.read_graphml(graph_file)
+
+        # check graph_ids on nodes
+        graph_ids = set()
+        try:
+            for n in list(g.nodes):
+                graph_ids.add(g.nodes[n]['GraphID'])
+        except KeyError:
+            raise PropertyGraphImportException(graph_id=None, msg=f"Graph does not contain GraphID property")
+
+        if len(graph_ids) > 1:
+            raise PropertyGraphImportException(graph_id=None, msg=f"Graph contains more than one GraphID: {graph_ids}")
+        return graph_ids.pop()
+
     def enumerate_graph_nodes(self, *, graph_file: str, new_graph_file: str, node_id_prop: str = 'NodeID') -> None:
         """
         Read in a graph and add a NodeId property to every node assigning a unique GUID.
@@ -506,7 +585,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
         return Neo4jPropertyGraph(graph_id=assigned_id, importer=self)
 
-    def import_graph_from_string_direct(self, *, graph_string: str) -> None:
+    def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
         import a graph from string without any manipulations
         :param graph_string:
@@ -523,6 +602,9 @@ class Neo4jGraphImporter(ABCGraphImporter):
         with open(host_file_name, 'w') as f:
             f.write(graph_string)
 
+        # get graph id
+        graph_id = self._get_graph_id(graph_file=host_file_name)
+
         # load file
         try:
             with self.driver.session() as session:
@@ -538,6 +620,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
         self.log.debug(f"Unlinking temporary file {host_file_name}")
         os.unlink(host_file_name)
 
+        return Neo4jPropertyGraph(graph_id=graph_id, importer=self)
+
     def import_graph_from_file(self, *, graph_file: str, graph_id: str = None) -> Neo4jPropertyGraph:
         """
         read graph from a file assigning it a given id or generating a new one
@@ -551,7 +635,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
         return self.import_graph_from_string(graph_string=graph_string, graph_id=graph_id)
 
-    def import_graph_from_file_direct(self, *, graph_file: str) -> str:
+    def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
         """
         import a graph from file without any manipulations
         :param graph_file:
@@ -569,6 +653,9 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
         shutil.copyfile(graph_file, host_file_name)
 
+        # get graph id
+        graph_id = self._get_graph_id(graph_file=host_file_name)
+
         # load file
         try:
             with self.driver.session() as session:
@@ -583,6 +670,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # unlink copied file
         self.log.debug(f"Unlinking copied file {host_file_name}")
         os.unlink(host_file_name)
+
+        return Neo4jPropertyGraph(graph_id=graph_id, importer=self)
 
     def delete_all_graphs(self) -> None:
         """

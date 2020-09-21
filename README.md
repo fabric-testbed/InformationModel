@@ -4,7 +4,7 @@ on different types of information model representations (sliver and slice)
 
 ## Development environment
 
-The recommended way is to set up your development environment using virtualenv after checking
+The recommended way is to set up your development environment using `virtualenv` after checking
 out the code:
 ```bash
 $ git clone git@github.com:fabric-testbed/InformationModel.git
@@ -12,8 +12,11 @@ $ cd InformationModel
 $ mkvirtualenv -r requirements.txt infomodel
 $ workon infomodel
 (infomodel) $
-
 ```
+
+Note that the information model code depends on using the
+ [Neo4j-APOC docker container](https://github.com/fabric-testbed/fabric-docker-images/tree/master/neo4j-apoc).
+Follow the instructions with the container to start it. 
 
 ## Installation
 
@@ -33,11 +36,17 @@ For inclusion in tools, etc, use PyPi
 $ pip install fabric-fim
 ```
 
+## Test graphs
+
+Test graphs are located under [tests/models](tests/models). All graphs were created using [yEd](https://www.yworks.com/products/yed)
+desktop graph editor (note that on-line version does not provide the same flexibility for creating custom node
+and link properties).
+
 ## Graph validation
 
 All graphs loaded into Neo4j (whether from files or being passed in as part of query or delegation) 
 must conform to a set of rules expressed as Cypher queries. The basic set of rules for all 
-types of graphs are located in [fim/graph/graph_validation_rules.json](fim/graph/graph_validation_rules.json).
+types of graphs are located in [fim/graph/graph_validation_rules.json](fim/graph/data/graph_validation_rules.json).
 
 Additional rule files may govern specific model types.
 
