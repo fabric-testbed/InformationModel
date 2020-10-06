@@ -11,7 +11,6 @@ update lifecycle based on reservations
 - Creation of query responses to Orchestrators (BQM) and embedding of slice requests in 
 BQM.
 
-
 ## AM Models
 
 Basic operations on AM resource models (ARM) include
@@ -23,7 +22,8 @@ Calendar support - ARMs or ADMs don't use calendars.
 
 ## Broker Models
 
-Basic operations on Broker models include
+Basic operations on Broker models (CBM - Combined Broker Model and BQM - Broker Query Model) 
+include
 
 - Receiving and validating ADMs from AMs
 - Stitching multiple ADMs into a combined CBM model
@@ -39,11 +39,4 @@ Multiple query types possible:
 - Timed (including starting now as the default) - returns availability information without calendar. 
 Calendar information needs to be serializable into FIM in this case. 
 - Not-timed - returns calendar information.
-
-## Linking relational database reservation information to graph models
-
-Two IDs should play a role:
-
-- Resource ID (a GUID)
-- Reservation ID (also a GUID)
 

@@ -26,17 +26,17 @@
 """
 Implementation of ARM (Aggregate Resource Model) functionality
 """
-from typing import List, Dict, Any
-from recordclass import recordclass
 import json
-import itertools
 import logging
 import uuid
+from typing import List, Dict
+from recordclass import recordclass
+
 
 from ..neo4j_property_graph import Neo4jPropertyGraph
-from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException, PropertyGraphImportException
+from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from .abc_arm import ABCARMMixin
-from ..typed_tuples import Label, Capacity, LabelException, LabelOrCapacityException, CapacityException
+from ..typed_tuples import Label, Capacity, LabelOrCapacityException
 
 from ..delegations import DelegationType, Pools, Delegations, Delegation
 
@@ -94,8 +94,7 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
             else:
                 delegation_id = self.DEFAULT_DELEGATION
             return pool.get_val(), delegation_id
-        else:
-            return None, None
+        return None, None
 
     def _find_pool_mentions(self, *, delegation: Dict, pool_type: DelegationType) -> List[str]:
         """
@@ -105,17 +104,14 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
         :param pool_type:
         :return:
         """
-        _, pool_field, pool_cls = self.POOL_TYPE_TO_CLASS[pool_type]
         self.log.debug(f"Looking for pool mention in {delegation} of type {pool_type.name}")
         if Neo4jPropertyGraph.FIELD_POOL in delegation.keys():
             # return the list
             mention = delegation[Neo4jPropertyGraph.FIELD_POOL]
             if isinstance(mention, list):
                 return mention
-            else:
-                return [mention]
-        else:
-            return []
+            return [mention]
+        return []
 
     def _process_delegation_no_pools(self, *, delegation: Dict, dele_type: DelegationType, node_id: str) -> Delegation:
         """
@@ -234,7 +230,7 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
             # also look for delegations without pools
 
         # build indices on pools so we can find them from a delegation id
-        for pool_type, pools in self.pools.items():
+        for _, pools in self.pools.items():
             pools.build_index_by_delegation_id()
 
     def _update_delegation_properties(self, *, del_id: str, del_type: DelegationType,
@@ -253,7 +249,7 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
         assert graph is not None
         assert del_id is not None
 
-        delegation_prop_name, pool_field, _ = self.POOL_TYPE_TO_CLASS[del_type]
+        delegation_prop_name, _, _ = self.POOL_TYPE_TO_CLASS[del_type]
         collected_delegations = self.delegations[del_type]
         delegations_list = collected_delegations.get_by_delegation_id(delegation_id=del_id)
         collected_pools = self.pools[del_type]
@@ -334,7 +330,7 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
                                                         remove_nodes=set())
                             for del_id in unique_delegation_ids}
 
-        node_ids_to_delegations = {node_id: list() for node_id in self.node_ids }
+        node_ids_to_delegations = {node_id: list() for node_id in self.node_ids}
         for del_id in unique_delegation_ids:
             # build up lists of node ids that definitely belong to each delegation
             # as a union of all .for_ fields on pools and on all delegations
@@ -408,7 +404,7 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
             # go through capacity delegations under this delegation id, replace annotations on kept nodes
             # of approprate graph
             self._update_delegation_properties(del_id=del_id,
-                                               del_type = DelegationType.LABEL,
+                                               del_type=DelegationType.LABEL,
                                                graph=delegations_info[del_id].graph,
                                                node_ids=delegations_info[del_id].keep_nodes)
             self._update_delegation_properties(del_id=del_id,
@@ -417,4 +413,17 @@ class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):
                                                node_ids=delegations_info[del_id].keep_nodes)
 
         return {k: delegations_info[k].graph for k in unique_delegation_ids}
+
+    def get_delegations(self, *, node_id: str, delegation_type: DelegationType) -> List:
+        """
+        Get Label or Capacity delegations of a given node. They are represented
+        as lists of dictionaries. Dictionaries may include delegation and pool
+        designators. Returns None if delegation property is not defined.
+        :param node_id:
+        :param delegation_type:
+        :return:
+        """
+        assert node_id is not None
+        prop_field_name, _, _ = self.POOL_TYPE_TO_CLASS[delegation_type]
+        return self.get_node_json_property_as_object(node_id=node_id, prop_name=prop_field_name)
 

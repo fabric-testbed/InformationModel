@@ -30,7 +30,7 @@ Could be a delegation, a broker view of resources or a slice.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Tuple, Any, Set
+from typing import List, Dict, Any, Set
 
 
 class ABCPropertyGraph(ABC):
@@ -83,6 +83,16 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
+    def get_node_json_property_as_object(self, *, node_id: str, prop_name: str) -> Any:
+        """
+        Return node property as a python object (applies to JSON encoded properties), will
+        fail on other property values.
+        :param node_id:
+        :param prop_name:
+        :return:
+        """
+
+    @abstractmethod
     def get_link_properties(self, *, node_a: str, node_b: str) -> (str, Dict[str, Any]):
         """
         return a tuple of link kind and all properties of a link between two nodes node_a and node_b
@@ -98,6 +108,15 @@ class ABCPropertyGraph(ABC):
         """
         update a selected property of a node
         :param node_id:
+        :param prop_name:
+        :param prop_val:
+        :return:
+        """
+
+    @abstractmethod
+    def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
+        """
+        update a selected property on all nodes of the graph
         :param prop_name:
         :param prop_val:
         :return:
@@ -210,6 +229,25 @@ class ABCPropertyGraph(ABC):
         """
         Delete node from a graph (incident edges automatically deleted)
         :param node_id:
+        :return:
+        """
+
+    @abstractmethod
+    def find_matching_nodes(self, *, graph) -> Set:
+        """
+        Return a set of node ids that match between the two graphs
+        :param graph:
+        :return:
+        """
+
+    @abstractmethod
+    def merge_nodes(self, node_id: str, graph, merge_properties=None):
+        """
+        Merge two nodes of the same id belonging to two graphs. Optionally
+        specify merging behavior for individual properties
+        :param node_id:
+        :param graph:
+        :param merge_properties:
         :return:
         """
 

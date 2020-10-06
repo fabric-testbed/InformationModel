@@ -9,7 +9,7 @@
   },
   {
     "rule": "MATCH (n:GraphNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Class IN [\"ConnectionPoint\", \"NetworkNode\", \"SwitchFabric\", \"Component\", \"Link\"])",
-    "msg": "All nodes must be of type NetworkNode, Component, ConnectionPoint, SwitchFabric or Link"
+    "msg": "All nodes must be of class NetworkNode, Component, ConnectionPoint, SwitchFabric or Link"
   },
   {
     "rule": "MATCH (n:NetworkNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Server\", \"Switch\"])",

@@ -36,11 +36,29 @@ For inclusion in tools, etc, use PyPi
 $ pip install fabric-fim
 ```
 
-## Test graphs
+##  Graph models
 
-Test graphs are located under [tests/models](tests/models). All graphs were created using [yEd](https://www.yworks.com/products/yed)
+Test graphs are located under [tests/models](tests/models). All graphs were created using 
+[yEd](https://www.yworks.com/products/yed)
 desktop graph editor (note that on-line version does not provide the same flexibility for creating custom node
 and link properties).
+
+### Rules for creating new graphs
+
+- Use [graph-template.graphml](test/models/graph-template.graphml) as a starter - copy it to a new name. 
+The reason is yEd doesn't allow to save custom property schema separate from a graph and the template graph 
+provides definitions for all custom node and edge properties. *Do not create a new graph from scratch as it 
+will not have custom properties defined. Copying from a template graph into a new graph will lose properties*. 
+- Use cut and paste from existing nodes in the template to build a new graph and fill in appropriate fields
+using <right-click on node or edge>Properties | Data 
+- Each node must have a Class and Type properties specified from 
+[this document](https://docs.google.com/spreadsheets/d/1H9O7ptnODTpWvV2m2uTWQE34y1jleZIScEIh3B-_yS0/edit#gid=0).
+Additional properties can be specified as needed in accordance with 
+[this document](https://docs.google.com/document/d/1fmuUBVe_XWCJEI9zwImjFMBRFcRo-MZ9rUTWTu81atM/edit#heading=h.svpgmv6dph79).
+- In general you don't need to assign NodeID properties on individual nodes, instead using [fim_util](util/README.md) 
+to assign them, *however* when constructing linked models e.g. a site and a network AM advertisement that have 
+nodes in common  (ConnectionPoints, SwitchFabrics etc), it is critical that same nodes appearing in both graphs 
+carry the same NodeIDs, so those are best created in one graph and then cut-and-pasted in the other.  
 
 ## Graph validation
 
@@ -48,7 +66,9 @@ All graphs loaded into Neo4j (whether from files or being passed in as part of q
 must conform to a set of rules expressed as Cypher queries. The basic set of rules for all 
 types of graphs are located in [fim/graph/graph_validation_rules.json](fim/graph/data/graph_validation_rules.json).
 
-Additional rule files may govern specific model types.
+Prior to ingestion graphs are also tested on general syntax validity of JSON-formatted fields.  
+
+Additional rule files specific to model types may govern the validity of specific models.
 
 ## Using fim_util.py utility
 
@@ -78,3 +98,25 @@ Run the utility for detailed help for the various operations:
 ## Code structure and imports
 
 Base classes are under `fim.graph` and `fim.slivers` modules. 
+
+## Neo4j Performance Considerations
+For performance reasons it is critical that every instance of Neo4j has appropriate indexes created. 
+Neo4j label `GraphNode` is hard-coded within FIM - every graph node has this label and another label is created
+from the Class property and is meaningful to FIM. 
+This is done for performance reasons to make it easier to create indexes and query models using those indexes.
+
+The following indexes are required (can be created via script or through Neo4j console):
+```
+CREATE INDEX graphid FOR (n:GraphNode) ON (n.GraphID)
+CREATE INDEX graphid_nodeid FOR (n:GraphNode) ON (n.GraphID, n.NodeID)
+CREATE INDEX graphid_nodeid_type FOR (n:GraphNode) ON (n.GraphID, n.NodeID, n.Type)
+CREATE INDEX graphid_type FOR (n:GraphNode) ON (n.GraphID, n.Type)
+```
+Available indexes can be checked via console by using the `:schema` command. 
+
+An index can be dropped using the following command (substitute appropriate index name):
+```
+DROP INDEX graphid
+```
+
+See [additional documentation](https://neo4j.com/docs/cypher-manual/current/administration/indexes-for-search-performance/).

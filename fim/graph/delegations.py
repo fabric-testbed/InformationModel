@@ -265,6 +265,22 @@ class Pool:
     def get_delegation_id(self) -> str:
         return self.delegation_id
 
+    def validate_pool(self):
+        """
+        Validate a pool to make sure delegation id is present, on, for and details are defined
+        :return:
+        """
+        if self.delegation_id is None:
+            raise PoolException(f"Pool {self.pool_id} does not have a delegation ID")
+        if self.get_defined_on() is None:
+            raise PoolException(f"Pool {self.pool_id} is not defined on any node")
+        if self.get_defined_for() is None or len(self.get_defined_for()) == 0:
+            raise PoolException(f"Pool {self.pool_id} is not mentioned on any nodes")
+        if self.get_defined_on() not in self.get_defined_for():
+            raise PoolException(f"Pool {self.pool_id} is not mentioned on the node where it is defined")
+        if self.get_pool_details() is None:
+            raise PoolException(f"Pool {self.pool_id} does not have any resource details")
+
     def __repr__(self) -> str:
         return f"{self.type} pool {self.pool_id} delegated to {self.delegation_id}: " \
                f"{self.on_}=> {self.for_} with {self.pool_details} "
@@ -302,19 +318,13 @@ class Pools:
 
     def build_index_by_delegation_id(self) -> None:
         """
-        Index all pools by delegation ids, raise PoolException if any of them
+        Validate all pools then index them by delegation ids, raise PoolException if any of them
         don't have the delegation id defined. Validate that all fields are filled in.
         :return:
         """
         self.pools_by_delegation = {}
         for pool in self.pool_by_id.values():
-            if pool.get_delegation_id() is None:
-                self.pools_by_delegation = None
-                raise PoolException(f"Pool {pool.get_pool_id()} does not have a delegation id defined")
-            if pool.get_defined_on() is None or pool.get_pool_details() is None:
-                self.pools_by_delegation = None
-                raise PoolException(f"Pool {pool.get_pool_id()} does not have defined_on or "
-                                    f"the details of the available resources")
+            pool.validate_pool()
             if self.pools_by_delegation.get(pool.get_delegation_id(), None) is None:
                 self.pools_by_delegation[pool.get_delegation_id()] = []
             self.pools_by_delegation[pool.get_delegation_id()].append(pool)
@@ -365,6 +375,14 @@ class Pools:
         for pool in self.pools_by_delegation[delegation_id]:
             ret.update(pool.get_defined_for())
         return ret
+
+    def validate_pools(self):
+        """
+        Make sure all pools have a defined on and for nodes.
+        :return:
+        """
+        for _, pool in self.pool_by_id.items():
+            pool.validate_pool()
 
     def __repr__(self):
         return f"{self.pool_by_id}"

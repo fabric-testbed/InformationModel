@@ -26,7 +26,7 @@
 """
 Neo4j-specific implementation of property graph abstraction
 """
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Set
 
 import logging
 import shutil
@@ -52,12 +52,21 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
     NEO4j_NONE = "None"
 
-    def __init__(self, *, graph_id: str, importer):
+    def __init__(self, *, graph_id: str, importer, logger=None):
+        """
+        Initialize a property graph object. Logger is optional.
+        :param graph_id:
+        :param importer:
+        :param logger:
+        """
         super().__init__(graph_id=graph_id)
         self.importer = importer
         assert isinstance(importer, Neo4jGraphImporter)
         self.driver = importer.driver
-        self.log = logging.getLogger(__name__)
+        if logger is None:
+            self.log = logging.getLogger(__name__)
+        else:
+            self.log = logger
 
     def _validate_json_property(self, node_id: str, prop_name: str, strict: bool = False) -> str:
         """
@@ -153,7 +162,8 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
     def get_node_properties(self, *, node_id: str) -> (List[str], Dict[str, Any]):
         """
-        get a tuple of labels (list) and properties (dict) of a node
+        get a tuple of labels (list) and properties (dict) of a node. Note that individual
+        properties are strings (could be JSON encoded objects).
         :param node_id:
         :return: (list, dict)
         """
@@ -167,6 +177,29 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             labels = val.data()['labels(n)']
             labels.remove('GraphNode')
             return labels, val.data()['properties(n)']
+
+    def get_node_json_property_as_object(self, *, node_id: str, prop_name: str) -> Any:
+        """
+        Return node property as a python object (applies to JSON encoded properties), will
+        fail on other property values.
+        :param node_id:
+        :param prop_name:
+        :return:
+        """
+        assert node_id is not None
+        assert prop_name is not None
+        _, node_props = self.get_node_properties(node_id=node_id)
+        prop_str = node_props.get(prop_name, None)
+        if prop_str is None or prop_str == self.NEO4j_NONE:
+            return None
+        try:
+            prop_val = json.loads(prop_str)
+            return prop_val
+        except json.decoder.JSONDecodeError:
+            raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                              node_id=node_id,
+                                              msg=f"Unable to decode property {prop_str} as JSON.")
+
 
     def get_link_properties(self, *, node_a: str, node_b: str) -> (str, Dict[str, Any]):
         """
@@ -195,6 +228,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         """
         assert node_id is not None
         assert prop_name is not None
+        assert prop_val is not None
         query = f"MATCH (s:GraphNode {{GraphID: $graphId, NodeID: $nodeId}}) " \
             f"SET s+={{ {prop_name}: $propVal}} RETURN properties(s)"
         with self.driver.session() as session:
@@ -202,6 +236,23 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             if val is None or len(val.value()) == 0:
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
                                                   node_id=node_id, msg="Unable to set property")
+
+    def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
+        """
+        update a selected property on all nodes of the graph
+        :param prop_name:
+        :param prop_val:
+        :return:
+        """
+        assert prop_name is not None
+        assert prop_val is not None
+        query = f"MATCH (s:GraphNode {{GraphID: $graphId}}) " \
+                f"SET s+={{ {prop_name}: $propVal}} RETURN properties(s)"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, propVal=prop_val)
+            if val is None or len(val.value()) == 0:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  msg="Unable to set property on graph nodes")
 
     def update_node_properties(self, *, node_id: str, props: Dict[str, Any]) -> None:
         """
@@ -215,7 +266,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
         all_props = ""
         for k, v in props.items():
-            all_props += f'{k}: "{v}", '
+            all_props += f"{k}: '{v}', "
         if len(all_props) > 2:
             all_props = all_props[:-2]
 
@@ -326,7 +377,8 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         graph_string = self.serialize_graph()
         if graph_string == self.NEO4j_NONE:
             raise PropertyGraphQueryException(msg=f"Unable to find graph with id {self.graph_id} for cloning")
-        return self.importer.import_graph_from_string(graph_string=graph_string, graph_id=new_graph_id)
+        return self.importer.import_graph_from_string(graph_string=graph_string,
+                                                      graph_id=new_graph_id)
 
     def graph_exists(self) -> bool:
         """
@@ -334,7 +386,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         :return:
         """
         inner_query = f'match(n {{GraphID: "{self.graph_id}"}}) -[r]- (m) return n, r, m'
-        # run inner query to check the graph has anything in it
+        # run  query to check the graph has anything in it
         with self.driver.session() as session:
             val = session.run(inner_query)
             if val.peek() is None:
@@ -418,9 +470,72 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeId=node_id).single()
 
+    def find_matching_nodes(self, *, graph) -> Set:
+        """
+        Return a set of node ids that match between the two graphs
+        :param graph:
+        :return:
+        """
+        assert graph is not None
+        assert isinstance(graph, ABCPropertyGraph)
+        assert graph.graph_exists()
+
+        query = "match(n:GraphNode {GraphID: $graphId}) with n match " \
+                "(m:GraphNode {GraphID: $graphId1}) where m.NodeID=n.NodeID " \
+                "return collect(n.NodeID) as common_ids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, graphId1=graph.graph_id).single()
+        if val is None:
+            return set()
+        return set(val.data()['common_ids'])
+
+    def merge_nodes(self, node_id: str, graph, merge_properties: Dict = None):
+        """
+        Merge two nodes of the same id belonging to two graphs. Optionally
+        specify merging behavior for individual properties. Common relationships are merged.
+        Information on formatting merge properties:
+        https://neo4j.com/labs/apoc/4.1/graph-updates/graph-refactoring/merge-nodes/
+        Example merge properties in Python:
+        {
+            "name":'discard', # keep property of the caller
+            "age":'overwrite', # keep property of the other graph
+            "kids":'combine', # make a Neo4j list of properties
+            "`addr.*`": 'overwrite',
+            "`.*`": 'discard'
+        }
+        :param node_id:
+        :param graph:
+        :param merge_properties:
+        :return:
+        """
+        assert node_id is not None
+        assert graph.graph_exists()
+        if merge_properties is not None:
+            # convert properties to Neo4j format
+            l = list()
+            for k, v in merge_properties.items():
+                l.append(str(k) + ":'" + str(v) + "'")
+            merge_properties_as_string = "{" + ",".join(l) + "}"
+            query = f"match (n:GraphNode {{GraphID: $graphId, NodeID: $nodeId}}), " \
+                    f"(m:GraphNode {{GraphID: $graphId1, NodeID: $nodeId}}) " \
+                    f"with head(collect([n, m])) as nodes " \
+                    f"call apoc.refactor.mergeNodes(nodes, {{properties: {merge_properties_as_string}, " \
+                    f"mergeRels: true}}) yield node return node"
+        else:
+            query = "match (n:GraphNode {GraphID: $graphId, NodeID: $nodeId}), " \
+                    "(m:GraphNode {GraphID: $graphId1, NodeID: $nodeId}) " \
+                    "with head(collect([n, m])) as nodes " \
+                    "call apoc.refactor.mergeNodes(nodes, {properties: 'discard', mergeRels: true}) " \
+                    "yield node return node"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id,
+                              graphId1=graph.graph_id,
+                              nodeId=node_id).single()
+
+
 class Neo4jGraphImporter(ABCGraphImporter):
 
-    def __init__(self, *, url: str, user: str, pswd: str, import_host_dir: str, import_dir: str):
+    def __init__(self, *, url: str, user: str, pswd: str, import_host_dir: str, import_dir: str, logger=None):
         """ URL of Neo4j instance, credentials and directory
         from where Neo4j can import graphs"""
         self.url = url
@@ -433,7 +548,10 @@ class Neo4jGraphImporter(ABCGraphImporter):
         except Exception as e:
             msg = f"Unable to connect to Neo4j: {str(e)}"
             raise PropertyGraphImportException(graph_id=None, msg=msg)
-        self.log = logging.getLogger(__name__)
+        if logger is None:
+            self.log = logging.getLogger(__name__)
+        else:
+            self.log = logger
 
     def _prep_graph(self, graph: str, graph_id: str = None) -> Tuple[str, str, str]:
         """
@@ -524,7 +642,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
     def enumerate_graph_nodes(self, *, graph_file: str, new_graph_file: str, node_id_prop: str = 'NodeID') -> None:
         """
-        Read in a graph and add a NodeId property to every node assigning a unique GUID.
+        Read in a graph and add a NodeId property to every node assigning a unique GUID (unless present).
         Save into a new file
         :param graph_file: original graph file name
         :param new_graph_file: new file name
@@ -538,7 +656,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
         g = nx.read_graphml(graph_file)
         # add node id to every node
         for n in list(g.nodes):
-            g.nodes[n][node_id_prop] = str(uuid.uuid4())
+            if (node_id_prop not in g.nodes[n].keys()) or (len(g.nodes[n][node_id_prop]) == 0):
+                g.nodes[n][node_id_prop] = str(uuid.uuid4())
         # save to a new file
         nx.write_graphml(g, new_graph_file)
 
@@ -583,7 +702,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
             raise PropertyGraphImportException(graph_id=assigned_id,
                                                msg='Unable to load graph after multiple attempts')
 
-        return Neo4jPropertyGraph(graph_id=assigned_id, importer=self)
+        return Neo4jPropertyGraph(graph_id=assigned_id, importer=self, logger=self.log)
 
     def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
@@ -620,7 +739,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         self.log.debug(f"Unlinking temporary file {host_file_name}")
         os.unlink(host_file_name)
 
-        return Neo4jPropertyGraph(graph_id=graph_id, importer=self)
+        return Neo4jPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
 
     def import_graph_from_file(self, *, graph_file: str, graph_id: str = None) -> Neo4jPropertyGraph:
         """
@@ -671,7 +790,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         self.log.debug(f"Unlinking copied file {host_file_name}")
         os.unlink(host_file_name)
 
-        return Neo4jPropertyGraph(graph_id=graph_id, importer=self)
+        return Neo4jPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
 
     def delete_all_graphs(self) -> None:
         """

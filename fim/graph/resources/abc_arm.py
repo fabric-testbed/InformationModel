@@ -24,24 +24,41 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Definition of ARM (Aggregate Resource Model) functionality
+Abstract definition of ARM (Aggregate Resource Model) functionality
 """
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import List
 
 from ..abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, PropertyGraphQueryException
 from ..neo4j_property_graph import Neo4jPropertyGraph
+from ..delegations import DelegationType
 
 
-class ABCARMMixin(ABC):
+class ABCARMMixin(metaclass=ABCMeta):
     """
     Interface for an ARM Mixin on top of a property graph
     """
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (hasattr(subclass, 'generate_adms') and
+                callable(subclass.generate_adms) or NotImplemented)
+
     @abstractmethod
     def generate_adms(self) -> List[ABCPropertyGraph]:
         """
         Partition an already loaded ARM model into multiple ADMs, return the GUIDs
         of the ADM partitions
+        :return:
+        """
+
+    @abstractmethod
+    def get_delegations(self, *, node_id: str, delegation_type: DelegationType) -> List:
+        """
+        Get Label or Capacity delegation from an ARM as a Python object. They are represented
+        as lists of dictionaries, with fields like ipv4, vlan or vlan-pool. May also include fields
+        to denote specific delegations.
+        :param node_id:
+        :param delegation_type:
         :return:
         """
