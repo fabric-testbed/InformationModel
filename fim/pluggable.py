@@ -167,8 +167,6 @@ class PluggableRegistry:
             # figure out which methods it implements
             pluggable_type, pluggable_methods = PluggableRegistry.PLUGGABLE_MAP[t]
             self.implemented_methods = pluggable_type.get_implemented_methods(p)
-            print(f"Intersection {pluggable_methods.intersection(self.implemented_methods)} of "
-                  f"{len(pluggable_methods.intersection(self.implemented_methods))} ")
             if len(self.implemented_methods) == 0 or \
                     len(pluggable_methods.intersection(self.implemented_methods)) == 0:
                 raise RuntimeError(f"Plugin {p} does not implement any of the expected methods: "
@@ -201,7 +199,7 @@ class PluggableRegistry:
             raise RuntimeError(f"Another plugin {PluggableRegistry.instance[t].pluggable} "
                                f"class is already registered for type {t.name}")
 
-    def pluggable_registered(self, *, t: PluggableType):
+    def pluggable_registered(self, *, t: PluggableType) -> bool:
         """
         Return true if a pluggable already is registered
         :param t:
@@ -209,8 +207,19 @@ class PluggableRegistry:
         """
         return PluggableRegistry.instance.get(t, None) is not None
 
-    def get_implemented_methods(self, *, t: PluggableType):
+    def get_implemented_methods(self, *, t: PluggableType) -> List:
+        """
+        Get implemented methods for a pluggable type as a list of strings
+        :param t:
+        :return:
+        """
         return PluggableRegistry.instance[t].get_implemented_methods()
 
     def get_method_callable(self, *, t: PluggableType, method):
+        """
+        Get a callable for a given method name
+        :param t:
+        :param method:
+        :return:
+        """
         return PluggableRegistry.instance[t].get_method_callable(method=method)
