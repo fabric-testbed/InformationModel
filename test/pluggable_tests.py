@@ -1,6 +1,7 @@
+import unittest
+
 from fim.pluggable import PluggableType, PluggableRegistry, \
     ABCPluggable, AMPluggable, BrokerPluggable, OrchestratorPluggable
-import inspect
 from fim.graph.abc_property_graph import ABCPropertyGraph
 
 
@@ -10,9 +11,9 @@ class MyPlug:
         print("Initializing MyPlug")
         self.param = "param"
 
-    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs) -> ABCPropertyGraph:
-        print(f"Graph is {cbm} with {self.param}")
-        return None
+    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs):
+        return f"Graph is {cbm} with {self.param}"
+
 
 class MyPlug1:
 
@@ -23,40 +24,43 @@ class MyPlug1:
         print("Blah")
 
 
+class TestPluggable(unittest.TestCase):
+
+    def testRegistrySingleton(self):
+        r = PluggableRegistry()
+        r1 = PluggableRegistry()
+
+        assert r.instance is r1.instance
+
+    def testEmptyRegistered(self):
+
+        r = PluggableRegistry()
+
+        assert r.pluggable_registered(t=PluggableType.AM) is False
+        assert r.pluggable_registered(t=PluggableType.Broker) is False
+        assert r.pluggable_registered(t=PluggableType.Orchestrator) is False
+
+    def testRegistration(self):
+
+        r = PluggableRegistry()
+
+        r.register_pluggable(t=PluggableType.Broker, p=MyPlug)
+
+        assert r.pluggable_registered(t=PluggableType.Broker) is True
+
+        methods = r.get_implemented_methods(t=PluggableType.Broker)
+
+        assert "plug_produce_bqm" in methods
+
+        c = r.get_method_callable(t=PluggableType.Broker, method='plug_produce_bqm')
+
+        assert callable(c) is True
+
+        ret = c(cbm=4)
+
+        assert ret == "Graph is 4 with param"
+
+
 if __name__ == "__main__":
 
-    print(ABCPluggable.get_pluggable_methods())
-    print(AMPluggable.get_pluggable_methods())
-    print(BrokerPluggable.get_pluggable_methods())
-    print(OrchestratorPluggable.get_pluggable_methods())
-
-    print(ABCPluggable.get_implemented_methods(MyPlug))
-
-    r = PluggableRegistry()
-
-    print(r.pluggable_registered(t=PluggableType.AM))
-    print(r.pluggable_registered(t=PluggableType.Orchestrator))
-    print(r.pluggable_registered(t=PluggableType.Broker))
-
-    r.register_pluggable(t=PluggableType.Broker, p=MyPlug)
-    #r.register_pluggable(t=PluggableType.Orchestrator, p=MyPlug1)
-
-    print(r.pluggable_registered(t=PluggableType.AM))
-    print(r.pluggable_registered(t=PluggableType.Orchestrator))
-    print(r.pluggable_registered(t=PluggableType.Broker))
-
-    print("Implemented methods are " + str(r.get_implemented_methods(t=PluggableType.Broker)))
-
-    c = r.get_method_callable(t=PluggableType.Broker, method='plug_produce_bqm')
-
-    print(f"Calling callable {c}")
-
-    c(cbm=4)
-
-    p = PluggableRegistry()
-
-    print(p.pluggable_registered(t=PluggableType.Broker))
-
-    print(p.get_implemented_methods(t=PluggableType.Broker))
-
-    #p.register_pluggable(t=PluggableType.Broker, p=MyPlug)
+    unittest.main()
