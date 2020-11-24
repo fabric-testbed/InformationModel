@@ -269,7 +269,6 @@ class ABCGraphImporter(ABC):
         :param graph_id: - optional id of the graph in the database
         :return: - an instantiation of a property graph
         """
-        query = "match "
 
     @abstractmethod
     def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
