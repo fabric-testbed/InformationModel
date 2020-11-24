@@ -25,6 +25,8 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import fim.slivers.base_sliver
 import fim.slivers.interface_info
+from .base_sliver import BaseElement
+from .interface_info import InterfaceInfo
 
 
 class NetworkAttachedStorage(BaseElement):

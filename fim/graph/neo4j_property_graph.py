@@ -357,7 +357,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             val = session.run(query).single()
             graph_string = val.get('data')
 
-        # FIXME: horrible kludge - APOC exports without indicating 'labels' is a key,
+        # CAUTION: horrible kludge - APOC exports without indicating 'labels' is a key,
         # even though it is used, and then NetworkX refuses to import. Direct imports to
         # Neo4j work though. So we add a line to XML to declare 'labels' a key. Sigh /ib 09/12/2020
         graph_lines = graph_string.splitlines()
@@ -468,7 +468,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         query = "match (n:GraphNode {GraphID: $graphId, NodeID: $nodeId}) " \
                 "call apoc.nodes.delete(n, 10) yield value return *"
         with self.driver.session() as session:
-            val = session.run(query, graphId=self.graph_id, nodeId=node_id).single()
+            session.run(query, graphId=self.graph_id, nodeId=node_id).single()
 
     def find_matching_nodes(self, *, graph) -> Set:
         """
@@ -528,9 +528,9 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                     "call apoc.refactor.mergeNodes(nodes, {properties: 'discard', mergeRels: true}) " \
                     "yield node return node"
         with self.driver.session() as session:
-            val = session.run(query, graphId=self.graph_id,
-                              graphId1=graph.graph_id,
-                              nodeId=node_id).single()
+            session.run(query, graphId=self.graph_id,
+                        graphId1=graph.graph_id,
+                        nodeId=node_id).single()
 
 
 class Neo4jGraphImporter(ABCGraphImporter):
@@ -602,7 +602,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         try:
             with self.driver.session() as session:
                 self.log.debug(f"Loading graph {graph_id} into Neo4j")
-                val = session.run(
+                session.run(
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
                     'readLabels: true, storeNodeIds: true } ) ',
                     fileName=graphml_file).single()
@@ -727,7 +727,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # load file
         try:
             with self.driver.session() as session:
-                val = session.run(
+                session.run(
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
                     'readLabels: true, storeNodeIds: true } ) ',
                     fileName=mapped_file_name).single()
@@ -778,7 +778,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # load file
         try:
             with self.driver.session() as session:
-                val = session.run(
+                session.run(
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
                     'readLabels: true, storeNodeIds: true } ) ',
                     fileName=mapped_file_name).single()
