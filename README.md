@@ -1,3 +1,5 @@
+[![Requirements Status](https://requires.io/github/fabric-testbed/InformationModel/requirements.svg?branch=master)](https://requires.io/github/fabric-testbed/InformationModel/requirements/?branch=master)
+
 # Information Model
 FABRIC Information Model library, containing class definitions and methods for operating
 on different types of information model representations (sliver and slice)
