@@ -24,31 +24,6 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Abstract definition of ADM (Aggregate Delegation Model) functionality
+NetworkX-specific implementation of property graph abstraction
 """
 
-from abc import ABCMeta, abstractmethod
-
-from ..delegations import DelegationType
-
-
-class ABCADMMixin(metaclass=ABCMeta):
-    """
-    Interface for an ADM Mixin on top of a property graph
-    """
-    @classmethod
-    def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'rewrite_delegations') and
-                callable(subclass.rewrite_delegations) or NotImplemented)
-
-    @abstractmethod
-    def rewrite_delegations(self, *, real_adm_id: str = None) -> None:
-        """
-        Rewrite label and capacity delegations on all nodes to be dictionaries
-        referenced by ADM graph id. Note that external code should
-        not interact with delegations on ADM graphs.
-        Sometimes ADMs are cloned into temporary graphs so the method provides
-        a way to pass original ADM id as an option.
-        :param real_adm_id:
-        :return:
-        """

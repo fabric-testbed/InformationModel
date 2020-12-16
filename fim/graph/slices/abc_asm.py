@@ -24,31 +24,35 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Abstract definition of ADM (Aggregate Delegation Model) functionality
+Abstract definition of ASM (Abstract Slice Model) functionality
 """
 
+from typing import List, Any
 from abc import ABCMeta, abstractmethod
 
-from ..delegations import DelegationType
+from fim.slivers.network_node import Node
 
 
-class ABCADMMixin(metaclass=ABCMeta):
+class ABCASMMixin(metaclass=ABCMeta):
     """
-    Interface for an ADM Mixin on top of a property graph
+    Interface for an ASM Mixin on top of a property graph
     """
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'rewrite_delegations') and
-                callable(subclass.rewrite_delegations) or NotImplemented)
+        return (hasattr(subclass, 'add_compute_node') and
+                callable(subclass.add_compute_node) or NotImplemented)
 
     @abstractmethod
-    def rewrite_delegations(self, *, real_adm_id: str = None) -> None:
+    def add_compute_node(self, n: Node):
         """
-        Rewrite label and capacity delegations on all nodes to be dictionaries
-        referenced by ADM graph id. Note that external code should
-        not interact with delegations on ADM graphs.
-        Sometimes ADMs are cloned into temporary graphs so the method provides
-        a way to pass original ADM id as an option.
-        :param real_adm_id:
+        Add a compute node to a slice
         :return:
         """
+
+    @abstractmethod
+    def get_all_nodes(self) -> List[Node]:
+        """
+        Get a list of nodes in a slice
+        :return:
+        """
+
