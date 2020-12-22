@@ -251,7 +251,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, propVal=prop_val)
             if val is None or len(val.value()) == 0:
-                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                                   msg="Unable to set property on graph nodes")
 
     def update_node_properties(self, *, node_id: str, props: Dict[str, Any]) -> None:
