@@ -576,6 +576,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
         :param logger:
         """
         self.storage = NetworkXGraphStorage()
+        self.graph_class = NetworkXPropertyGraph
         if logger is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -619,7 +620,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
             # read using networkx
             self.storage.add_graph(graph_id=graph_id, graph=nx.read_graphml(f1.name))
 
-        return NetworkXPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
+        return self.graph_class(graph_id=graph_id, importer=self, logger=self.log)
 
     def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
@@ -637,7 +638,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
             # read using networkx
             self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(f1.name))
 
-        return NetworkXPropertyGraph(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
+        return self.graph_class(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
 
     def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
         """
@@ -649,7 +650,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
         # get graph id
         graph_id = self.get_graph_id(graph_file=graph_file)
         self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(graph_file))
-        return NetworkXPropertyGraph(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
+        return self.graph_class(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
 
     def delete_graph(self, *, graph_id: str) -> None:
         """

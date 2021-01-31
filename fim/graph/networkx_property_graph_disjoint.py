@@ -144,56 +144,9 @@ class NetworkXGraphImporterDisjoint(NetworkXGraphImporter):
         :param logger:
         """
         self.storage = NetworkXGraphStorageDisjoint()
+        self.graph_class = NetworkXPropertyGraphDisjoint
         if logger is None:
             self.log = logging.getLogger(__name__)
         else:
             self.log = logger
 
-    def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) -> ABCPropertyGraph:
-        """
-        Load graph serialized as a GraphML string. Assign graph id property to nodes.
-        :param graph_string:
-        :param graph_id:
-        :return:
-        """
-        assert graph_string is not None
-
-        if graph_id is None:
-            graph_id = str(uuid.uuid4())
-
-        with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
-            f1.write(graph_string)
-            # read using networkx
-            self.storage.add_graph(graph_id=graph_id, graph=nx.read_graphml(f1.name))
-
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log)
-
-    def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
-        """
-        Load graph serialized as a GraphML string with no checks or manipulations. It is
-        assumed the GraphML already contains graph ids and node ids.
-        :param graph_string:
-        :return:
-        """
-        assert graph_string is not None
-
-        with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
-            f1.write(graph_string)
-            # get graph id (kinda inefficient, because reads graph in, then discards)
-            graph_id = self.get_graph_id(graph_file=f1.name)
-            # read using networkx
-            self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(f1.name))
-
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
-
-    def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
-        """
-        Import a graph from file without any manipulations
-        :param graph_file: name of the file
-        :return:
-        """
-        assert graph_file is not None
-        # get graph id
-        graph_id = self.get_graph_id(graph_file=graph_file)
-        self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(graph_file))
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
