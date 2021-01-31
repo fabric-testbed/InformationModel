@@ -40,21 +40,13 @@ from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, 
     PropertyGraphQueryException, ABCGraphImporter
 
 
-class NetworkXPropertyGraphDisjoint(ABCPropertyGraph):
-    """
-    This class implements most of ABCPropertyGraph functionality.
-    It stores each graph as a separate object and as a result is more
-    efficient, however cannot implement merge_nodes properly - a RuntimeError
-    will be raised if the method is called.
-    For a fully semantics-compliant implementation please see
-    NetworkXPropertyGraph.
-    """
+class NetworkXPropertyGraph(ABCPropertyGraph):
 
     NETWORKX_LABEL = 'Class'
 
     def __init__(self, *, graph_id: str):
         self.graph_id = graph_id
-        self.graphs = NetworkXGraphStorageDisjoint()
+        self.graphs = NetworkXGraphStorage()
 
     def validate_graph(self) -> None:
         """
@@ -331,13 +323,12 @@ class NetworkXPropertyGraphDisjoint(ABCPropertyGraph):
         has assumptions about a common store for all graphs.
         Would require to store all graphs in a single NetworkX graph.
         """
-        raise RuntimeError("Not implementable")
+        raise RuntimeError("Not implemented")
 
 
-class NetworkXGraphStorageDisjoint:
+class NetworkXGraphStorage:
     """
-    Shell for singleton storing all graphs in-memory. Graphs
-    are stored as separate NetworkX objects.
+    Shell for singleton storing all graphs in-memory
     """
 
     class __NetworkXGraphStorage:
@@ -366,17 +357,16 @@ class NetworkXGraphStorageDisjoint:
     storage_instance = None
 
     def __init__(self):
-        if not NetworkXGraphStorageDisjoint.storage_instance:
-            NetworkXGraphStorageDisjoint.storage_instance = NetworkXGraphStorageDisjoint.__NetworkXGraphStorage()
+        if not NetworkXGraphStorage.storage_instance:
+            NetworkXGraphStorage.storage_instance = NetworkXGraphStorage.__NetworkXGraphStorage()
 
     def __getattr__(self, name):
         return getattr(self.storage_instance, name)
 
 
-class NetworkXGraphImporterDisjoint(ABCGraphImporter):
+class NetworkXGraphImporter(ABCGraphImporter):
     """
-    Importer for NetworkX graphs. Stores graphs separately a dictionary
-    based on GUID strings.
+    Importer for NetworkX graphs. Stores graphs in a dictionary basedon GUID strings.
     """
 
     def __init__(self, *, logger=None):
@@ -384,7 +374,7 @@ class NetworkXGraphImporterDisjoint(ABCGraphImporter):
         Initialize the importer setting up storage and logger
         :param logger:
         """
-        self.graphs = NetworkXGraphStorageDisjoint()
+        self.graphs = NetworkXGraphStorage()
         if logger is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -430,7 +420,7 @@ class NetworkXGraphImporterDisjoint(ABCGraphImporter):
         for n in list(self.graphs[graph_id].nodes):
             self.graphs[graph_id].nodes[n]['GraphID'] = graph_id
 
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id)
+        return NetworkXPropertyGraph(graph_id=graph_id)
 
     def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
@@ -448,7 +438,7 @@ class NetworkXGraphImporterDisjoint(ABCGraphImporter):
             # read using networkx
             self.graphs[graph_id] = nx.read_graphml(f1.name)
 
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id) if graph_id is not None else None
+        return NetworkXPropertyGraph(graph_id=graph_id) if graph_id is not None else None
 
     def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
         """
@@ -460,7 +450,7 @@ class NetworkXGraphImporterDisjoint(ABCGraphImporter):
         # get graph id
         graph_id = self.get_graph_id(graph_file=graph_file)
         self.graphs[graph_id] = nx.read_graphml(graph_file)
-        return NetworkXPropertyGraphDisjoint(graph_id=graph_id) if graph_id is not None else None
+        return NetworkXPropertyGraph(graph_id=graph_id) if graph_id is not None else None
 
     def delete_graph(self, *, graph_id: str) -> None:
         """
