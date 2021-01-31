@@ -29,344 +29,113 @@ NetworkX-specific implementation of property graph abstraction
 from typing import Dict, Any, Tuple, List, Set
 
 import logging
-import uuid
-import time
-import json
 import tempfile
+import uuid
 import networkx as nx
-import networkx_query as nxq
 
-from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
-    PropertyGraphQueryException, ABCGraphImporter
+from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, PropertyGraphQueryException
+from .networkx_property_graph import NetworkXPropertyGraph, NetworkXGraphImporter
 
 
-class NetworkXPropertyGraph(ABCPropertyGraph):
+class NetworkXPropertyGraphDisjoint(NetworkXPropertyGraph):
+    """
+    This class implements most of ABCPropertyGraph functionality.
+    It stores each graph as a separate object and as a result is more
+    efficient, however cannot implement merge_nodes properly - a RuntimeError
+    will be raised if the method is called.
+    For a fully semantics-compliant implementation please see
+    NetworkXPropertyGraph.
+    """
 
-    NETWORKX_LABEL = 'Class'
+    def __init__(self, *, graph_id: str, importer, logger=None):
+        # don't call immediate predecessor
+        super().__init__(graph_id=graph_id, importer=importer)
+        assert isinstance(importer, NetworkXGraphImporterDisjoint)
 
-    def __init__(self, *, graph_id: str):
-        self.graph_id = graph_id
-        self.graphs = NetworkXGraphStorage()
-
-    def validate_graph(self) -> None:
+    def merge_nodes(self, node_id: str, other_graph, merge_properties=None):
         """
-        NetworkX offers limited opportunities for query/validation
-        :return:
+        Not implementable in NetworkX with graphs stored separately -
+        has assumptions about a common store for all graphs.
+        Would require to store all graphs in a single NetworkX graph.
         """
-        self._validate_all_json_properties()
-
-    def delete_graph(self) -> None:
-        self.graphs.del_graph(self.graph_id)
-
-    def get_node_properties(self, *, node_id: str) -> (List[str], Dict[str, Any]):
-        """
-        get a tuple of labels (list) and properties (dict) of a node. Note that individual
-        properties are strings (could be JSON encoded objects). Note that 'Class' property
-        contains the equivalent of a label in Neo4j. It is not returned among the regular
-        properties.
-        :param node_id:
-        :return: (list, dict)
-        """
-        assert node_id is not None
-        query_match = list(nxq.search_nodes(self.graphs[self.graph_id],
-                                            {'eq': ['NodeID', node_id]}))
-        if len(query_match) == 0:
-            raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                              node_id=node_id, msg="Unable to find node")
-        node_props = self.graphs[self.graph_id].nodes[query_match[0]].copy()
-        label = node_props.pop(self.NETWORKX_LABEL)
-        return [label], node_props
-
-    def get_node_json_property_as_object(self, *, node_id: str, prop_name: str) -> Any:
-        assert node_id is not None
-        assert prop_name is not None
-        # very similar to Neo4j, but doesn't compare to NEO4j_NONE
-        _, node_props = self.get_node_properties(node_id=node_id)
-        prop_str = node_props.get(prop_name, None)
-        if prop_str is None:
-            return None
-        try:
-            prop_val = json.loads(prop_str)
-            return prop_val
-        except json.decoder.JSONDecodeError:
-            raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                              node_id=node_id,
-                                              msg=f"Unable to decode property {prop_str} as JSON.")
-
-    def get_link_properties(self, *, node_a: str, node_b: str) -> (str, Dict[str, Any]):
-        """
-        get link type and properties of a link between two nodes as a tuple (no multigraphs)
-        :param node_a:
-        :param node_b:
-        :return: (type, Dict)
-        """
-        assert node_a is not None
-        assert node_b is not None
-        # need to test for a->b and b->a
-        edge_props = None
-        try:
-            # FIXME: incorrect - node_a are NODE_IDs , not node labels
-            edge_props = self.graphs[self.graph_id].edges[(node_a, node_b)].copy()
-        except KeyError:
-            # try reverse edge
-            try:
-                # FIXME: incorrect - node_a are NODE_IDs , not node labels
-                edge_props = self.graphs[self.graph_id].edges[(node_b, node_a)].copy()
-            except KeyError:
-                # no edge exists
-                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Link doesn't exist")
-        if edge_props is None:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Error finding link")
-        etype = edge_props.pop(self.NETWORKX_LABEL)
-
-        return etype, edge_props
-
-    def update_node_property(self, *, node_id: str, prop_name: str, prop_val: Any) -> None:
-        """
-        update a single property of a node in a graph overwriting the previous value
-        :param node_id:
-        :param prop_name:
-        :param prop_val:
-        :return:
-        """
-        assert node_id is not None
-        assert prop_name is not None
-        assert prop_val is not None
-        query_match = list(nxq.search_nodes(self.graphs[self.graph_id],
-                                            {'eq': ['NodeID', node_id]}))
-        if len(query_match) == 0:
-            raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                              node_id=node_id, msg="Unable to find node")
-        node_props = self.graphs[self.graph_id].nodes[query_match[0]]
-        node_props[prop_name] = prop_val
-
-    def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
-        """
-        update a selected property on all nodes of the graph
-        :param prop_name:
-        :param prop_val:
-        :return:
-        """
-        assert prop_name is not None
-        assert prop_val is not None
-        for n in list(self.graphs[self.graph_id].nodes):
-            self.graphs[self.graph_id].nodes[n][prop_name] = prop_val
-
-    def update_node_properties(self, *, node_id: str, props: Dict[str, Any]) -> None:
-        """
-        update multiple properties on a node (value types in dictionary must be convertible to string)
-        :param node_id:
-        :param props:
-        :return:
-        """
-        assert node_id is not None
-        assert props is not None
-        query_match = list(nxq.search_nodes(self.graphs[self.graph_id],
-                                            {'eq': ['NodeID', node_id]}))
-        if len(query_match) == 0:
-            raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                              node_id=node_id, msg="Unable to find node")
-        node_props = self.graphs[self.graph_id].nodes[query_match[0]]
-        node_props.update(props)
-
-    def update_link_property(self, *, node_a: str, node_b: str, kind: str, prop_name: str, prop_val: Any) -> None:
-        """
-        update a single property of a link, overriding existing property or inserting a new one
-        :param node_a:
-        :param node_b:
-        :param kind:
-        :param prop_name:
-        :param prop_val:
-        :return:
-        """
-        assert node_a is not None
-        assert node_b is not None
-        assert kind is not None
-        assert prop_name is not None
-        assert prop_val is not None
-
-        edge_props = None
-        try:
-            edge_props = self.graphs[self.graph_id].edges[(node_a, node_b)]
-        except KeyError:
-            # try reverse edge
-            try:
-                edge_props = self.graphs[self.graph_id].edges[(node_b, node_a)]
-            except KeyError:
-                # no edge exists
-                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Link doesn't exist")
-        if edge_props is None:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Error finding link")
-        etype = edge_props.pop(self.NETWORKX_LABEL)
-        if etype != kind:
-            return
-        edge_props[prop_name] = prop_val
-
-    def update_link_properties(self, *, node_a: str, node_b: str, kind: str, props: Dict[str, Any]) -> None:
-        """
-        update multiple properties of a link overriding existing ones if necessary
-        :param node_a:
-        :param node_b:
-        :param kind:
-        :param props:
-        :return:
-        """
-        assert node_a is not None
-        assert node_b is not None
-        assert kind is not None
-        assert props is not None
-        edge_props = None
-        try:
-            edge_props = self.graphs[self.graph_id].edges[(node_a, node_b)]
-        except KeyError:
-            # try reverse edge
-            try:
-                edge_props = self.graphs[self.graph_id].edges[(node_b, node_a)]
-            except KeyError:
-                # no edge exists
-                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Link doesn't exist")
-        if edge_props is None:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Error finding link")
-        etype = edge_props.pop(self.NETWORKX_LABEL)
-        if etype != kind:
-            return
-        edge_props.update(props)
-
-    def list_all_node_ids(self) -> List[str]:
-        """
-        List all NodeID properties of nodes in a graph
-        :return:
-        """
-        nodeids = list()
-        for n in list(self.graphs[self.graph_id].nodes):
-            nodeids.append(self.graphs[self.graph_id][n]['NodeID'])
-        return nodeids
-
-    def serialize_graph(self) -> str:
-        """
-        Serialize a given graph into GraphML string
-        :return:
-        """
-        graph_string = '\n'.join(nx.generate_graphml(self.graphs[self.graph_id]))
-        return graph_string
-
-    def clone_graph(self, *, new_graph_id: str):
-        """
-        Clone a graph to a new graph_id (only a shallow copy in NetworkX)
-        :param new_graph_id:
-        :return:
-        """
-        assert new_graph_id is not None
-        new_graph = self.graphs[self.graph_id].copy()
-        self.graphs[new_graph_id] = new_graph
+        raise RuntimeError("Not implementable")
 
     def graph_exists(self) -> bool:
         """
         Does the graph with this ID exist?
         :return:
         """
-        return self.graph_id in self.graphs.keys()
-
-    def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str, rel: str = None) -> List:
-        pass
-
-    def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List:
-        pass
-
-    def get_first_and_second_neighbor(self, *, node_id: str, rel1: str, node1_label: str, rel2: str,
-                                      node2_label: str) -> List:
-        pass
-
-    def delete_node(self, *, node_id: str):
-        """
-        Delete node from a graph (incident edges automatically deleted)
-        :param node_id:
-        :return:
-        """
-        assert node_id is not None
-        query_match = list(nxq.search_nodes(self.graphs[self.graph_id],
-                                            {'eq': ['NodeID', node_id]}))
-        if len(query_match) == 0:
-            raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                              node_id=node_id, msg="Unable to find node")
-        self.graphs[self.graph_id].remove_node(query_match[0])
-
-    @staticmethod
-    def _collect_nodeids(graph: nx.Graph) -> Set[str]:
-        """
-        Collect node ids from a NetworkX graph object as a set
-        :param graph:
-        :return:
-        """
-        assert isinstance(graph, nx.Graph)
-        nodeids = set()
-        for n in list(graph.nodes):
-            nodeids.add(graph.nodes[n]['NodeID'])
-        return nodeids
-
-    def find_matching_nodes(self, *, graph) -> Set:
-        """
-        Return a set of node ids that match between the two graphs
-        :param graph: ID of the other graph
-        :return:
-        """
-        assert graph is not None
-        # collect NodeID properties from self and other graph as set,
-        # return an intersection
-        self_ids = self._collect_nodeids(self.graphs[self.graph_id])
-        other_ids = self._collect_nodeids(self.graphs[graph])
-        return self_ids.intersection(other_ids)
-
-    def merge_nodes(self, node_id: str, graph, merge_properties=None):
-        """
-        Not implementable in NetworkX with graphs stored separately -
-        has assumptions about a common store for all graphs.
-        Would require to store all graphs in a single NetworkX graph.
-        """
-        raise RuntimeError("Not implemented")
+        return self.storage.graphs.get(self.graph_id, None) is not None
 
 
-class NetworkXGraphStorage:
+class NetworkXGraphStorageDisjoint:
     """
-    Shell for singleton storing all graphs in-memory
+    Shell for singleton storing all graphs in-memory. Graphs
+    are stored as separate NetworkX objects.
     """
 
     class __NetworkXGraphStorage:
         """
-        Singleton in-memory storage for graphs
+        Singleton in-memory storage for graphs stored separately by id
         """
 
         def __init__(self):
             self.graphs = dict()
 
-        def add_graph(self, graph_id: str, graph):
-            self.graphs[graph_id] = graph
+        def add_graph(self, graph_id: str, graph: nx.Graph) -> None:
+            # relabel incoming graph nodes to integers, then add
+            temp_graph = nx.convert_node_labels_to_integers(graph, 1)
+            # set/overwrite GraphID property on all nodes
+            for n in list(temp_graph.nodes()):
+                if not temp_graph.nodes[n].get(ABCPropertyGraph.NODE_ID, None):
+                    raise PropertyGraphImportException(graph_id=graph_id,
+                                                       msg="Some nodes are missing NodeID property, unable to import")
+                temp_graph.nodes[n][ABCPropertyGraph.GRAPH_ID] = graph_id
+            # this is needed in case passed in graph is actually a DiGraph
+            # which graphs produced by yEd tend to be
+            self.graphs[graph_id] = nx.Graph()
+            self.graphs[graph_id].add_nodes_from(temp_graph.nodes(data=True))
+            self.graphs[graph_id].add_edges_from(temp_graph.edges(data=True))
 
-        def get_graph(self, graph_id):
+        def add_graph_direct(self, graph_id: str, graph: nx.Graph) -> None:
+            # relabel incoming graph nodes to integers, then merge
+            temp_graph = nx.convert_node_labels_to_integers(graph, 1)
+            self.graphs[graph_id] = temp_graph
+
+        def del_graph(self, graph_id: str) -> None:
+            try:
+                self.graphs.pop(graph_id)
+            except KeyError:
+                pass
+
+        def extract_graph(self, graph_id: str) -> nx.Graph or None:
+            graph = self.graphs.get(graph_id, None)
+            if graph is not None:
+                return graph.copy()
+            else:
+                return None
+
+        def get_graph(self, graph_id) -> nx.Graph:
+            # return the store for this graph
             return self.graphs.get(graph_id, None)
 
-        def del_graph(self, graph_id):
-            self.graphs.pop(graph_id, None)
-
-        def del_all_graphs(self):
+        def del_all_graphs(self) -> None:
             self.graphs.clear()
-
-        def __getitem__(self, item):
-            return self.graphs[item]
 
     storage_instance = None
 
     def __init__(self):
-        if not NetworkXGraphStorage.storage_instance:
-            NetworkXGraphStorage.storage_instance = NetworkXGraphStorage.__NetworkXGraphStorage()
+        if not NetworkXGraphStorageDisjoint.storage_instance:
+            NetworkXGraphStorageDisjoint.storage_instance = NetworkXGraphStorageDisjoint.__NetworkXGraphStorage()
 
     def __getattr__(self, name):
         return getattr(self.storage_instance, name)
 
 
-class NetworkXGraphImporter(ABCGraphImporter):
+class NetworkXGraphImporterDisjoint(NetworkXGraphImporter):
     """
-    Importer for NetworkX graphs. Stores graphs in a dictionary basedon GUID strings.
+    Importer for NetworkX graphs. Stores graphs separately a dictionary
+    based on GUID strings.
     """
 
     def __init__(self, *, logger=None):
@@ -374,30 +143,11 @@ class NetworkXGraphImporter(ABCGraphImporter):
         Initialize the importer setting up storage and logger
         :param logger:
         """
-        self.graphs = NetworkXGraphStorage()
+        self.storage = NetworkXGraphStorageDisjoint()
         if logger is None:
             self.log = logging.getLogger(__name__)
         else:
             self.log = logger
-
-    @staticmethod
-    def _relabel_nodes_to_nodeids(graph: nx.Graph, copy: bool) -> nx.Graph:
-        """
-        Relabel node names to their node ids. If copy set to True, produce a
-        copy, otherwise do it in place
-        :param graph:
-        :param copy:
-        :return:
-        """
-        name_map = dict()
-        for n in list(graph.nodes):
-            name_map[n] = graph.nodes[n]['NodeID']
-
-        # not every node has a NodeID property
-        if len(graph.nodes) != len(name_map):
-            raise PropertyGraphImportException(graph_id=None, msg="Some nodes are missing NodeID property")
-
-        return nx.relabel_nodes(graph, name_map, copy)
 
     def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) -> ABCPropertyGraph:
         """
@@ -414,13 +164,9 @@ class NetworkXGraphImporter(ABCGraphImporter):
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph_string)
             # read using networkx
-            self.graphs[graph_id] = nx.read_graphml()
+            self.storage.add_graph(graph_id=graph_id, graph=nx.read_graphml(f1.name))
 
-        # ovewrite graph id on every node
-        for n in list(self.graphs[graph_id].nodes):
-            self.graphs[graph_id].nodes[n]['GraphID'] = graph_id
-
-        return NetworkXPropertyGraph(graph_id=graph_id)
+        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log)
 
     def import_graph_from_string_direct(self, *, graph_string: str) -> ABCPropertyGraph:
         """
@@ -436,9 +182,9 @@ class NetworkXGraphImporter(ABCGraphImporter):
             # get graph id (kinda inefficient, because reads graph in, then discards)
             graph_id = self.get_graph_id(graph_file=f1.name)
             # read using networkx
-            self.graphs[graph_id] = nx.read_graphml(f1.name)
+            self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(f1.name))
 
-        return NetworkXPropertyGraph(graph_id=graph_id) if graph_id is not None else None
+        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
 
     def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
         """
@@ -449,22 +195,5 @@ class NetworkXGraphImporter(ABCGraphImporter):
         assert graph_file is not None
         # get graph id
         graph_id = self.get_graph_id(graph_file=graph_file)
-        self.graphs[graph_id] = nx.read_graphml(graph_file)
-        return NetworkXPropertyGraph(graph_id=graph_id) if graph_id is not None else None
-
-    def delete_graph(self, *, graph_id: str) -> None:
-        """
-        Delete a single graph with this id
-        :param graph_id:
-        :return:
-        """
-        assert graph_id is not None
-        # return None to avoid KeyError
-        self.graphs.del_graph(graph_id)
-
-    def delete_all_graphs(self) -> None:
-        """
-        Remove all graphs from the by-GUID in-memory dictionary
-        :return:
-        """
-        self.graphs.del_all_graphs()
+        self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(graph_file))
+        return NetworkXPropertyGraphDisjoint(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
