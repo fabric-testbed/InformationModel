@@ -1,10 +1,10 @@
 import unittest
 from typing import Dict
 
-import fim.graph.networkx_property_graph as nx_graph
+import fim.graph.networkx_property_graph_disjoint as nx_graph
 
 
-class NetworkXPropertyGraphTests(unittest.TestCase):
+class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
 
     GRAPH_FILE = "test/models/site-2-am-1broker-ad.graphml"
     NET_FILE = "test/models/network-am-ad.graphml"
@@ -13,7 +13,7 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
     GIVEN_NODEID = '43BB2199-8248-48DE-86C5-E94112BFE401'
 
     def setUp(self) -> None:
-        self.imp = nx_graph.NetworkXGraphImporter()
+        self.imp = nx_graph.NetworkXGraphImporterDisjoint()
         graph_string = self.imp.enumerate_graph_nodes_to_string(graph_file=self.GRAPH_FILE)
         self.g = self.imp.import_graph_from_string(graph_string=graph_string)
 
@@ -24,9 +24,9 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         # find a few favorite nodes
         ret = dict()
         for f in self.FAVORITE_NODES:
-            for n in self.g.storage.get_graph(1).nodes:
-                if self.g.storage.get_graph(1).nodes[n].get('Name', None) == f:
-                    ret[f] = self.g.storage.get_graph(1).nodes[n]['NodeID']
+            for n in self.g.storage.get_graph(self.g.graph_id).nodes:
+                if self.g.storage.get_graph(self.g.graph_id).nodes[n].get('Name', None) == f:
+                    ret[f] = self.g.storage.get_graph(self.g.graph_id).nodes[n]['NodeID']
         return ret
 
     def test_validate(self):
@@ -128,13 +128,12 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         graph_string = self.g.serialize_graph()
         new_graph = self.imp.import_graph_from_string(graph_string=graph_string)
         count = 0
-        # will see two copies since storage has all graphs
         for f in self.FAVORITE_NODES:
-            for n in new_graph.storage.get_graph(1).nodes:
-                if new_graph.storage.get_graph(1).nodes[n].get('Name', None) == f:
+            for n in new_graph.storage.get_graph(self.g.graph_id).nodes:
+                if new_graph.storage.get_graph(self.g.graph_id).nodes[n].get('Name', None) == f:
                     count = count + 1
 
-        assert(count == 6)
+        assert(count == 3)
         node_ids = new_graph.list_all_node_ids()
         assert ('43BB2199-8248-48DE-86C5-E94112BFE401' in node_ids)
 
@@ -182,7 +181,7 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         assert(node1_props['Name'] == 'NIC1')
         assert(node2_props['Name'] == 'NICSwitchFabric1')
 
-    def test_match_and_merge(self):
+    def test_match(self):
         favs = self._find_favorite_nodes()
         assert((favs.get('SwitchFabric1'), None) is not None)
         sf1 = favs['SwitchFabric1']
@@ -201,28 +200,7 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
 
         matching_nodes = list(self.g.find_matching_nodes(other_graph=net_graph))
         assert(cp_id in matching_nodes)
-        # get neighbors of CP in original graph
-        original_neighbors = self.g.get_first_neighbor(node_id=cp_id,
-                                                       rel='connects',
-                                                       node_label='SwitchFabric')
-        for n in matching_nodes:
-            self.g.merge_nodes(node_id=n, other_graph=net_graph)
 
-        _, node_props = self.g.get_node_properties(node_id=cp_id)
-
-        new_neighbors = self.g.get_first_neighbor(node_id=cp_id,
-                                                  rel='connects',
-                                                  node_label='SwitchFabric')
-        assert(original_neighbors == new_neighbors)
-
-        net_graph.update_nodes_property(prop_name=self.g.GRAPH_ID, prop_val=self.g.graph_id)
-
-        # count CPs on sf1 again
-        new_cps = set(self.g.get_first_neighbor(node_id=sf1, rel='connects', node_label='ConnectionPoint'))
-
-        assert(len(new_cps.difference(original_cps)) == 1)
-        assert(new_cps.intersection(original_cps) == original_cps)
-
-
+        #self.assertRaises(RuntimeError, self.g.merge_nodes(node_id=common_node_id, other_graph=net_graph))
 
 
