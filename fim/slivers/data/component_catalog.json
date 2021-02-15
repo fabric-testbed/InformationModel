@@ -1,0 +1,44 @@
+[
+  {
+    "Model": "RTX6000",
+    "Type": "GPU",
+    "Details": "NVIDIA RTX6000"
+  },
+  {
+    "Model": "T4",
+    "Type": "GPU",
+    "Details": "NVIDIA T4"
+  },
+  {
+    "Model": "ConnectX-6",
+    "Type": "SharedNIC",
+    "Interfaces": {
+      "p1": "100"
+    },
+    "Details": "Mellanox ConnectX-6 VPI MCX653 dual port 100Gbps"
+  },
+  {
+    "Model": "ConnectX-6",
+    "Type": "SmartNIC",
+    "Interfaces": {
+      "p1": "100",
+      "p2": "100"
+    },
+    "Details": "Mellanox ConnectX-6 VPI MCX653 dual port 100Gbps"
+  },
+  {
+    "Model": "ConnectX-5",
+    "Type": "SmartNIC",
+    "Details": "Mellanox ConnectX-5 Dual Port 10/25GbE",
+    "Interfaces": {
+      "p1": "25",
+      "p2": "25"
+    }
+  },
+  {
+    "Model": "P4510",
+    "Type": "NVME",
+    "Details": "1TB U.2 P4510 drive",
+    "Capacity": "1000"
+  }
+]

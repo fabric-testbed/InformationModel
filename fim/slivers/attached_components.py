@@ -27,6 +27,7 @@
 from .base_sliver import BaseElement
 from .interface_info import InterfaceInfo
 
+
 class AttachedPCIDeviceEntry(BaseElement):
     def __init__(self, pci_id: str = None, pci_slot: str = None):
         super().__init__()
