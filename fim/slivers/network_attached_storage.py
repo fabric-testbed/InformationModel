@@ -29,7 +29,10 @@ from .base_sliver import BaseElement
 from .interface_info import InterfaceInfo
 
 
-class NetworkAttachedStorage(BaseElement):
+class NetworkAttachedStorageSliver(BaseElement):
+    # maps onto NetworkNode
+    GRAPH_LABEL = 'NetworkNode'
+
     def __init__(self):
         super().__init__()
         self.technology = None

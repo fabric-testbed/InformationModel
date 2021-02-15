@@ -25,57 +25,38 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import ipaddress
 import uuid
+import enum
 
 from .base_sliver import BaseElement
 
 
-class InterfaceInfoEntry(BaseElement):
-    def __init__(self, interface_id: str = None, interface_name: str = None):
+class InterfaceType(enum.Enum):
+    PORT = enum.auto()
+    VINT = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class InterfaceSliver(BaseElement):
+
+    def __init__(self):
         super().__init__()
-        if interface_id is not None:
-            self.interface_id = interface_id
-        else:
-            self.interface_id = uuid.uuid4().__str__()
-        self.interface_name = interface_name
-        self.interface_ips = []
-
-    def set_interface_name(self, interface_name: str):
-        self.interface_name = interface_name
-
-    def get_interface_name(self) -> str:
-        return self.interface_name
-
-    def set_interface_id(self, interface_id: str):
-        self.interface_id = interface_id
-
-    def get_interface_id(self) -> str:
-        return self.interface_id
-
-    def set_interface_ips(self, interface_ips: list):
-        self.interface_ips = interface_ips
-
-    def get_interface_ips(self) -> list:
-        return self.interface_ips
-
-    def add_interface_ip(self, interface_ip: str):
-        ip = ipaddress.ip_address(interface_ip)
-        self.interface_ips.append(ip)
-
-    def remove_interface_ip(self, interface_ip: str):
-        ip = ipaddress.ip_address(interface_ip)
-        self.interface_ips.remove(ip)
 
 
 class InterfaceInfo:
     def __init__(self):
         self.interfaces = {}
 
-    def add_interface(self, interface_info: InterfaceInfoEntry):
-        self.interfaces[interface_info.get_interface_id()] = interface_info
+    def add_interface(self, interface_info: InterfaceSliver):
+        self.interfaces[interface_info.resource_name] = interface_info
 
-    def remove_interface(self, interface_id: str):
-        if interface_id in self.interfaces:
-            self.interfaces.pop(interface_id)
+    def remove_interface(self, name: str):
+        if name in self.interfaces.keys():
+            self.interfaces.pop(name)
 
-    def get_interface(self, interface_id: str):
-        return self.interfaces.get(interface_id, None)
+    def get_interface(self, name: str):
+        return self.interfaces.get(name, None)

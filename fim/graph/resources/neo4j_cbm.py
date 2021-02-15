@@ -32,12 +32,12 @@ import json
 from typing import List
 
 from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
-from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException, PropertyGraphImportException
+from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from .abc_cbm import ABCCBMMixin
 from .neo4j_adm import Neo4jADMGraph
-from ..delegations import DelegationType
+from fim.slivers.delegations import DelegationType
 
-from ...pluggable import PluggableRegistry, ABCPluggable, BrokerPluggable, PluggableType
+from ...pluggable import PluggableRegistry, BrokerPluggable, PluggableType
 
 
 class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):

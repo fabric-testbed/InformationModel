@@ -42,18 +42,29 @@ class JSONField(ABC):
     def to_json(self) -> str:
         """
         Dumps to JSON the __dict__ of the instance. Be careful as the fields in this
-        class should only be those that can be present in the dictionary.
+        class should only be those that can be present in JSON output.
         :return:
         """
         d = self.__dict__.copy()
         for k in self.__dict__:
-            if d[k] == 0:
+            if d[k] is None or d[k] == 0:
                 d.pop(k)
         return json.dumps(d, skipkeys=True, sort_keys=True)
 
     def from_json(self, json_string: str):
         d = json.loads(json_string)
         self.set_fields(**d)
+
+    def __repr__(self):
+        return self.to_json()
+
+    def __str__(self):
+        return self.to_json()
+
+    def available_fields(self):
+        l = list(self.__dict__.keys())
+        l.sort()
+        return l
 
 
 class Capacities(JSONField):
@@ -85,6 +96,7 @@ class Capacities(JSONField):
                 self.__setattr__(k, v)
             except AttributeError:
                 raise RuntimeError(f"Unable to set field {k} of capacity, no such field available")
+        return self
 
 
 class Labels(JSONField):
@@ -93,18 +105,18 @@ class Labels(JSONField):
     and decoding from JSON dictionaries of properties
     """
     def __init__(self):
-        self.l_bdf = None
-        self.l_mac = None
-        self.l_ipv4 = None
-        self.l_ipv4_range = None
-        self.l_ipv6 = None
-        self.l_ipv6_range = None
-        self.l_asn = None
-        self.l_vlan = None
-        self.l_vlan_range = None
-        self.l_node = None
+        self.bdf = None
+        self.mac = None
+        self.ipv4 = None
+        self.ipv4_range = None
+        self.ipv6 = None
+        self.ipv6_range = None
+        self.asn = None
+        self.vlan = None
+        self.vlan_range = None
+        self.node = None
 
-    def set_fields(self, **kwargs) -> None:
+    def set_fields(self, **kwargs):
         """
         Universal setter for all fields (just strip the l_ from the field
         name of the field). Values should be strings or lists of strings.
@@ -117,7 +129,9 @@ class Labels(JSONField):
             assert isinstance(v, str) or isinstance(v, list)
             try:
                 # will toss an exception if field is not defined
-                self.__getattribute__('l_' + k)
-                self.__setattr__('l_' + k, v)
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
             except AttributeError:
                 raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
+        # to support call chaining
+        return self

@@ -29,8 +29,6 @@ Abstract definition of ADM (Aggregate Delegation Model) functionality
 
 from abc import ABCMeta, abstractmethod
 
-from ..delegations import DelegationType
-
 
 class ABCADMMixin(metaclass=ABCMeta):
     """

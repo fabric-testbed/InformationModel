@@ -33,7 +33,7 @@ from enum import Enum
 from typing import List, Dict, Set
 import json
 
-from .abc_property_graph import ABCPropertyGraph
+from fim.graph.abc_property_graph import ABCPropertyGraph
 
 
 class DelegationType(Enum):

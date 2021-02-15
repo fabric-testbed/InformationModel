@@ -30,7 +30,10 @@ Abstract definition of ASM (Abstract Slice Model) functionality
 from typing import List, Any
 from abc import ABCMeta, abstractmethod
 
-from fim.slivers.network_node import Node
+from fim.slivers.network_node import NodeSliver
+from fim.slivers.attached_components import ComponentSliver
+from fim.slivers.switch_fabric import SwitchFabricSliver
+from fim.slivers.interface_info import InterfaceSliver
 
 
 class ABCASMMixin(metaclass=ABCMeta):
@@ -39,20 +42,84 @@ class ABCASMMixin(metaclass=ABCMeta):
     """
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'add_compute_node') and
-                callable(subclass.add_compute_node) or NotImplemented)
+        return (hasattr(subclass, 'get_all_network_nodes') and
+                callable(subclass.get_all_network_nodes) or NotImplemented)
 
     @abstractmethod
-    def add_compute_node(self, n: Node):
+    def get_all_network_nodes(self) -> List[str]:
         """
-        Add a compute node to a slice
+        Get a list of nodes IDs in a slice model
         :return:
         """
 
     @abstractmethod
-    def get_all_nodes(self) -> List[Node]:
+    def get_all_network_node_components(self, parent_node_id: str) -> List[str]:
         """
-        Get a list of nodes in a slice
+        Get a list of node ids of components that are connected to a parent node
+        :param parent_node_id:
         :return:
         """
+
+    @abstractmethod
+    def find_node_by_name(self, node_name: str, label: str) -> str:
+        """
+        Get node id of node based on its name and class/label. Throw
+        exception if multiple matches found.
+        :param node_name:
+        :param label: node label or class of the node
+        :return:
+        """
+
+    @abstractmethod
+    def remove_network_node_with_components_interfaces_and_links(self, node_id: str):
+        """
+        Remove a network node and all of its components from the graph
+        :param node_id:
+        :return:
+        """
+
+    @abstractmethod
+    def add_network_node_sliver(self, *, sliver: NodeSliver):
+        """
+        Use node sliver to add node, components and interfaces to the graph
+        :param sliver:
+        :return:
+        """
+
+    @abstractmethod
+    def add_component_sliver(self, *, parent_node_id: str, component: ComponentSliver):
+        """
+        Add Component (PCI device) to a node with node_id
+        :param parent_node_id:
+        :param component:
+        :return:
+        """
+
+    @abstractmethod
+    def add_switch_fabric_sliver(self, *, parent_node_id: str, switch_fabric: SwitchFabricSliver):
+        """
+        Add switch fabric to component or node
+        :param parent_node_id:
+        :param switch_fabric:
+        :return:
+        """
+
+    @abstractmethod
+    def add_interface_sliver(self, *, node_id: str, interface: InterfaceSliver):
+        """
+        Add switching fabric (if needed) and an interface of the component
+        :param node_id:
+        :param interface:
+        :return:
+        """
+
+    @abstractmethod
+    def find_component_by_name(self, *, parent_node_id: str, component_name: str) -> str:
+        """
+        Find a component by name as a child of a node
+        :param parent_node_id:
+        :param component_name:
+        :return:
+        """
+
 

@@ -24,13 +24,16 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import uuid
 
-from .model_element import ModelElement
+from ..graph.abc_property_graph import ABCPropertyGraph
+from .model_element import ModelElement, ElementType
 from .interface import Interface
+from .switch_fabric import SwitchFabric, SFLayer
 from ..slivers.attached_components import ComponentSliver, ComponentType
+from ..slivers.component_catalog import ComponentCatalog
 
 
 class Component(ModelElement):
@@ -38,29 +41,62 @@ class Component(ModelElement):
     A component, like a GPU, a NIC, an FPGA or an NVMe drive
     """
 
-    def __init__(self, *, name: str, node_id: str = None, parent: Any, topo: Any):
+    def __init__(self, *, name: str, node_id: str = None, topo: Any,
+                 etype: ElementType = ElementType.EXISTING, model: str = None,
+                 ctype: ComponentType = None, parent_node_id: str = None,
+                 switch_fabric_node_id: str = None, interface_node_ids: List[str] = None,
+                 **kwargs):
+        """
+        Don't call this yourself, use Node.add_component(). Instantiates components based on
+        catalog resource file.
+        :param name:
+        :param node_id:
+        :param topo:
+        :param etype: is this supposed to be new or existing
+        :param model: must be specified if a new component
+        :param ctype: component type
+        :param parent_node_id: node_id of the parent Node (for new components)
+        :param switch_fabric_node_id: node id of switch fabric if one needs to be added (for substrate models only)
+        :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
+        """
 
+        assert name is not None
+        assert topo is not None
+        # cant use isinstance as it would create circular import dependencies
+        if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
+            raise RuntimeError("When adding components to substrate topology nodes you must specify static Node ID")
+        if etype == ElementType.NEW and model is None:
+            raise RuntimeError("When creating a new component, model must be specified")
         if node_id is None:
             node_id = str(uuid.uuid4())
-        super().__init__(name=name, node_id=node_id, parent=parent, topo=topo)
+        super().__init__(name=name, node_id=node_id, topo=topo)
+        if etype == ElementType.NEW:
+            if parent_node_id is None:
+                raise RuntimeError("Parent node id must be specified for new components")
+            if model is None or ctype is None:
+                raise RuntimeError("Model and component type must be specified for new components")
+            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
+                    (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
+                    (switch_fabric_node_id is None or interface_node_ids is None):
+                raise RuntimeError('For substrate topologies and components with network interfaces '
+                                   'static switch_fabric node id and interface node ids must be specified')
+            cata = ComponentCatalog()
+            comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
+                                                  switch_fabric_node_id=switch_fabric_node_id,
+                                                  interface_node_ids=interface_node_ids)
+            comp_sliver.set_node_id(node_id)
 
-    def set_component_properties(self, *, name: str, node_id: str, ctype: ComponentType, model: str, **kwargs):
 
-        self.sliver = ComponentSliver()
-        self.sliver.set_resource_type(ctype)
-        self.sliver.set_resource_name(name)
-        self.sliver.set_resource_model(model)
-        self.sliver.set_graph_node_id(node_id)
-        for k, v in kwargs.items():
-            try:
-                # we can set anything the sliver model has a setter for
-                if self.sliver.__getattribute__('set_' + k) is not None:
-                    self.sliver.__getattribute__('set_' + k)(v)
-            except AttributeError:
-                raise RuntimeError('Unable to set attribute ' + k + ' on the component - no such attribute available')
 
-    def get_component_sliver(self) -> ComponentSliver:
-        return self.sliver
+            self.topo.graph_model.add_component_sliver(parent_node_id=parent_node_id, component=comp_sliver)
+        else:
+            # check that this node exists
+            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
+                                                                       label=str(ABCPropertyGraph.CLASS_Component))
+            if node_id is not None and existing_node_id != node_id:
+                raise RuntimeError("Existing node id does not match provided. "
+                                   "In general you shouldn't need to specify node id for existing nodes.")
+            self.node_id = node_id
 
     def __list_interfaces(self) -> Dict[str, Interface]:
         """
@@ -88,7 +124,7 @@ class Component(ModelElement):
         """
         # reach into the graph properties, pull out a few
         props_of_interest = ['Site', 'Type', 'Model', 'NodeID']
-        _, node_props = self.topo.slice_model.get_node_properties(node_id=self.node_id)
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         ret = ""
         for prop in props_of_interest:
             if node_props.get(prop, None) is not None:

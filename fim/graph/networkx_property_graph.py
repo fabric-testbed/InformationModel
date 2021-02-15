@@ -71,11 +71,11 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         self._validate_all_json_properties()
         # check that all nodes and links have 'Class' property
         for n in self.storage.get_graph(self.graph_id).nodes:
-            if self.storage.get_graph(self.graph_id).nodes[n].get('Class', None) is None:
+            if self.storage.get_graph(self.graph_id).nodes[n].get(ABCPropertyGraph.PROP_CLASS, None) is None:
                 raise PropertyGraphImportException(graph_id=self.graph_id,
                                                    msg="Some nodes are missing 'Class' property")
         for e in self.storage.get_graph(self.graph_id).edges:
-            if self.storage.get_graph(self.graph_id).edges[e].get('Class', None) is None:
+            if self.storage.get_graph(self.graph_id).edges[e].get(ABCPropertyGraph.PROP_CLASS, None) is None:
                 raise PropertyGraphImportException(graph_id=self.graph_id,
                                                    msg="Some edges are missing 'Class' property")
 
@@ -426,6 +426,67 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
 
         self.storage.get_graph(self.graph_id).remove_node(self._find_node(node_id=node_id))
 
+    def node_exists(self, *, node_id: str, label: str) -> bool:
+        """
+        Check if this node exists
+        :param node_id:
+        :param label:
+        :return:
+        """
+        assert node_id is not None
+        assert label is not None
+        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.NODE_ID, node_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
+                                            ]}))
+        if len(graph_nodes) > 1:
+            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
+                                              msg="Duplicate node found while checking for node uniqueness")
+        return len(graph_nodes) == 1
+
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+        """
+        Add a node with specified label, classes and initial properties. Properties can be empty,
+        but set graph id, node id and label
+        :param node_id:
+        :param label:
+        :param props:
+        :return:
+        """
+        assert node_id is not None
+        assert label is not None
+
+        if self.node_exists(node_id=node_id, label=label):
+            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
+                                              msg="Unable to add node - a node with this ID exists")
+
+        int_id = self.storage.add_blank_node_to_graph(self.graph_id, Class=label,
+                                                      NodeID=node_id)
+        if props is not None:
+            self.storage.get_graph(self.graph_id).nodes[int_id].update(props)
+
+    def add_link(self, *, node_a: str, rel: str, node_b: str, props: Dict[str, Any] = None) -> None:
+        """
+        Add a link of specified types between two nodes and properties of the link
+        :param node_a:
+        :param rel:
+        :param node_b:
+        :param props:
+        :return:
+        """
+        assert node_a is not None
+        assert node_b is not None
+        assert rel is not None
+
+        real_node_a = self._find_node(node_id=node_a, graph_id=self.graph_id)
+        real_node_b = self._find_node(node_id=node_b, graph_id=self.graph_id)
+        if props is not None:
+            self.storage.get_graph(self.graph_id).add_edge(real_node_a, real_node_b, Class=rel, **props)
+        else:
+            self.storage.get_graph(self.graph_id).add_edge(real_node_a, real_node_b, Class=rel)
+
     def find_matching_nodes(self, *, other_graph) -> Set:
         """
         Return a set of node ids that match between the two graphs
@@ -496,6 +557,7 @@ class NetworkXGraphStorage:
     Shell for singleton storing all graphs in-memory. Graphs
     are stored in a single NetworkX graph object. Care is taken
     when loading new graphs to disambiguate their vertices.
+    For the moment the code is not thread-safe.
     """
 
     class __NetworkXGraphStorage:
@@ -534,7 +596,7 @@ class NetworkXGraphStorage:
                 self.graphs.remove_nodes_from(graph_nodes)
 
         def extract_graph(self, graph_id: str) -> nx.Graph or None:
-            # extract copy of graph from store
+            # extract copy of graph from store or return None
             graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
             if len(graph_nodes) == 0:
                 return None
@@ -553,6 +615,13 @@ class NetworkXGraphStorage:
 
         def del_all_graphs(self) -> None:
             self.graphs.clear()
+
+        def add_blank_node_to_graph(self, graph_id, **attrs) -> int:
+            # add a new node into a graph, return internal
+            # int id of the added node
+            self.graphs.add_node(self.start_id, GraphID=graph_id, **attrs)
+            self.start_id = self.start_id + 1
+            return self.start_id - 1
 
     storage_instance = None
 

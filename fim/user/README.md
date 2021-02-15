@@ -87,17 +87,28 @@ t.serialize_to_file('filename')
 
 ### Submit and modify slice
 ```python
+# credential handling
+# 
+from fabric_cm.credmgr.credmgr_proxy import CredmgrProxy
+credmgr_proxy = CredmgrProxy(credmgr_host)
+tokens = credmgr_proxy.refresh_token(project_name=’p1’, 
+            scope=’cf’, 
+            refresh_token=’value’)
+
+id_token = tokens.get(‘id_token’)
+
 # instantiate orchestrator proxy (parameters undefined for now)
-orchestrator = OrchestratorProxy()
-# some magic with credential handling
-# ...
+orchestrator = OrchestratorProxy(orchestrator_host)
 
 # there are multiple options here - you can continue from previous script
 # or you can do one of several things
 
 # 1. you can rerun all the commands above creating object 't'
-# 2. you can load t from a serialized description 
+# 2. you can load t from a serialized description
 t = ExperimentTopology('MyTopology', from_file='filename')
+
+# create slice
+status = orchestrator.create(id_token, t, 'MyExperimentX')
 
 # create slice
 status = orchestrator.create(t, 'MyExperimentX')

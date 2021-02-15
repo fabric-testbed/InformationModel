@@ -28,17 +28,17 @@ from typing import Any
 
 import uuid
 
-from .model_element import ModelElement
+from .model_element import ModelElement, ElementType
 
 from ..slivers.interface_info import InterfaceType
 
 
 class Interface(ModelElement):
 
-    def __init__(self, *, name: str, node_id: str = None, parent: Any, topo: Any):
+    def __init__(self, *, name: str, node_id: str = None, parent: Any, topo: Any, etype: ElementType):
         if node_id is None:
             node_id = str(uuid.uuid4())
-        super().__init__(name=name, node_id=node_id, parent=parent, topo=topo)
+        super().__init__(name=name, node_id=node_id, topo=topo)
 
     def set_interface_properties(self, *, name: str, node_id: str, itype: InterfaceType, model: str, **kwargs):
         pass

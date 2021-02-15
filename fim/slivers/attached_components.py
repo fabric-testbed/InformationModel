@@ -24,49 +24,52 @@
 #
 # Author: Komal Thareja (kthare10@renci.org)
 
+import enum
+
 from .base_sliver import BaseElement
-from .interface_info import InterfaceInfo
+from .switch_fabric import SwitchFabricInfo
 
 
-class AttachedPCIDeviceEntry(BaseElement):
-    def __init__(self, pci_id: str = None, pci_slot: str = None):
+@enum.unique
+class ComponentType(enum.Enum):
+    GPU = enum.auto()
+    SmartNIC = enum.auto()
+    SharedNIC = enum.auto()
+    FPGA = enum.auto()
+    NVME = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class ComponentSliver(BaseElement):
+
+    def __init__(self):
         super().__init__()
-        self.pci_id = pci_id
-        self.pci_slot = pci_slot
-        self.disk_size = 0
-        self.interface_info = None
+        self.switch_fabric_info = None
 
-    def set_pci_id(self, pci_id: str):
-        self.pci_id = pci_id
+    def set_switch_fabric_info(self, sf_info: SwitchFabricInfo):
+        self.switch_fabric_info = sf_info
 
-    def get_pci_id(self) -> str:
-        return self.pci_id
-
-    def set_pci_slot(self, pci_slot: str):
-        self.pci_slot = pci_slot
-
-    def get_pci_slot(self) -> str:
-        return self.pci_slot
-
-    def set_disk_size(self, disk_size: int):
-        self.disk_size = disk_size
-
-    def get_disk_size(self) -> int:
-        return self.disk_size
-
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
-
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
+    @staticmethod
+    def type_from_str(ctype: str) -> ComponentType:
+        for t in ComponentType:
+            if ctype == str(t):
+                return t
 
 
-class AttachedPCIDevices:
+class AttachedComponentsInfo:
+    """
+    Stores attached components as a dictionary by PCI ID
+    """
     def __init__(self):
         self.devices = {}
 
-    def add_device(self, device_info: AttachedPCIDeviceEntry):
-        self.devices[device_info.get_pci_id()] = device_info
+    def add_device(self, device_info: ComponentSliver):
+        self.devices[device_info.pci_id] = device_info
 
     def remove_device(self, pci_id: str):
         if pci_id in self.devices:

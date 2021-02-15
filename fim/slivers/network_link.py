@@ -28,7 +28,7 @@ from .base_sliver import BaseElement
 from .interface_info import InterfaceInfo
 
 
-class NetworkLink(BaseElement):
+class NetworkLinkSliver(BaseElement):
     def __init__(self):
         super().__init__()
         self.bandwidth = 0

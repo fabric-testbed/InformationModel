@@ -30,9 +30,8 @@ Abstract definition of ARM (Aggregate Resource Model) functionality
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from ..abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, PropertyGraphQueryException
-from ..neo4j_property_graph import Neo4jPropertyGraph
-from ..delegations import DelegationType
+from ..abc_property_graph import ABCPropertyGraph
+from fim.slivers.delegations import DelegationType
 
 
 class ABCARMMixin(metaclass=ABCMeta):

@@ -122,6 +122,13 @@ class NetworkXGraphStorageDisjoint:
         def del_all_graphs(self) -> None:
             self.graphs.clear()
 
+        def add_blank_node_to_graph(self, graph_id, **attrs) -> int:
+            # add a new node into a graph, return internal
+            # int id of the added node
+            new_id = 1 + len(self.graphs[graph_id].nodes())
+            self.graphs[graph_id].add_node(new_id, GraphID=graph_id, **attrs)
+            return new_id
+
     storage_instance = None
 
     def __init__(self):

@@ -27,7 +27,7 @@ from .base_sliver import BaseElement
 from .interface_info import InterfaceInfo
 
 
-class StitchPort(BaseElement):
+class StitchPortSliver(BaseElement):
     def __init__(self):
         super().__init__()
         self.interface_info = None

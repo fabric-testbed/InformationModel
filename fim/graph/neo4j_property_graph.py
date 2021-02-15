@@ -87,7 +87,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         :return:
         """
         self.log.info(f'Applying validation rules to graph {self.graph_id}')
-        self._validate_graph(os.path.dirname(__file__) + '/data/graph_validation_rules.json')
+        self._validate_graph(os.path.join(os.path.dirname(__file__), 'data', 'graph_validation_rules.json'))
         self.log.info(f'Checking JSON properties of graph {self.graph_id}')
         self._validate_all_json_properties()
 
@@ -419,6 +419,21 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 "call apoc.nodes.delete(n, 10) yield value return *"
         with self.driver.session() as session:
             session.run(query, graphId=self.graph_id, nodeId=node_id).single()
+
+    def node_exists(self, *, node_id: str, label: str):
+        """
+        Check if this node exists
+        :param node_id:
+        :param label:
+        :return:
+        """
+        raise RuntimeError("Method node implemented")
+
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+        raise RuntimeError("Method not implemented")
+
+    def add_link(self, *, node_a: str, rel: str, node_b: str, props: Dict[str, Any] = None) -> None:
+        raise RuntimeError("Method not implemented")
 
     def find_matching_nodes(self, *, other_graph) -> Set:
         """

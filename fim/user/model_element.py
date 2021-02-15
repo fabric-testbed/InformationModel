@@ -25,38 +25,32 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 from typing import Any
-from abc import ABC, ABCMeta
+from abc import ABC
+import enum
+
+
+class ElementType(enum.Enum):
+    EXISTING = enum.auto()
+    NEW = enum.auto()
 
 
 class ModelElement(ABC):
     """
     Abstract element of a model
     """
-    def __init__(self, *, name: str, node_id: str, parent: Any or None=None, topo: Any):
+    def __init__(self, *, name: str, node_id: str, topo: Any):
         """
         An element of topology relates to the topology object
         :param name:
         :param node_id:
-        :param parent: Node or Component or None
         :param topo: Topology
         """
         assert name is not None
         assert node_id is not None
         assert topo is not None
         self.name = name
-        self.parent = parent
         self.topo = topo
         self.node_id = node_id
-        self.sliver = None
-
-    def set_parent(self, parent: Any):
-        """
-        Set parent of this element (typically None for Node, Node for Component and
-        Component or Interface for Interface)
-        :param parent:
-        :return:
-        """
-        self.parent = parent
 
     def rename(self, new_name: str):
         """
@@ -66,6 +60,6 @@ class ModelElement(ABC):
         """
         assert new_name is not None
         self.name = new_name
-        self.topo.slice_model.update_node_property(node_id=self.node_id,
+        self.topo.graph_model.update_node_property(node_id=self.node_id,
                                                    prop_name='Name',
                                                    prop_val=new_name)

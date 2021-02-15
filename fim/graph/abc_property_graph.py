@@ -55,6 +55,25 @@ class ABCPropertyGraph(ABC):
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS, PROP_CAPACITY_DELEGATIONS]
     GRAPH_ID = 'GraphID'
     NODE_ID = 'NodeID'
+    PROP_NAME = 'Name'
+    PROP_CLASS = 'Class'
+    PROP_TYPE = 'Type'
+    PROP_MODEL = 'Model'
+
+    CLASS_NetworkNode = 'NetworkNode'
+    CLASS_Component = 'Component'
+    CLASS_SwitchFabric = 'SwitchFabric'
+    CLASS_ConnectionPoint = 'ConnectionPoint'
+    CLASS_Link = 'Link'
+    CLASS_CompositeLink = 'CompositeLink'
+    CLASS_CompositeNode = 'CompositeNode'
+    CLASS_MeasurementPoint = 'MeasurementPoint'
+
+    REL_HAS = 'has'
+    REL_CONNECTS = 'connects'
+    REL_DEPENDS = 'depends'
+    REL_ADAPTS = 'adapts'
+    REL_PEERS = 'peers'
 
     @abstractmethod
     def __init__(self, *, graph_id: str, importer):
@@ -63,6 +82,7 @@ class ABCPropertyGraph(ABC):
         :param graph_id:
         """
         assert graph_id is not None
+        assert importer is not None
         self.graph_id = graph_id
         self.importer = importer
 
@@ -179,7 +199,6 @@ class ABCPropertyGraph(ABC):
         :return:
         """
 
-    @abstractmethod
     def clone_graph(self, *, new_graph_id: str):
         """
         Clone a graph to a new graph_id by serializing/deserializing it
@@ -233,6 +252,37 @@ class ABCPropertyGraph(ABC):
         :param node1_label:
         :param rel2:
         :param node2_label:
+        :return:
+        """
+
+    @abstractmethod
+    def node_exists(self, *, node_id: str, label: str):
+        """
+        Check if this node exists
+        :param node_id:
+        :param label:
+        :return:
+        """
+
+    @abstractmethod
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+        """
+        Add a new node with specified
+        :param node_id:
+        :param label: class or label of this node
+        :param props: initial set of properties
+        :return:
+        """
+
+    @abstractmethod
+    def add_link(self, *, node_a: str, rel: str, node_b: str, props: Dict[str, Any] = None) -> None:
+        """
+        Add a link of specified type (rel) between the two nodes. Properties can be added
+        at the same time.
+        :param node_a:
+        :param rel:
+        :param node_b:
+        :param props:
         :return:
         """
 

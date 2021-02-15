@@ -38,7 +38,7 @@ from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from .abc_arm import ABCARMMixin
 from ..typed_tuples import Label, Capacity, LabelOrCapacityException
 
-from ..delegations import DelegationType, Pools, Delegations, Delegation
+from fim.slivers.delegations import DelegationType, Pools, Delegations, Delegation
 
 
 class Neo4jARMGraph(Neo4jPropertyGraph, ABCARMMixin):

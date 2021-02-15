@@ -24,6 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
+from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 import enum
 
@@ -31,11 +32,13 @@ import uuid
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from ..slivers.network_node import NodeType
+from ..slivers.network_node import NodeType, NodeSliver
+from ..slivers.switch_fabric import SFLayer
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.networkx_property_graph import NetworkXGraphImporter
 from ..graph.abc_property_graph import ABCPropertyGraph
 
+from .model_element import ElementType
 from .node import Node
 from .interface import Interface
 from .link import Link
@@ -50,18 +53,20 @@ class TopologyDetail(enum.Enum):
     InfoModel = enum.auto()
 
 
-class Topology:
+class Topology(ABC):
     """
     Define and manipulate a topology over its life cycle
     """
     def __init__(self, logger=None):
-        self.slice_model = NetworkxASM(graph_id=str(uuid.uuid4()),
+        self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
                                        importer=NetworkXGraphImporter(logger=logger),
                                        logger=logger)
 
-    def add_node(self, *, name: str, site: str, ntype: NodeType = NodeType.VM, **kwargs) -> Node:
+    def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
+                 **kwargs) -> Node:
         """
-        Add a network node into the topology.
+        Add a network node into the substrate topology. Be sure to hardcode node_id - it should
+        be consistent from revision to revision of the topology for the same objects.
         kwargs serve to add parameters to the node
         cpu_cores
         ram_size
@@ -69,16 +74,16 @@ class Topology:
         image_type
         image_ref
         :param name:
+        :param node_id:
         :param site:
         :param ntype:
         :return:
         """
         assert name is not None
         assert site is not None
-        n = Node(name=name, topo=self)
-        n.set_node_properties(name=name, node_id=n.node_id, site=site, ntype=ntype, **kwargs)
-        # add into graph
-        self.slice_model.add_network_node_sliver(sliver=n.get_sliver())
+        # add node to graph
+        n = Node(name=name, node_id=node_id, topo=self, site=site,
+                 etype=ElementType.NEW, ntype=ntype, **kwargs)
         return n
 
     def remove_node(self, name: str):
@@ -88,7 +93,7 @@ class Topology:
         :return:
         """
         assert name is not None
-        self.slice_model.remove_network_node_with_components_interfaces_and_links(
+        self.graph_model.remove_network_node_with_components_interfaces_and_links(
             node_id=self.__get_node_by_name(name=name).node_id)
 
     def add_link(self, *, interfaces: List[Interface], **kwargs) -> Link:
@@ -115,7 +120,8 @@ class Topology:
         :return:
         """
         assert name is not None
-        node_id = self.slice_model.find_network_node_by_name(node_name=name)
+        node_id = self.graph_model.find_node_by_name(node_name=name,
+                                                     label=ABCPropertyGraph.CLASS_NetworkNode)
         return Node(name=name, node_id=node_id, topo=self)
 
     def __get_node_by_id(self, node_id: str) -> Node:
@@ -125,7 +131,7 @@ class Topology:
         :return:
         """
         assert node_id is not None
-        _, node_props = self.slice_model.get_node_properties(node_id=node_id)
+        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
@@ -136,7 +142,7 @@ class Topology:
         the underlying model, but modifying Nodes in the dictionary will.
         :return:
         """
-        node_id_list = self.slice_model.get_all_network_nodes()
+        node_id_list = self.graph_model.get_all_network_nodes()
         # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
@@ -181,7 +187,7 @@ class Topology:
         :param file_name:
         :return string containing GraphML if file_name is None:
         """
-        graph_string = self.slice_model.serialize_graph()
+        graph_string = self.graph_model.serialize_graph()
         if file_name is None:
             return graph_string
         else:
@@ -208,7 +214,7 @@ class Topology:
         plt.clf()
         if topo_detail == TopologyDetail.InfoModel:
             # create dictionaries of names for nodes and labels for edges
-            g = self.slice_model.storage.extract_graph(self.slice_model.graph_id)
+            g = self.graph_model.storage.extract_graph(self.graph_model.graph_id)
             if g is None:
                 return
             node_labels = dict()
@@ -232,15 +238,16 @@ class Topology:
 
 class ExperimentTopology(Topology):
     """
-    Define an experiment topology model
+    Define an user topology model
     """
     def __init__(self, logger=None):
         super().__init__(logger)
 
 
-class AdvertisementTopology(Topology):
+class SubstrateTopology(Topology):
     """
-    Define an advertisement topology model
+    Define an substrate topology model.
     """
     def __init__(self, logger=None):
         super().__init__(logger)
+

@@ -28,14 +28,17 @@ from typing import Dict, Any
 
 import uuid
 
-from .model_element import ModelElement
+from .model_element import ModelElement, ElementType
 from .component import Component, ComponentType
+from .switch_fabric import SwitchFabric
 from .interface import Interface
 
 from ..graph.abc_property_graph import ABCPropertyGraph
 
 from ..slivers.network_node import NodeSliver
+from ..slivers.attached_components import ComponentSliver
 from ..slivers.network_node import NodeType
+from ..slivers.switch_fabric import SFLayer
 
 
 class Node(ModelElement):
@@ -43,72 +46,98 @@ class Node(ModelElement):
     A basic node of the topology
     """
 
-    def __init__(self, *, name: str, node_id: str = None, topo: Any):
+    def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,
+                 ntype: NodeType = None, site: str = None, **kwargs):
         """
         Don't call this method yourself, call topology.add_node()
-        node_id will be generated if not provded.
+        node_id will be generated if not provided.
 
         :param name:
         :param node_id:
         :param topo:
+        :param etype: is this supposed to exist or new should be created
+        :param ntype: node type if it is new
+        :param site: node site
+        :param kwargs: any additional properties
         """
-        if node_id is None:
-            node_id = str(uuid.uuid4())
-        super().__init__(name=name, node_id=node_id, topo=topo)
+        assert name is not None
+        assert topo is not None
 
-    def set_node_properties(self, *, name: str, node_id: str, ntype: NodeType, site: str, **kwargs):
+        if etype == ElementType.NEW:
+            # cant use isinstance as it would create circular import dependencies
+            # node id myst be specified for new nodes in substrate topologies
+            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
+                    node_id is None:
+                raise RuntimeError("When adding new nodes to substrate topology nodes you must specify static Node ID")
+            if node_id is None:
+                node_id = str(uuid.uuid4())
+            super().__init__(name=name, node_id=node_id, topo=topo)
+            if ntype is None:
+                raise RuntimeError("When creating nodes you must specify NodeType")
+            if site is None:
+                raise RuntimeError("When creating nodes you must specify site")
+
+            self.node_id = node_id
+            sliver = NodeSliver()
+            sliver.set_node_id(self.node_id)
+            sliver.set_resource_name(self.name)
+            sliver.set_resource_type(ntype)
+            sliver.set_site(site)
+            # set anything that has a setter
+            for k, v in kwargs.items():
+                try:
+                    # we can set anything the sliver model has a setter for
+                    sliver.__getattribute__('set_' + k)(v)
+                except AttributeError:
+                    raise RuntimeError(f'Unable to set property {k} on the node - no such property available')
+
+            self.topo.graph_model.add_network_node_sliver(sliver=sliver)
+        else:
+            if node_id is None:
+                node_id = str(uuid.uuid4())
+            super().__init__(name=name, node_id=node_id, topo=topo)
+            # check that this node exists
+            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
+                                                                       label=str(ABCPropertyGraph.CLASS_NetworkNode))
+            if node_id is not None and existing_node_id != node_id:
+                raise RuntimeError("Existing node id does not match provided. "
+                                   "In general you shouldn't need to specify node id for existing nodes.")
+            self.node_id = node_id
+
+    def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
+                      model: str,  switch_fabric_node_id: str = None, **kwargs) -> Component:
         """
-        Set properties of a new node.
-        kwargs let you set the various parameters of the node
-        cpu_cores
-        ram_size
-        disk_size
-        image_type
-        image_ref
+        Add a component of specified type, model and name to this node. When working with substrate
+        topologies you must specify the switch_fabric_node_id and provide a list of interface node ids.
         :param name:
         :param node_id:
-        :param ntype:
-        :param site:
-        :param topo:
-        :param kwargs:
-        :return:
-        """
-        self.sliver = NodeSliver()
-        self.sliver.set_site(site)
-        self.sliver.set_resource_name(name)
-        self.sliver.set_resource_type(ntype)
-        self.sliver.set_graph_node_id(node_id)
-        for k, v in kwargs.items():
-            try:
-                # we can set anything the sliver model has a setter for
-                if self.sliver.__getattribute__('set_' + k) is not None:
-                    self.sliver.__getattribute__('set_' + k)(v)
-            except AttributeError:
-                raise RuntimeError('Unable to set attribute ' + k + ' on the node - no such attribute available')
-
-    def get_sliver(self):
-        return self.sliver
-
-    def add_component(self, *, ctype: ComponentType, model: str, name: str, **kwargs) -> Component:
-        """
-        Add a component of specified type, model and name to this node
         :param ctype:
         :param model:
         :param name:
+        :param switch_fabric_node_id:
         :param kwargs: additional properties of the component
         :return:
         """
-        # check graph doesn't contain component with this name on this node
         # add component node and populate properties
-        c = Component(name=name, parent=self, topo=self.topo)
-        c.set_component_properties(name=name, node_id=c.node_id, ctype=ctype, model=model, **kwargs)
-        self.topo.slice_model.add_network_node_component_sliver(parent_node_id=self.node_id,
-                                                                component=c.get_component_sliver())
+        c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
+                      ctype=ctype, model=model, switch_fabric_node_id=switch_fabric_node_id,
+                      parent_node_id=self.node_id, **kwargs)
         return c
+
+    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer):
+        """
+        Add a switch fabric to node (mostly needed in substrate topologies)
+        :param name:
+        :param node_id:
+        :param layer:
+        :return:
+        """
+        sf = SwitchFabric(name=name, node_id=node_id, layer=layer, parent_node_id=self.node_id)
+        return sf
 
     def remove_component(self, name: str) -> None:
         assert name is not None
-        self.topo.slice_model.remove_component_with_interfaces_and_links(
+        self.topo.graph_model.remove_component_with_interfaces_and_links(
             node_id=self.__get_component_by_name(name=name).node_id)
 
     def __get_component_by_name(self, name: str) -> Component:
@@ -118,8 +147,8 @@ class Node(ModelElement):
         :return:
         """
         assert name is not None
-        node_id = self.topo.slice_model.find_component_by_name(parent_node_id=self.node_id, component_name=name)
-        return Component(name=name, node_id=node_id, parent=self, topo=self.topo)
+        node_id = self.topo.graph_model.find_component_by_name(parent_node_id=self.node_id, component_name=name)
+        return Component(name=name, node_id=node_id, topo=self.topo)
 
     def __get_component_by_id(self, node_id: str) -> Component:
         """
@@ -128,9 +157,10 @@ class Node(ModelElement):
         :return:
         """
         assert node_id is not None
-        _, node_props = self.topo.slice_model.get_node_properties(node_id=node_id)
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return Component(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, parent=self, topo=self.topo)
+        return Component(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                         topo=self.topo)
 
     def __list_components(self) -> Dict[str, Component]:
         """
@@ -139,7 +169,7 @@ class Node(ModelElement):
         the underlying model, but modifying Components in the dictionary will.
         :return:
         """
-        node_id_list = self.topo.slice_model.get_all_network_node_components(parent_node_id=self.node_id)
+        node_id_list = self.topo.graph_model.get_all_network_node_components(parent_node_id=self.node_id)
         # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
@@ -183,10 +213,9 @@ class Node(ModelElement):
         """
         # reach into the graph properties, pull out a few
         props_of_interest = ['Site', 'Type', 'NodeID']
-        _, node_props = self.topo.slice_model.get_node_properties(node_id=self.node_id)
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         ret = ""
         for prop in props_of_interest:
             if node_props.get(prop, None) is not None:
                 ret = ret + node_props.get(prop, None) + ' '
         return ret
-
