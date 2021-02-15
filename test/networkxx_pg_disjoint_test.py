@@ -1,6 +1,8 @@
 import unittest
 from typing import Dict
 
+import uuid
+
 import fim.graph.networkx_property_graph_disjoint as nx_graph
 
 
@@ -8,7 +10,7 @@ class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
 
     GRAPH_FILE = "test/models/site-2-am-1broker-ad.graphml"
     NET_FILE = "test/models/network-am-ad.graphml"
-    FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1']
+    FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1', 'NIC1', 'NICSwitchFabric1']
     # this one set in file, should not be overwritten
     GIVEN_NODEID = '43BB2199-8248-48DE-86C5-E94112BFE401'
 
@@ -109,7 +111,7 @@ class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
                 if extract_h.nodes[n].get('Name', None) == f:
                     count = count + 1
 
-        assert(count == 3)
+        assert(count == 5)
         _, node_props = h.get_node_properties(node_id=worker1)
 
     def test_list_node_ids(self):
@@ -133,7 +135,7 @@ class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
                 if new_graph.storage.get_graph(self.g.graph_id).nodes[n].get('Name', None) == f:
                     count = count + 1
 
-        assert(count == 3)
+        assert(count == 5)
         node_ids = new_graph.list_all_node_ids()
         assert ('43BB2199-8248-48DE-86C5-E94112BFE401' in node_ids)
 
@@ -203,4 +205,23 @@ class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
 
         #self.assertRaises(RuntimeError, self.g.merge_nodes(node_id=common_node_id, other_graph=net_graph))
 
+    def test_add_nodes(self):
+        favs = self._find_favorite_nodes()
+        assert ((favs.get('Worker1'), None) is not None)
+        assert ((favs.get('NIC1'), None) is not None)
+        assert ((favs.get('NICSwitchFabric1'), None) is not None)
+        worker1 = favs['Worker1']
+        sf1 = favs['NICSwitchFabric1']
+        nic1 = favs['NIC1']
 
+        max_id = max(list(self.g.storage.get_graph(self.g.graph_id).nodes))
+
+        new_sf_id = str(uuid.uuid4())
+        self.g.add_node(node_id=new_sf_id, label='SwitchFabric', props={'Name': 'NewSwitchFabric'})
+        self.g.add_link(node_a=new_sf_id, rel='has', node_b=nic1)
+
+        neighbors = self.g.get_first_neighbor(node_id=nic1, rel='has', node_label='SwitchFabric')
+        self.assertEqual(len(neighbors), 2, "Should be 2")
+
+        new_max_id = max(list(self.g.storage.get_graph(self.g.graph_id).nodes))
+        self.assertEqual(max_id + 1, new_max_id)
