@@ -23,11 +23,11 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .interface_info import InterfaceInfo
 
 
-class StitchPortSliver(BaseElement):
+class StitchPortSliver(BaseSliver):
     def __init__(self):
         super().__init__()
         self.interface_info = None

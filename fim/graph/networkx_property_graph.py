@@ -195,7 +195,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         if self.NETWORKX_LABEL in props.keys():
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
                                               msg=f"Changing {self.NETWORKX_LABEL} property is not permitted")
-
+        # gives pointer directly into properties of a node in a graph
         node_props = self.storage.get_graph(self.graph_id).nodes[self._find_node(node_id=node_id)]
         node_props.update(props)
 

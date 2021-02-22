@@ -84,9 +84,8 @@ class Component(ModelElement):
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   switch_fabric_node_id=switch_fabric_node_id,
                                                   interface_node_ids=interface_node_ids)
-            comp_sliver.set_node_id(node_id)
-
-
+            comp_sliver.node_id = node_id
+            comp_sliver.set_properties(**kwargs)
 
             self.topo.graph_model.add_component_sliver(parent_node_id=parent_node_id, component=comp_sliver)
         else:
@@ -98,12 +97,84 @@ class Component(ModelElement):
                                    "In general you shouldn't need to specify node id for existing nodes.")
             self.node_id = node_id
 
-    def __list_interfaces(self) -> Dict[str, Interface]:
+    def get_property(self, pname: str) -> Any:
         """
-        List all interfaces of the topology as a dictionary
+        Retrieve a component property
+        :param pname:
         :return:
         """
-        raise RuntimeError("Not yet implemented")
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        comp_sliver = self.topo.graph_model.component_sliver_from_graph_properties_dict(node_properties)
+        return comp_sliver.get_property(pname)
+
+    def set_property(self, pname: str, pval: Any):
+        """
+        Set a component property
+        :param pname:
+        :param pval:
+        :return:
+        """
+        comp_sliver = ComponentSliver()
+        comp_sliver.set_property(prop_name=pname, prop_val=pval)
+        # write into the graph
+        prop_dict = self.topo.graph_model.component_sliver_to_graph_properties_dict(comp_sliver)
+        self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
+
+    def set_properties(self, **kwargs):
+        """
+        Set multiple properties of the component
+        :param kwargs:
+        :return:
+        """
+        comp_sliver = ComponentSliver()
+        comp_sliver.set_properties(**kwargs)
+        # write into the graph
+        prop_dict = self.topo.graph_model.component_sliver_to_graph_properties_dict(comp_sliver)
+        self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
+
+    @staticmethod
+    def list_properties() -> List[str]:
+        return ComponentSliver.list_properties()
+
+    def __get_interface_by_id(self, node_id: str) -> Interface:
+        """
+        Get an interface of a node by its node_id, return Interface object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                         topo=self.topo)
+
+    def __list_interfaces(self) -> Dict[str, Interface]:
+        """
+        List all interfaces of the node as a dictionary
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        # Could consider using frozendict here
+        ret = dict()
+        for nid in node_id_list:
+            i = self.__get_interface_by_id(nid)
+            ret[i.name] = i
+        return ret
+
+    def __list_switch_fabrics(self) -> Dict[str, SwitchFabric]:
+        """
+        List all switch fabric children of a node as a dictionary organized
+        by switch fabric name. Modifying the dictionary will not affect
+        the underlying model, but modifying Components in the dictionary will.
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_network_node_or_component_sfs(parent_node_id=self.node_id)
+        # Could consider using frozendict or other immutable idioms
+        ret = dict()
+        for nid in node_id_list:
+            c = self.__get_sf_by_id(nid)
+            ret[c.name] = c
+        return ret
 
     def __getattr__(self, item):
         """
@@ -116,17 +187,14 @@ class Component(ModelElement):
         """
         if item == 'interfaces':
             return self.__list_interfaces()
+        if item == 'switchfabrics':
+            return self.__list_switch_fabrics()
 
     def __repr__(self):
-        """
-        Print concise information about the node
-        :return:
-        """
-        # reach into the graph properties, pull out a few
-        props_of_interest = ['Site', 'Type', 'Model', 'NodeID']
-        _, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
-        ret = ""
-        for prop in props_of_interest:
-            if node_props.get(prop, None) is not None:
-                ret = ret + node_props.get(prop, None) + ' '
-        return ret
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        comp_sliver = self.topo.graph_model.component_sliver_from_graph_properties_dict(node_properties)
+        return comp_sliver.__repr__()
+
+    def __str__(self):
+        return self.__repr__()
+

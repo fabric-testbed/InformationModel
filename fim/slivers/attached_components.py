@@ -26,7 +26,7 @@
 
 import enum
 
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .switch_fabric import SwitchFabricInfo
 
 
@@ -45,7 +45,7 @@ class ComponentType(enum.Enum):
         return self.name
 
 
-class ComponentSliver(BaseElement):
+class ComponentSliver(BaseSliver):
 
     def __init__(self):
         super().__init__()
@@ -56,6 +56,8 @@ class ComponentSliver(BaseElement):
 
     @staticmethod
     def type_from_str(ctype: str) -> ComponentType:
+        if ctype is None:
+            return None
         for t in ComponentType:
             if ctype == str(t):
                 return t

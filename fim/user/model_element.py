@@ -24,9 +24,11 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from typing import Any
-from abc import ABC
+from typing import Any, List
+from abc import ABC, abstractmethod
 import enum
+
+from ..graph.abc_property_graph import ABCPropertyGraph
 
 
 class ElementType(enum.Enum):
@@ -38,6 +40,7 @@ class ModelElement(ABC):
     """
     Abstract element of a model
     """
+    @abstractmethod
     def __init__(self, *, name: str, node_id: str, topo: Any):
         """
         An element of topology relates to the topology object
@@ -61,5 +64,41 @@ class ModelElement(ABC):
         assert new_name is not None
         self.name = new_name
         self.topo.graph_model.update_node_property(node_id=self.node_id,
-                                                   prop_name='Name',
+                                                   prop_name=ABCPropertyGraph.PROP_NAME,
                                                    prop_val=new_name)
+
+    def __repr__(self):
+        labels, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        node_props.pop(ABCPropertyGraph.GRAPH_ID)
+        if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
+            node_props.pop(ABCPropertyGraph.NODE_ID)
+        ret = str(labels) + str(node_props)
+        return ret
+
+    def __str__(self):
+        return self.__repr__()
+
+    @abstractmethod
+    def set_property(self, pname: str, pval):
+        """
+        Set a property of a model element
+        :param pname:
+        :param paval:
+        :return:
+        """
+
+    @abstractmethod
+    def get_property(self, pname: str) -> Any:
+        """
+        Get a property of a model element
+        :param pname:
+        :return:
+        """
+
+    @abstractmethod
+    def set_properties(self, **kwargs):
+        """
+        Set multiple properties of a model element
+        :param kwargs:
+        :return:
+        """

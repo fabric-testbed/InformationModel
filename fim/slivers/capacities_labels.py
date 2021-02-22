@@ -39,10 +39,11 @@ class JSONField(ABC):
         :return:
         """
 
-    def to_json(self) -> str:
+    def to_json(self) -> str or None:
         """
         Dumps to JSON the __dict__ of the instance. Be careful as the fields in this
         class should only be those that can be present in JSON output.
+        If there are no values in the object, returns None
         :return:
         """
         d = self.__dict__.copy()
@@ -52,8 +53,17 @@ class JSONField(ABC):
         return json.dumps(d, skipkeys=True, sort_keys=True)
 
     def from_json(self, json_string: str):
+        """
+        Set fields from json string (if string is none or empty,
+        nothing happens)
+        :param json_string:
+        :return: self for call chaining
+        """
+        if json_string is None or len(json_string) == 0:
+            return self
         d = json.loads(json_string)
         self.set_fields(**d)
+        return self
 
     def __repr__(self):
         return self.to_json()
@@ -61,7 +71,7 @@ class JSONField(ABC):
     def __str__(self):
         return self.to_json()
 
-    def available_fields(self):
+    def list_fields(self):
         l = list(self.__dict__.keys())
         l.sort()
         return l
@@ -80,13 +90,13 @@ class Capacities(JSONField):
         self.bw = 0
         self.unit = 0
 
-    def set_fields(self, **kwargs) -> None:
+    def set_fields(self, **kwargs):
         """
         Universal integer setter for all fields.
         Values should be non-negative integers. Throws a RuntimeError
         if you try to set a non-existent field.
         :param kwargs:
-        :return:
+        :return: self to support call chaining
         """
         for k, v in kwargs.items():
             assert v >= 0
@@ -122,7 +132,7 @@ class Labels(JSONField):
         name of the field). Values should be strings or lists of strings.
         Throws a RuntimeError if you try to set a non-existent field.
         :param kwargs:
-        :return:
+        :return: self to support call chaining
         """
         for k, v in kwargs.items():
             assert v is not None  # could be strings or lists of strings

@@ -1,9 +1,22 @@
 # Experiment abstractions
 
 This package implements experimenter-facing abstractions for building and manipulating slices.
+It also supports building substrate advertisements using slightly modified models.
 
+To build a substrate model, start with
+```
+t = SubstrateTopology()
+```
+And then use the same abstractions as below, making sure to specify all GUIDs for new objects. 
+Each individual substrate module should be packaged as a Python module. Using the same GUIDs
+guarantees that when minor edits are made to the python script, the underlying graph model
+also undergoes only minor changes, making it easily suitable for updating the AM, rather than 
+doing a clean-restart.
 
 ## Example scripts
+
+These scripts may not match exactly the available APIs, as the APIs are in flux for the 
+moment.
 
 ### Create topology
 ```python

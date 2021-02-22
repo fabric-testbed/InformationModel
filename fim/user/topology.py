@@ -33,6 +33,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from ..slivers.network_node import NodeType, NodeSliver
+from ..slivers.network_link import LinkType, NetworkLinkSliver
 from ..slivers.switch_fabric import SFLayer
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.networkx_property_graph import NetworkXGraphImporter
@@ -48,7 +49,7 @@ class TopologyDetail(enum.Enum):
     """
     Describe the level of detail for drawing a topology.
     """
-    OnlyNodes = enum.auto()
+    Derived = enum.auto()
     WithComponents = enum.auto()
     InfoModel = enum.auto()
 
@@ -93,25 +94,36 @@ class Topology(ABC):
         :return:
         """
         assert name is not None
-        self.graph_model.remove_network_node_with_components_interfaces_and_links(
+        self.graph_model.remove_network_node_with_components_sfs_cps_and_links(
             node_id=self.__get_node_by_name(name=name).node_id)
 
-    def add_link(self, *, interfaces: List[Interface], **kwargs) -> Link:
+    def add_link(self, *, name: str, node_id: str = None, ltype: LinkType = None,
+                 interfaces: List[Interface], layer: SFLayer = None, technology: str = None,
+                 **kwargs) -> Link:
         """
         Add link between listed interfaces with specified parameters
+        :param name:
+        :param node_id:
+        :param ltype:
         :param interfaces:
-        :kwargs additional parameters:
+        :param layer:
+        :param technology:
+        :param kwargs:
         :return:
         """
-        raise RuntimeError('Not yet implemented')
+        # add link to graph
+        link = Link(name=name, node_id=node_id, ltype=ltype, interfaces=interfaces, **kwargs,
+                    etype=ElementType.NEW, topo=self, layer=layer, technology=technology)
+        return link
 
-    def remove_link(self, interfaces: List[Interface]):
+    def remove_link(self, name: str):
         """
         Remove a link between interfaces
-        :param interfaces:
+        :param name:
         :return:
         """
-        raise RuntimeError('Not yet implemented')
+        assert name is not None
+        self.graph_model.remove_network_link(node_id=self.__get_link_by_name(name=name).node_id)
 
     def __get_node_by_name(self, name: str) -> Node:
         """
@@ -124,6 +136,17 @@ class Topology(ABC):
                                                      label=ABCPropertyGraph.CLASS_NetworkNode)
         return Node(name=name, node_id=node_id, topo=self)
 
+    def __get_link_by_name(self, name: str) -> Link:
+        """
+        Find link by its name, return Link object
+        :param name:
+        :return:
+        """
+        assert name is not None
+        node_id = self.graph_model.find_node_by_name(node_name=name,
+                                                     label=ABCPropertyGraph.CLASS_Link)
+        return Link(name=name, node_id=node_id, topo=self)
+
     def __get_node_by_id(self, node_id: str) -> Node:
         """
         Get node by its node_id, return Node object
@@ -134,6 +157,17 @@ class Topology(ABC):
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+
+    def __get_link_by_id(self, node_id: str) -> Link:
+        """
+        Get link by its node_id, return Link object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def __list_nodes(self) -> Dict[str, Node]:
         """
@@ -150,19 +184,27 @@ class Topology(ABC):
             ret[n.name] = n
         return ret
 
-    def __list_links(self) -> List[Link]:
+    def __list_links(self) -> Dict[str, Link]:
         """
-        List all Links in the topology as a List
+        List all Links in the topology as a dictionary organized by Link name.
         :return:
         """
-        raise RuntimeError("Not yet implemented")
+        link_id_list = self.graph_model.get_all_network_links()
+        ret = dict()
+        for nid in link_id_list:
+            n = self.__get_link_by_id(nid)
+            ret[n.name] = n
+        return ret
 
     def __list_interfaces(self) -> Dict[str, Interface]:
         """
         List all interfaces of the topology as a dictionary
         :return:
         """
-        raise RuntimeError("Not yet implemented")
+        ret = dict()
+        for n in self.nodes.values():
+            ret.update(n.interfaces)
+        return ret
 
     def __getattr__(self, item):
         """
@@ -219,7 +261,8 @@ class Topology(ABC):
                 return
             node_labels = dict()
             for n in g.nodes:
-                node_labels[n] = g.nodes[n][ABCPropertyGraph.PROP_NAME] + '[' + g.nodes[n][ABCPropertyGraph.PROP_TYPE] + ']'
+                node_labels[n] = g.nodes[n][ABCPropertyGraph.PROP_NAME] + \
+                                 '[' + g.nodes[n][ABCPropertyGraph.PROP_TYPE] + ']'
             edge_labels = dict()
             for e in g.edges:
                 edge_labels[e] = g.edges[e][ABCPropertyGraph.PROP_CLASS]
@@ -228,6 +271,27 @@ class Topology(ABC):
             # draw
             nx.draw_networkx(g, labels=node_labels, pos=pos)
             nx.draw_networkx_edge_labels(g, edge_labels=edge_labels, pos=pos)
+            if not interactive:
+                plt.show()
+            if file_name is not None:
+                plt.savefig(file_name)
+        elif topo_detail == TopologyDetail.Derived:
+            # collect all network nodes and links, draw edges between them
+            network_nodes = self.graph_model.get_all_network_nodes()
+            links = self.graph_model.get_all_network_links()
+
+            derived_graph = nx.Graph()
+            for n in network_nodes:
+                _, props = self.graph_model.get_node_properties(node_id=n)
+                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+            for n in links:
+                _, props = self.graph_model.get_node_properties(node_id=n)
+                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+
+            # add edges into the graph
+            # FIXME
+            pos = layout(derived_graph)
+            nx.draw_networkx(derived_graph, pos=pos)
             if not interactive:
                 plt.show()
             if file_name is not None:

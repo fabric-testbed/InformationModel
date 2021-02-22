@@ -23,29 +23,40 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
+import enum
 
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .interface_info import InterfaceInfo
+from .switch_fabric import SFLayer
 
 
-class NetworkLinkSliver(BaseElement):
+class LinkType(enum.Enum):
+    DAC = enum.auto()
+    Wave = enum.auto()
+    Patch = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class NetworkLinkSliver(BaseSliver):
+
     def __init__(self):
         super().__init__()
-        self.bandwidth = 0
         self.layer = None
         self.technology = None
         self.interface_info = None
 
-    def get_bandwidth(self) -> int:
-        return self.bandwidth
-
-    def set_bandwidth(self, bandwidth: int):
-        self.bandwidth = bandwidth
-
-    def get_layer(self) -> str:
+    #
+    # Setters are only needed for things we want users to be able to set
+    #
+    def get_layer(self) -> SFLayer:
         return self.layer
 
-    def set_layer(self, layer: str):
+    def set_layer(self, layer: SFLayer):
         self.layer = layer
 
     def get_technology(self) -> str:
@@ -54,8 +65,18 @@ class NetworkLinkSliver(BaseElement):
     def set_technology(self, technology: str):
         self.technology = technology
 
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
+    @staticmethod
+    def type_from_str(ltype: str) -> LinkType or None:
+        if ltype is None:
+            return None
+        for t in LinkType:
+            if ltype == str(t):
+                return t
 
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
+    @staticmethod
+    def layer_from_str(layer: str) -> SFLayer or None:
+        if layer is None:
+            return None
+        for t in SFLayer:
+            if layer == str(t):
+                return t

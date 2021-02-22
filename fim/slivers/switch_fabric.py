@@ -25,7 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 import enum
 
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .interface_info import InterfaceInfo
 
 
@@ -51,7 +51,7 @@ class SFType(enum.Enum):
         return self.name
 
 
-class SwitchFabricSliver(BaseElement):
+class SwitchFabricSliver(BaseSliver):
     """
     SwitchFabrics are typically invisible to everyone, but provide
     the abstraction of switching across some number of ports
@@ -65,19 +65,24 @@ class SwitchFabricSliver(BaseElement):
     def set_layer(self, layer: SFLayer):
         self.layer = layer
 
-    def set_interface_info(self, iinfo: InterfaceInfo):
-        self.interface_info = iinfo
+    def get_layer(self) -> SFLayer:
+        return self.layer
 
     @staticmethod
     def layer_from_str(layer: str) -> SFLayer:
+        if layer is None:
+            return None
         for t in SFLayer:
             if layer == str(t):
                 return t
 
-    def __repr__(self):
-        # FIXME
-        return super().__repr__() + \
-               '\nLayer:' + self.layer
+    @staticmethod
+    def type_from_str(ntype: str) -> SFType:
+        if ntype is None:
+            return None
+        for t in SFType:
+            if ntype == str(t):
+                return t
 
 
 class SwitchFabricInfo:

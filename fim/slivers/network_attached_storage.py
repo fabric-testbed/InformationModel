@@ -25,11 +25,11 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import fim.slivers.base_sliver
 import fim.slivers.interface_info
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .interface_info import InterfaceInfo
 
 
-class NetworkAttachedStorageSliver(BaseElement):
+class NetworkAttachedStorageSliver(BaseSliver):
     # maps onto NetworkNode
     GRAPH_LABEL = 'NetworkNode'
 

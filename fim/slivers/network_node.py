@@ -26,17 +26,17 @@
 import enum
 import ipaddress
 
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 from .attached_components import AttachedComponentsInfo
 from .interface_info import InterfaceInfo
 from .switch_fabric import SwitchFabricInfo
 
 
 class NodeType(enum.Enum):
-    SERVER = enum.auto()
+    Server = enum.auto()
     VM = enum.auto()
-    CONTAINER = enum.auto()
-    SWITCH = enum.auto()
+    Container = enum.auto()
+    Switch = enum.auto()
 
     def __repr__(self):
         return self.name
@@ -45,7 +45,7 @@ class NodeType(enum.Enum):
         return self.name
 
 
-class NodeSliver(BaseElement):
+class NodeSliver(BaseSliver):
 
     def __init__(self):
         super().__init__()
@@ -58,38 +58,52 @@ class NodeSliver(BaseElement):
         self.switch_fabric_info = None
         self.site = None
 
+    #
+    # Setters are only needed for things we want users to be able to set
+    #
     def set_management_ip(self, management_ip: str):
-        self.management_ip = ipaddress.ip_address(management_ip)
+        if management_ip is None:
+            self.management_ip = None
+        else:
+            self.management_ip = ipaddress.ip_address(management_ip)
 
-    def set_attached_components(self, attached_components: AttachedComponentsInfo):
-        self.attached_components_info = attached_components
+    def get_management_ip(self) -> str:
+        return self.management_ip
 
-    def set_allocation_constraints(self, allocation_constraints:str):
+    def set_allocation_constraints(self, allocation_constraints: str):
         self.allocation_constraints = allocation_constraints
+
+    def get_allocation_constraints(self) -> str:
+        return self.allocation_constraints
 
     def set_image_type(self, image_type: str):
         self.image_type = image_type
 
+    def get_image_type(self) -> str:
+        return self.image_type
+
     def set_image_ref(self, image_ref: str):
         self.image_ref = image_ref
+
+    def get_image_ref(self) -> str:
+        return self.image_ref
 
     def set_service_endpoint(self, service_endpoint: str):
         self.service_endpoint = service_endpoint
 
-    def set_switch_fabric_info(self, sf_info: SwitchFabricInfo):
-        self.switch_fabric_info = sf_info
+    def get_service_endpoint(self) -> str:
+        return self.service_endpoint
 
     def set_site(self, site: str):
         self.site = site
 
-    @staticmethod
-    def type_from_str(ctype: str) -> NodeType:
-        for t in NodeType:
-            if ctype == str(t):
-                return t
+    def get_site(self) -> str:
+        return self.site
 
-    def __repr__(self):
-        # FIXME
-        return super().__repr__() + \
-               '\nSite:' + self.site + \
-               '\nImage Ref:' + str(self.image_ref)
+    @staticmethod
+    def type_from_str(ntype: str) -> NodeType or None:
+        if ntype is None:
+            return None
+        for t in NodeType:
+            if ntype == str(t):
+                return t

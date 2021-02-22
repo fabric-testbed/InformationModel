@@ -47,7 +47,7 @@ class ComponentCatalog:
     def __read_catalog() -> List[Any]:
         catalog_file = os.path.join(os.path.dirname(__file__), 'data', 'component_catalog.json')
         f = open(catalog_file)
-        catalog= json.load(f)
+        catalog = json.load(f)
         f.close()
         assert isinstance(catalog, list)
         return catalog
@@ -95,11 +95,11 @@ class ComponentCatalog:
             for interface_name in interfaces_dict.keys():
                 isliver = InterfaceSliver()
                 isliver.set_resource_name(name + '_' + interface_name)
-                isliver.set_resource_type(InterfaceType.PORT)
+                isliver.set_resource_type(InterfaceType.TrunkPort)
                 if interface_node_ids is not None:
-                    isliver.set_node_id(interface_node_ids[id_index])
+                    isliver.node_id = interface_node_ids[id_index]
                 else:
-                    isliver.set_node_id(str(uuid.uuid4()))
+                    isliver.node_id = str(uuid.uuid4())
                 id_index = id_index + 1
                 cap = Capacities()
                 # set port speed
@@ -109,12 +109,12 @@ class ComponentCatalog:
             sf = SwitchFabricSliver()
             if switch_fabric_node_id is None:
                 switch_fabric_node_id = str(uuid.uuid4())
-            sf.set_node_id(switch_fabric_node_id)
+            sf.node_id = switch_fabric_node_id
             sf.set_resource_name(name + '_l2sf')
             sf.set_resource_type(SFType.SwitchFabric)
             # default to L2 for now
             sf.set_layer(SFLayer.L2)
-            sf.set_interface_info(iinfo)
+            sf.interface_info = iinfo
             sfinfo = SwitchFabricInfo()
             sfinfo.add_switch_fabric(sf)
             cs.set_switch_fabric_info(sfinfo)

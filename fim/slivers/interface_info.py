@@ -27,12 +27,13 @@ import ipaddress
 import uuid
 import enum
 
-from .base_sliver import BaseElement
+from .base_sliver import BaseSliver
 
 
 class InterfaceType(enum.Enum):
-    PORT = enum.auto()
-    VINT = enum.auto()
+    AccessPort = enum.auto()
+    TrunkPort = enum.auto()
+    vInt = enum.auto()
 
     def __repr__(self):
         return self.name
@@ -41,10 +42,19 @@ class InterfaceType(enum.Enum):
         return self.name
 
 
-class InterfaceSliver(BaseElement):
+class InterfaceSliver(BaseSliver):
 
     def __init__(self):
+        # addresses are labels, no need for additional fields
         super().__init__()
+
+    @staticmethod
+    def type_from_str(ntype: str) -> InterfaceType:
+        if ntype is None:
+            return None
+        for t in InterfaceType:
+            if ntype == str(t):
+                return t
 
 
 class InterfaceInfo:
