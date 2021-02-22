@@ -238,7 +238,7 @@ class Topology(ABC):
         return None
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
-             topo_detail: TopologyDetail = TopologyDetail.InfoModel,
+             topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
         """
         Use pyplot to draw the derived topology
