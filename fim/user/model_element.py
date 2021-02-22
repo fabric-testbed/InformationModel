@@ -55,6 +55,14 @@ class ModelElement(ABC):
         self.topo = topo
         self.node_id = node_id
 
+    def __eq__(self, other):
+        if not isinstance(other, ModelElement):
+            return False
+        return other.name == self.name and other.node_id == self.node_id
+
+    def __hash__(self):
+        return hash((self.name, self.node_id))
+
     def rename(self, new_name: str):
         """
         Rename the model element in the model graph

@@ -260,9 +260,9 @@ class Topology(ABC):
             if g is None:
                 return
             node_labels = dict()
-            for n in g.nodes:
-                node_labels[n] = g.nodes[n][ABCPropertyGraph.PROP_NAME] + \
-                                 '[' + g.nodes[n][ABCPropertyGraph.PROP_TYPE] + ']'
+            for l in g.nodes:
+                node_labels[l] = g.nodes[l][ABCPropertyGraph.PROP_NAME] + \
+                                 '[' + g.nodes[l][ABCPropertyGraph.PROP_TYPE] + ']'
             edge_labels = dict()
             for e in g.edges:
                 edge_labels[e] = g.edges[e][ABCPropertyGraph.PROP_CLASS]
@@ -284,12 +284,18 @@ class Topology(ABC):
             for n in network_nodes:
                 _, props = self.graph_model.get_node_properties(node_id=n)
                 derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
-            for n in links:
-                _, props = self.graph_model.get_node_properties(node_id=n)
+            for l in links:
+                _, props = self.graph_model.get_node_properties(node_id=l)
                 derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
 
-            # add edges into the graph
-            # FIXME
+            for n in self.nodes.values():
+                node_ints = n.interfaces.values()
+                for nint in node_ints:
+                    for l in self.links.values():
+                        # this works because of custom ModelElement.__eq__()
+                        if nint in l.interfaces:
+                            derived_graph.add_edge(n.name, l.name)
+
             pos = layout(derived_graph)
             nx.draw_networkx(derived_graph, pos=pos)
             if not interactive:

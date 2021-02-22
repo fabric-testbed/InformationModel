@@ -104,7 +104,7 @@ class Link(ModelElement):
             for iff in interface_list:
                 _, props = self.topo.graph_model.get_node_properties(node_id=iff)
                 name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
-            self.interfaces = (Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples)
+            self.interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
     def get_property(self, pname: str) -> Any:
         """

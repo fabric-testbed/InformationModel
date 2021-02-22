@@ -55,6 +55,10 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(nic1.get_property('capacities').disk, 0)
         self.assertEqual(n1.components['nic1'].get_property('labels').ipv4, "192.168.1.12")
 
+        # comparisons
+        nic11 = n1.components['nic1']
+        self.assertEqual(nic1, nic11)
+
         # interfaces and links
         self.assertEqual(len(self.topo.interfaces), 3)
 
