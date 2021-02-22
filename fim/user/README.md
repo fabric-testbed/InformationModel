@@ -13,10 +13,33 @@ guarantees that when minor edits are made to the python script, the underlying g
 also undergoes only minor changes, making it easily suitable for updating the AM, rather than 
 doing a clean-restart.
 
+## Installation
+
+```bash
+$ pip install fabric-fim 
+```
+
 ## Example scripts
 
-These scripts may not match exactly the available APIs, as the APIs are in flux for the 
-moment.
+Some example scripts that *should* run.
+
+### Trivial script
+
+```python
+import fim.user as fu
+t = fu.ExperimentTopology()
+t.add_node(name='n1', site='RENC')
+t.add_node(name='n2', site='RENC')
+t.nodes['n1'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+t.nodes['n2'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
+t.add_link(name='l1', interfaces=list(t.interfaces.values()), ltype=fu.LinkType.Wave)
+t.draw()
+```
+
+## Pseudocode scripts
+
+The following scripts show the general idea of how FIM is to be used but the implementation may
+be different in package paths, function names and parameters. Use only for planning/design purposes.
 
 ### Create topology
 ```python
