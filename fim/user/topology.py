@@ -241,7 +241,7 @@ class Topology(ABC):
              topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
         """
-        Use pyplot to draw the derived topology
+        Use pyplot to draw the topology of specified level of detail.
         :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
         :param interactive: use interactive pyplot mode (defaults to False)
         :param topo_detail: level of detail to use in drawing, defaults to OnlyNodes

@@ -55,7 +55,7 @@ class ComponentSliver(BaseSliver):
         self.switch_fabric_info = sf_info
 
     @staticmethod
-    def type_from_str(ctype: str) -> ComponentType:
+    def type_from_str(ctype: str) -> ComponentType or None:
         if ctype is None:
             return None
         for t in ComponentType:
@@ -71,11 +71,11 @@ class AttachedComponentsInfo:
         self.devices = {}
 
     def add_device(self, device_info: ComponentSliver):
-        self.devices[device_info.pci_id] = device_info
+        self.devices[device_info.resource_name] = device_info
 
-    def remove_device(self, pci_id: str):
-        if pci_id in self.devices:
-            self.devices.pop(pci_id)
+    def remove_device(self, name: str):
+        if name in self.devices:
+            self.devices.pop(name)
 
-    def get_device(self, pci_id: str):
-        return self.devices.get(pci_id, None)
+    def get_device(self, name: str):
+        return self.devices.get(name, None)

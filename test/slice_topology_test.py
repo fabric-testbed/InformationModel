@@ -83,3 +83,16 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.nodes), 0)
         self.assertEqual(len(self.topo.interfaces), 0)
         self.assertEqual(len(self.topo.links), 0)
+
+    def testDeepSliver(self):
+        self.topo.add_node(name='n1', site='RENC')
+        self.topo.nodes['n1'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        deep_sliver = self.topo.graph_model.build_deep_node_sliver(node_id=self.topo.nodes['n1'].node_id)
+        self.assertNotEqual(deep_sliver, None)
+        self.assertNotEqual(deep_sliver.attached_components_info, None)
+        self.assertNotEqual(deep_sliver.attached_components_info.devices['nic1'].switch_fabric_info, None)
+        self.assertNotEqual(deep_sliver.attached_components_info.
+                            devices['nic1'].switch_fabric_info.switch_fabrics['nic1_l2sf'].interface_info, None)
+        self.assertEqual(len(deep_sliver.attached_components_info.
+                             devices['nic1'].switch_fabric_info.switch_fabrics['nic1_l2sf'].
+                             interface_info.interfaces), 1)
