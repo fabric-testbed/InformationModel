@@ -22,13 +22,17 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.imp.delete_all_graphs()
 
-    def _find_favorite_nodes(self) -> Dict[str, str]:
+    def _find_favorite_nodes(self, g=None) -> Dict[str, str]:
         # find a few favorite nodes
         ret = dict()
+        if g is None:
+            graph = self.g
+        else:
+            graph = g
         for f in self.FAVORITE_NODES:
-            for n in self.g.storage.get_graph(1).nodes:
-                if self.g.storage.get_graph(1).nodes[n].get('Name', None) == f:
-                    ret[f] = self.g.storage.get_graph(1).nodes[n]['NodeID']
+            for n in graph.storage.get_graph(1).nodes:
+                if graph.storage.get_graph(1).nodes[n].get('Name', None) == f:
+                    ret[f] = graph.storage.get_graph(1).nodes[n]['NodeID']
         return ret
 
     def test_validate(self):
@@ -244,5 +248,19 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
 
         new_max_id = max(list(self.g.storage.get_graph(self.g.graph_id).nodes))
         self.assertEqual(max_id + 1, new_max_id)
+
+    def test_string_serialize(self):
+        graph_string = self.g.serialize_graph()
+        self.assertTrue(len(graph_string) > 0)
+
+        new_graph = self.imp.import_graph_from_string_direct(graph_string=graph_string)
+        self.assertEqual(new_graph.importer, self.g.importer)
+        self.assertEqual(new_graph.graph_id, self.g.graph_id)
+
+        new_favs = self._find_favorite_nodes(new_graph)
+        favs = self._find_favorite_nodes()
+        self.assertTrue((new_favs.get('Worker1'), None) is not None)
+        self.assertTrue((new_favs.get('GPU1'), None) is not None)
+        self.assertEqual(new_favs['Worker1'], favs['Worker1'])
 
 
