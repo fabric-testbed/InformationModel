@@ -34,8 +34,20 @@ t.nodes['n1'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6'
 t.nodes['n2'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
 t.add_link(name='l1', interfaces=list(t.interfaces.values()), ltype=fu.LinkType.Wave)
 t.draw()
+t.serialize('test_slice.graphml')
 ```
 
+Parsing on controller side
+```python
+import fim.graph.slices.networkx_asm as nx_asm
+
+gi = nx_asm.NetworkXGraphImporter()
+g = gi.import_graph_from_file_direct(graph_file='test_slice.graphml')
+asm = nx_asm.NetworkxASM(graph_id=g.graph_id, importer=g.importer, logger=g.importer.log)
+for nn_id in asm.get_all_network_nodes():
+    sliver = asm.build_deep_node_sliver(node_id=nn_id)
+    print(sliver)
+```
 ## Pseudocode scripts
 
 The following scripts show the general idea of how FIM is to be used but the implementation may

@@ -565,11 +565,19 @@ class NetworkXGraphStorage:
         Singleton in-memory storage for graphs
         """
 
-        def __init__(self):
+        def __init__(self, logger=None):
             self.graphs = nx.Graph()
             self.start_id = 1
+            self.log = logger
 
         def add_graph(self, graph_id: str, graph: nx.Graph) -> None:
+            # check this graph_id isn't already present
+            existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
+            if len(existing_graph_nodes) > 0:
+                # graph already present, warn and exit
+                if self.log is not None:
+                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
+                return
             # relabel incoming graph nodes to integers, then merge
             temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
             # set/overwrite GraphID property on all nodes
@@ -583,6 +591,13 @@ class NetworkXGraphStorage:
             self.graphs.add_edges_from(temp_graph.edges(data=True))
 
         def add_graph_direct(self, graph_id: str, graph: nx.Graph) -> None:
+            # check this graph_id isn't already present
+            existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
+            if len(existing_graph_nodes) > 0:
+                # graph already present, warn and exit
+                if self.log is not None:
+                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
+                return
             # relabel incoming graph nodes to integers, then merge
             temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
             self.start_id = self.start_id + len(temp_graph.nodes())
@@ -625,9 +640,9 @@ class NetworkXGraphStorage:
 
     storage_instance = None
 
-    def __init__(self):
+    def __init__(self, logger=None):
         if not NetworkXGraphStorage.storage_instance:
-            NetworkXGraphStorage.storage_instance = NetworkXGraphStorage.__NetworkXGraphStorage()
+            NetworkXGraphStorage.storage_instance = NetworkXGraphStorage.__NetworkXGraphStorage(logger=logger)
 
     def __getattr__(self, name):
         return getattr(self.storage_instance, name)
@@ -644,7 +659,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
         Initialize the importer setting up storage and logger
         :param logger:
         """
-        self.storage = NetworkXGraphStorage()
+        self.storage = NetworkXGraphStorage(logger=logger)
         self.graph_class = NetworkXPropertyGraph
         if logger is None:
             self.log = logging.getLogger(__name__)

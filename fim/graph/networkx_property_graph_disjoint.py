@@ -26,11 +26,7 @@
 """
 NetworkX-specific implementation of property graph abstraction
 """
-from typing import Dict, Any, Tuple, List, Set
-
 import logging
-import tempfile
-import uuid
 import networkx as nx
 
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, PropertyGraphQueryException
@@ -79,10 +75,17 @@ class NetworkXGraphStorageDisjoint:
         Singleton in-memory storage for graphs stored separately by id
         """
 
-        def __init__(self):
+        def __init__(self, logger=None):
             self.graphs = dict()
+            self.log = logger
 
         def add_graph(self, graph_id: str, graph: nx.Graph) -> None:
+            # check this graph_id isn't already present
+            if graph_id in self.graphs.keys():
+                # graph already present, warn and exit
+                if self.log is not None:
+                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
+                return
             # relabel incoming graph nodes to integers, then add
             temp_graph = nx.convert_node_labels_to_integers(graph, 1)
             # set/overwrite GraphID property on all nodes
@@ -98,6 +101,12 @@ class NetworkXGraphStorageDisjoint:
             self.graphs[graph_id].add_edges_from(temp_graph.edges(data=True))
 
         def add_graph_direct(self, graph_id: str, graph: nx.Graph) -> None:
+            # check this graph_id isn't already present
+            if graph_id in self.graphs.keys():
+                # graph already present, warn and exit
+                if self.log is not None:
+                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
+                return
             # relabel incoming graph nodes to integers, then merge
             temp_graph = nx.convert_node_labels_to_integers(graph, 1)
             self.graphs[graph_id] = temp_graph
@@ -131,9 +140,9 @@ class NetworkXGraphStorageDisjoint:
 
     storage_instance = None
 
-    def __init__(self):
+    def __init__(self, logger=None):
         if not NetworkXGraphStorageDisjoint.storage_instance:
-            NetworkXGraphStorageDisjoint.storage_instance = NetworkXGraphStorageDisjoint.__NetworkXGraphStorage()
+            NetworkXGraphStorageDisjoint.storage_instance = NetworkXGraphStorageDisjoint.__NetworkXGraphStorage(logger)
 
     def __getattr__(self, name):
         return getattr(self.storage_instance, name)
@@ -150,7 +159,7 @@ class NetworkXGraphImporterDisjoint(NetworkXGraphImporter):
         Initialize the importer setting up storage and logger
         :param logger:
         """
-        self.storage = NetworkXGraphStorageDisjoint()
+        self.storage = NetworkXGraphStorageDisjoint(logger=logger)
         self.graph_class = NetworkXPropertyGraphDisjoint
         if logger is None:
             self.log = logging.getLogger(__name__)
