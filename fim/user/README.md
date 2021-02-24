@@ -37,7 +37,7 @@ t.draw()
 t.serialize('test_slice.graphml')
 ```
 
-Parsing on controller side
+Parsing on orchestrator side
 ```python
 import fim.graph.slices.networkx_asm as nx_asm
 

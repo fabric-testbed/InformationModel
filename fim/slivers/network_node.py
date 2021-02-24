@@ -37,6 +37,7 @@ class NodeType(enum.Enum):
     VM = enum.auto()
     Container = enum.auto()
     Switch = enum.auto()
+    NAS = enum.auto()
 
     def __repr__(self):
         return self.name

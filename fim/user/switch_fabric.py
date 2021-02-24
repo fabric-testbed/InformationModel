@@ -81,16 +81,19 @@ class SwitchFabric(ModelElement):
                                    "In general you shouldn't need to specify node id for existing nodes.")
             self.node_id = node_id
 
-    def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort):
+    def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort,
+                      **kwargs):
         """
         Add an interface to node (mostly needed in substrate topologies)
         :param name:
         :param node_id:
         :param itype: interface type e.g. TrunkPort, AccessPort or VINT
+        :param kwargs: additional parameters
         :return:
         """
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
-                        etype=ElementType.NEW, topo=self.topo, itype=itype)
+                        etype=ElementType.NEW, topo=self.topo, itype=itype,
+                        **kwargs)
         return iff
 
     def remove_interface(self, *, name: str) -> None:
