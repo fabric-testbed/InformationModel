@@ -58,10 +58,13 @@ class Topology(ABC):
     """
     Define and manipulate a topology over its life cycle
     """
-    def __init__(self, logger=None):
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
+
         self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
                                        importer=NetworkXGraphImporter(logger=logger),
                                        logger=logger)
+        if graph_file is not None or graph_string is not None:
+            self.load(file_name=graph_file, graph_string=graph_string)
 
     def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
                  **kwargs) -> Node:
@@ -222,7 +225,7 @@ class Topology(ABC):
         if item == 'interfaces':
             return self.__list_interfaces()
 
-    def serialize(self, file_name=None) -> Any:
+    def serialize(self, file_name=None) -> str or None:
         """
         Serialize to string or to file, depending on whether file_name
         is provided.
@@ -236,6 +239,23 @@ class Topology(ABC):
             with open(file_name, 'w') as f:
                 f.write(graph_string)
         return None
+
+    def load(self, *, file_name: str = None, graph_string: str = None):
+        """
+        Load the topology from file or string
+        :param file_name:
+        :param graph_string:
+        :return:
+        """
+        if file_name is not None:
+            nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
+        else:
+            assert graph_string is not None
+            nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
+
+        self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
+                                       importer=nx_pgraph.importer,
+                                       logger=nx_pgraph.log)
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
@@ -310,14 +330,15 @@ class ExperimentTopology(Topology):
     """
     Define an user topology model
     """
-    def __init__(self, logger=None):
-        super().__init__(logger)
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
+        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
 
 
 class SubstrateTopology(Topology):
     """
     Define an substrate topology model.
     """
-    def __init__(self, logger=None):
-        super().__init__(logger)
+
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
+        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
 

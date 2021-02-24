@@ -686,6 +686,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
 
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph_string)
+            f1.flush()
             # read using networkx
             self.storage.add_graph(graph_id=graph_id, graph=nx.read_graphml(f1.name))
 
@@ -702,6 +703,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
 
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph_string)
+            f1.flush()
             # get graph id (kinda inefficient, because reads graph in, then discards)
             graph_id = self.get_graph_id(graph_file=f1.name)
             # read using networkx

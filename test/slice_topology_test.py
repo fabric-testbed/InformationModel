@@ -96,3 +96,13 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(deep_sliver.attached_components_info.
                              devices['nic1'].switch_fabric_info.switch_fabrics['nic1_l2sf'].
                              interface_info.interfaces), 1)
+
+    def testSerDes(self):
+        self.topo.add_node(name='n1', site='RENC')
+        self.topo.nodes['n1'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        gs = self.topo.serialize()
+        self.topo.graph_model.importer.delete_all_graphs()
+        t1 = f.ExperimentTopology(graph_string=gs)
+        self.assertEqual(t1.graph_model.graph_id, self.topo.graph_model.graph_id)
+        self.assertTrue('n1' in t1.nodes.keys())
+        self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
