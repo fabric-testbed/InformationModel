@@ -1,7 +1,7 @@
 import unittest
 
 from fim.graph.typed_tuples import Label, Capacity, Location
-from fim.graph.delegations import Pool, Pools, DelegationType
+from fim.slivers.delegations import Pool, Pools, DelegationType
 
 class TupleTests(unittest.TestCase):
 

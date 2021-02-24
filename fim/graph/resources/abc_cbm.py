@@ -30,7 +30,7 @@ from abc import ABCMeta, abstractmethod
 from typing import List
 
 from ..abc_property_graph import ABCPropertyGraph
-from ..delegations import DelegationType
+from fim.slivers.delegations import DelegationType
 
 
 class ABCCBMMixin(metaclass=ABCMeta):

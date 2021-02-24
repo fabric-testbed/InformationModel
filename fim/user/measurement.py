@@ -22,18 +22,9 @@
 # SOFTWARE.
 #
 #
-# Author: Komal Thareja (kthare10@renci.org)
-from .base_sliver import BaseSliver
-from .interface_info import InterfaceInfo
+# Author: Ilya Baldin (ibaldin@renci.org)
 
+class MeasurementPoint:
+    """
 
-class StitchPortSliver(BaseSliver):
-    def __init__(self):
-        super().__init__()
-        self.interface_info = None
-
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
-
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
+    """

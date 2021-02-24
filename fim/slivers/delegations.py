@@ -33,7 +33,7 @@ from enum import Enum
 from typing import List, Dict, Set
 import json
 
-from .neo4j_property_graph import Neo4jPropertyGraph
+from fim.graph.abc_property_graph import ABCPropertyGraph
 
 
 class DelegationType(Enum):
@@ -69,7 +69,7 @@ class Delegation:
         """
         assert dele_dict is not None
         # pop the delegation field
-        dele_dict.pop(Neo4jPropertyGraph.FIELD_DELEGATION, None)
+        dele_dict.pop(ABCPropertyGraph.FIELD_DELEGATION, None)
         self.delegation_details = dele_dict
 
     def get_details(self) -> Dict:
@@ -208,7 +208,7 @@ class Pool:
         :return:
         """
         assert pool_dict is not None
-        pool_dict.pop(Neo4jPropertyGraph.FIELD_DELEGATION, None)
+        pool_dict.pop(ABCPropertyGraph.FIELD_DELEGATION, None)
         self.pool_details = pool_dict
 
     def get_pool_details(self) -> Dict:

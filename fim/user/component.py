@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+# MIT License
+#
+# Copyright (c) 2020 FABRIC Testbed
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+#
+# Author: Ilya Baldin (ibaldin@renci.org)
+
+from typing import Any, Dict, List
+
+import uuid
+
+from ..graph.abc_property_graph import ABCPropertyGraph
+from .model_element import ModelElement, ElementType
+from .interface import Interface
+from .switch_fabric import SwitchFabric, SFLayer
+from ..slivers.attached_components import ComponentSliver, ComponentType
+from ..slivers.component_catalog import ComponentCatalog
+
+
+class Component(ModelElement):
+    """
+    A component, like a GPU, a NIC, an FPGA or an NVMe drive
+    """
+
+    def __init__(self, *, name: str, node_id: str = None, topo: Any,
+                 etype: ElementType = ElementType.EXISTING, model: str = None,
+                 ctype: ComponentType = None, parent_node_id: str = None,
+                 switch_fabric_node_id: str = None, interface_node_ids: List[str] = None,
+                 **kwargs):
+        """
+        Don't call this yourself, use Node.add_component(). Instantiates components based on
+        catalog resource file.
+        :param name:
+        :param node_id:
+        :param topo:
+        :param etype: is this supposed to be new or existing
+        :param model: must be specified if a new component
+        :param ctype: component type
+        :param parent_node_id: node_id of the parent Node (for new components)
+        :param switch_fabric_node_id: node id of switch fabric if one needs to be added (for substrate models only)
+        :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
+        """
+
+        assert name is not None
+        assert topo is not None
+        # cant use isinstance as it would create circular import dependencies
+        if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
+            raise RuntimeError("When adding components to substrate topology nodes you must specify static Node ID")
+        if etype == ElementType.NEW and model is None:
+            raise RuntimeError("When creating a new component, model must be specified")
+        if node_id is None:
+            node_id = str(uuid.uuid4())
+        super().__init__(name=name, node_id=node_id, topo=topo)
+        if etype == ElementType.NEW:
+            if parent_node_id is None:
+                raise RuntimeError("Parent node id must be specified for new components")
+            if model is None or ctype is None:
+                raise RuntimeError("Model and component type must be specified for new components")
+            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
+                    (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
+                    (switch_fabric_node_id is None or interface_node_ids is None):
+                raise RuntimeError('For substrate topologies and components with network interfaces '
+                                   'static switch_fabric node id and interface node ids must be specified')
+            cata = ComponentCatalog()
+            comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
+                                                  switch_fabric_node_id=switch_fabric_node_id,
+                                                  interface_node_ids=interface_node_ids)
+            comp_sliver.node_id = node_id
+            comp_sliver.set_properties(**kwargs)
+
+            self.topo.graph_model.add_component_sliver(parent_node_id=parent_node_id, component=comp_sliver)
+        else:
+            # check that this node exists
+            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
+                                                                       label=str(ABCPropertyGraph.CLASS_Component))
+            if node_id is not None and existing_node_id != node_id:
+                raise RuntimeError("Existing node id does not match provided. "
+                                   "In general you shouldn't need to specify node id for existing nodes.")
+            self.node_id = node_id
+
+    def get_property(self, pname: str) -> Any:
+        """
+        Retrieve a component property
+        :param pname:
+        :return:
+        """
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        comp_sliver = self.topo.graph_model.component_sliver_from_graph_properties_dict(node_properties)
+        return comp_sliver.get_property(pname)
+
+    def set_property(self, pname: str, pval: Any):
+        """
+        Set a component property
+        :param pname:
+        :param pval:
+        :return:
+        """
+        comp_sliver = ComponentSliver()
+        comp_sliver.set_property(prop_name=pname, prop_val=pval)
+        # write into the graph
+        prop_dict = self.topo.graph_model.component_sliver_to_graph_properties_dict(comp_sliver)
+        self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
+
+    def set_properties(self, **kwargs):
+        """
+        Set multiple properties of the component
+        :param kwargs:
+        :return:
+        """
+        comp_sliver = ComponentSliver()
+        comp_sliver.set_properties(**kwargs)
+        # write into the graph
+        prop_dict = self.topo.graph_model.component_sliver_to_graph_properties_dict(comp_sliver)
+        self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
+
+    @staticmethod
+    def list_properties() -> List[str]:
+        return ComponentSliver.list_properties()
+
+    def __get_interface_by_id(self, node_id: str) -> Interface:
+        """
+        Get an interface of a node by its node_id, return Interface object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                         topo=self.topo)
+
+    def __list_interfaces(self) -> Dict[str, Interface]:
+        """
+        List all interfaces of the node as a dictionary
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        # Could consider using frozendict here
+        ret = dict()
+        for nid in node_id_list:
+            i = self.__get_interface_by_id(nid)
+            ret[i.name] = i
+        return ret
+
+    def __list_switch_fabrics(self) -> Dict[str, SwitchFabric]:
+        """
+        List all switch fabric children of a node as a dictionary organized
+        by switch fabric name. Modifying the dictionary will not affect
+        the underlying model, but modifying Components in the dictionary will.
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_network_node_or_component_sfs(parent_node_id=self.node_id)
+        # Could consider using frozendict or other immutable idioms
+        ret = dict()
+        for nid in node_id_list:
+            c = self.__get_sf_by_id(nid)
+            ret[c.name] = c
+        return ret
+
+    def __getattr__(self, item):
+        """
+        Special handling for attributes like 'components' and 'interfaces' -
+        which query into the model. They return dicts and list
+        containers. Modifying containers does not affect the underlying
+        graph mode, but modifying elements of lists or values of dicts does.
+        :param item:
+        :return:
+        """
+        if item == 'interfaces':
+            return self.__list_interfaces()
+        if item == 'switchfabrics':
+            return self.__list_switch_fabrics()
+
+    def __repr__(self):
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        comp_sliver = self.topo.graph_model.component_sliver_from_graph_properties_dict(node_properties)
+        return comp_sliver.__repr__()
+
+    def __str__(self):
+        return self.__repr__()
+

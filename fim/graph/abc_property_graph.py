@@ -28,7 +28,9 @@
 Abstract Base class representing operations on a property graph of resources.
 Could be a delegation, a broker view of resources or a slice.
 """
-
+import json
+import uuid
+import networkx as nx
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Set
 
@@ -37,6 +39,9 @@ class ABCPropertyGraph(ABC):
     """
     Abstract Base class representing operations on a property graph of resources.
     Could be a delegation, a broker view of resources or a slice.
+    NOTE: this makes a very fundamental assumption that all graphs are sharing
+    a common store and nodes of different graphs can be connected to each other.
+    Graphs are distinguished by GraphID property on each node.
     """
 
     FIELD_POOL = "pool"
@@ -48,27 +53,59 @@ class ABCPropertyGraph(ABC):
     PROP_CAPACITIES = "Capacities"
     PROP_LABELS = "Labels"
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS, PROP_CAPACITY_DELEGATIONS]
+    GRAPH_ID = 'GraphID'
+    NODE_ID = 'NodeID'
+    PROP_NAME = 'Name'
+    PROP_CLASS = 'Class'
+    PROP_TYPE = 'Type'
+    PROP_MODEL = 'Model'
+    PROP_LAYER = 'Layer'
+    PROP_TECHNOLOGY = 'Technology'
+    PROP_SITE = 'Site'
+    PROP_IMAGE_REF = 'ImageRef'
+    PROP_MGMT_IP = 'MgmtIp'
+    PROP_ALLOCATION_CONSTRAINTS = 'AllocationConstraints'
+    PROP_SERVICE_ENDPOINT = 'ServiceEndpoint'
+    PROP_DETAILS = 'Details'
+
+    CLASS_NetworkNode = 'NetworkNode'
+    CLASS_Component = 'Component'
+    CLASS_SwitchFabric = 'SwitchFabric'
+    CLASS_ConnectionPoint = 'ConnectionPoint'
+    CLASS_Link = 'Link'
+    CLASS_CompositeLink = 'CompositeLink'
+    CLASS_CompositeNode = 'CompositeNode'
+    CLASS_MeasurementPoint = 'MeasurementPoint'
+
+    REL_HAS = 'has'
+    REL_CONNECTS = 'connects'
+    REL_DEPENDS = 'depends'
+    REL_ADAPTS = 'adapts'
+    REL_PEERS = 'peers'
 
     @abstractmethod
-    def __init__(self, *, graph_id: str):
+    def __init__(self, *, graph_id: str, importer):
         """
         New graph with an id
         :param graph_id:
         """
+        assert graph_id is not None
+        assert importer is not None
         self.graph_id = graph_id
+        self.importer = importer
 
     def get_graph_id(self):
         return self.graph_id
 
     @abstractmethod
-    def validate_graph(self) ->None:
+    def validate_graph(self) -> None:
         """
         validate graph according to a built-in set of rules
         :return: - None,
         """
 
     @abstractmethod
-    def delete_graph(self) ->None:
+    def delete_graph(self) -> None:
         """
         delete a graph from the database
         :return: - None
@@ -170,16 +207,18 @@ class ABCPropertyGraph(ABC):
         :return:
         """
 
-    @abstractmethod
     def clone_graph(self, *, new_graph_id: str):
         """
-        clone a graph. unfortunately APOC procedures for cloning are not
-        a good fit - they can omit, but not overwrite a property on clone.
-        Instead this procedure serializes graph into a temporary file, then
-        reloads it overwriting the GraphID property.
+        Clone a graph to a new graph_id by serializing/deserializing it
         :param new_graph_id:
-        :return returns a graph:
+        :return:
         """
+        assert new_graph_id is not None
+        graph_string = self.serialize_graph()
+        if graph_string is None:
+            raise PropertyGraphQueryException(msg=f"Unable to find graph with id {self.graph_id} for cloning")
+        return self.importer.import_graph_from_string(graph_string=graph_string,
+                                                      graph_id=new_graph_id)
 
     @abstractmethod
     def graph_exists(self) -> bool:
@@ -225,6 +264,37 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
+    def node_exists(self, *, node_id: str, label: str):
+        """
+        Check if this node exists
+        :param node_id:
+        :param label:
+        :return:
+        """
+
+    @abstractmethod
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+        """
+        Add a new node with specified
+        :param node_id:
+        :param label: class or label of this node
+        :param props: initial set of properties
+        :return:
+        """
+
+    @abstractmethod
+    def add_link(self, *, node_a: str, rel: str, node_b: str, props: Dict[str, Any] = None) -> None:
+        """
+        Add a link of specified type (rel) between the two nodes. Properties can be added
+        at the same time.
+        :param node_a:
+        :param rel:
+        :param node_b:
+        :param props:
+        :return:
+        """
+
+    @abstractmethod
     def delete_node(self, *, node_id: str):
         """
         Delete node from a graph (incident edges automatically deleted)
@@ -233,26 +303,72 @@ class ABCPropertyGraph(ABC):
         """
 
     @abstractmethod
-    def find_matching_nodes(self, *, graph) -> Set:
+    def find_matching_nodes(self, *, other_graph) -> Set:
         """
         Return a set of node ids that match between the two graphs
-        :param graph:
+        :param other_graph:
         :return:
         """
 
     @abstractmethod
-    def merge_nodes(self, node_id: str, graph, merge_properties=None):
+    def merge_nodes(self, node_id: str, other_graph, merge_properties=None):
         """
         Merge two nodes of the same id belonging to two graphs. Optionally
         specify merging behavior for individual properties
         :param node_id:
-        :param graph:
+        :param other_graph:
         :param merge_properties:
         :return:
         """
 
     def __repr__(self):
         return f"Graph with id {self.graph_id}"
+
+    def _validate_json_property(self, node_id: str, prop_name: str, strict: bool = False) -> str:
+        """
+        Validate that JSON in a particular node in a particular property is valid or throw
+        a JSONDecodeError exception. Strict set to true causes exception if property is not found.
+        Default strict is set to False. If property is not a valid JSON it's value is returned.
+        :param node_id:
+        :param prop_name:
+        :param strict
+        :return:
+        """
+        assert node_id is not None
+        assert prop_name is not None
+        _, props = self.get_node_properties(node_id=node_id)
+        if prop_name not in props.keys():
+            if strict:
+                # if property is not there, raise exception
+                raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node_id,
+                                                   msg=f"Unable to find property {prop_name} on a node")
+            else:
+                # if property is not there, just return
+                return None
+        # try loading it as JSON. Exception may be thrown
+        if props[prop_name] is not None and props[prop_name] != "None":
+            try:
+                json.loads(props[prop_name])
+            except json.decoder.JSONDecodeError:
+                return props[prop_name]
+        else:
+            return None
+
+    def _validate_all_json_properties(self) -> None:
+        """
+        Validate all expected JSON properties of all nodes in a given graph or raise an exception
+        :return:
+        """
+        nodes = self.list_all_node_ids()
+        if len(nodes) == 0:
+            raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                              node_id=None, msg="Unable to list nodes of graph")
+        for node in nodes:
+            for prop in self.JSON_PROPERTY_NAMES:
+                prop_val = self._validate_json_property(node_id=node, prop_name=prop)
+                if prop_val is not None:
+                    raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node,
+                                                       msg=f"Unable to parse JSON property {prop} with value {prop_val}")
 
 
 class ABCGraphImporter(ABC):
@@ -278,7 +394,6 @@ class ABCGraphImporter(ABC):
         :return:
         """
 
-    @abstractmethod
     def import_graph_from_file(self, *, graph_file: str, graph_id: str = None) -> ABCPropertyGraph:
         """
         import a graph from a file
@@ -286,6 +401,11 @@ class ABCGraphImporter(ABC):
         :param graph_id: - optional id of the graph in the database
         :return: an instantiation of a property graph
         """
+        assert graph_file is not None
+        with open(graph_file, 'r') as f:
+            graph_string = f.read()
+
+        return self.import_graph_from_string(graph_string=graph_string, graph_id=graph_id)
 
     @abstractmethod
     def import_graph_from_file_direct(self, *, graph_file: str) -> ABCPropertyGraph:
@@ -295,14 +415,53 @@ class ABCGraphImporter(ABC):
         :return:
         """
 
-    @abstractmethod
-    def enumerate_graph_nodes(self, *, graph_file: str, new_graph_file: str, node_id_prop: str) -> None:
+    @staticmethod
+    def enumerate_graph_nodes(*, graph_file: str, new_graph_file: str, node_id_prop: str = "NodeID") -> None:
         """
-        Read in a graph and add a NodeId property to every node assigning a unique GUID.
+        Read in a graph and add a NodeId property to every node assigning a unique GUID (unless present).
         Save into a new file
-        :param graph_file: original file containing graph
-        :param new_graph_file: new file containing updated graph
-        :param node_id_prop: name of the property of a node to which ID is assigned
+        :param graph_file: original graph file name
+        :param new_graph_file: new file name
+        :param node_id_prop: alternative property name for node id (default NodeId)
+        :return:
+        """
+        assert graph_file is not None
+        assert new_graph_file is not None
+
+        # read using networkx
+        g = nx.read_graphml(graph_file)
+        # add node id to every node
+        for n in list(g.nodes):
+            if (node_id_prop not in g.nodes[n].keys()) or (len(g.nodes[n][node_id_prop]) == 0):
+                g.nodes[n][node_id_prop] = str(uuid.uuid4())
+        # save to a new file
+        nx.write_graphml(g, new_graph_file)
+
+    @staticmethod
+    def enumerate_graph_nodes_to_string(*, graph_file: str, node_id_prop: str = "NodeID") -> str:
+        """
+        Read in a graph and add a NodeId property to every node assigning a unique GUID (unless present).
+        Return GraphML string.
+        :param graph_file: original graph file name
+        :param node_id_prop: alternative property name for node id (default NodeId)
+        :return:
+        """
+        assert graph_file is not None
+
+        # read using networkx
+        g = nx.read_graphml(graph_file)
+        # add node id to every node
+        for n in list(g.nodes):
+            if (node_id_prop not in g.nodes[n].keys()) or (len(g.nodes[n][node_id_prop]) == 0):
+                g.nodes[n][node_id_prop] = str(uuid.uuid4())
+        graph_string = '\n'.join(nx.generate_graphml(g))
+        return graph_string
+
+    @abstractmethod
+    def delete_graph(self, *, graph_id: str) -> None:
+        """
+        Delete a single graph with this ID
+        :param graph_id:
         :return:
         """
 
@@ -313,12 +472,34 @@ class ABCGraphImporter(ABC):
         :return:
         """
 
+    @staticmethod
+    def get_graph_id(*, graph_file: str) -> str:
+        """
+        Read graphml file using NetworkX to get GraphID property
+        :param graph_file:
+        :return:
+        """
+        assert graph_file is not None
+        g = nx.read_graphml(graph_file)
+
+        # check graph_ids on nodes
+        graph_ids = set()
+        try:
+            for n in list(g.nodes):
+                graph_ids.add(g.nodes[n][ABCPropertyGraph.GRAPH_ID])
+        except KeyError:
+            raise PropertyGraphImportException(graph_id=None, msg=f"Graph does not contain GraphID property")
+
+        if len(graph_ids) > 1:
+            raise PropertyGraphImportException(graph_id=None, msg=f"Graph contains more than one GraphID: {graph_ids}")
+        return graph_ids.pop()
+
 
 class PropertyGraphException(Exception):
     """
     base exception class for all graph exceptions
     """
-    def __init__(self, *, graph_id: str, msg: Any = None):
+    def __init__(self, *, graph_id: str or None, msg: Any = None):
         """
         initialize based on graph_id of the graph in question
         :param graph_id:
@@ -339,7 +520,7 @@ class PropertyGraphImportException(PropertyGraphException):
     """
     import exception for a property graph
     """
-    def __init__(self, *, graph_id: str,  msg: str, node_id: str = None):
+    def __init__(self, *, graph_id: str or None,  msg: str, node_id: str = None):
         if node_id is None:
             super().__init__(graph_id=graph_id, msg=f"Error [{msg}] importing graph")
         else:
@@ -350,7 +531,7 @@ class PropertyGraphQueryException(PropertyGraphException):
     """
     query exception for a property graph
     """
-    def __init__(self, *, graph_id: str, node_id: str, msg: str, node_b: str = None, kind: str = None):
+    def __init__(self, *, graph_id: str or None, node_id: str or None, msg: str, node_b: str = None, kind: str = None):
         """
         Query error for node or link
         :param graph_id:

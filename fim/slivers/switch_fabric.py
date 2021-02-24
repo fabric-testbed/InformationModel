@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MIT License
 #
-# Copyright (c) 2020 FABRIC Testbed
+# Copyright (c) 2021 FABRIC Testbed
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,18 +22,16 @@
 # SOFTWARE.
 #
 #
-# Author: Komal Thareja (kthare10@renci.org)
-import ipaddress
-import uuid
+# Author: Ilya Baldin (ibaldin@renci.org)
 import enum
 
 from .base_sliver import BaseSliver
+from .interface_info import InterfaceInfo
 
 
-class InterfaceType(enum.Enum):
-    AccessPort = enum.auto()
-    TrunkPort = enum.auto()
-    vInt = enum.auto()
+class SFLayer(enum.Enum):
+    L2 = enum.auto()
+    L3 = enum.auto()
 
     def __repr__(self):
         return self.name
@@ -42,31 +40,62 @@ class InterfaceType(enum.Enum):
         return self.name
 
 
-class InterfaceSliver(BaseSliver):
+class SFType(enum.Enum):
+    # only one subtype for now
+    SwitchFabric = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class SwitchFabricSliver(BaseSliver):
+    """
+    SwitchFabrics are typically invisible to everyone, but provide
+    the abstraction of switching across some number of ports
+    """
 
     def __init__(self):
-        # addresses are labels, no need for additional fields
         super().__init__()
+        self.layer = None
+        self.interface_info = None
+
+    def set_layer(self, layer: SFLayer):
+        self.layer = layer
+
+    def get_layer(self) -> SFLayer:
+        return self.layer
 
     @staticmethod
-    def type_from_str(ntype: str) -> InterfaceType:
+    def layer_from_str(layer: str) -> SFLayer:
+        if layer is None:
+            return None
+        for t in SFLayer:
+            if layer == str(t):
+                return t
+
+    @staticmethod
+    def type_from_str(ntype: str) -> SFType:
         if ntype is None:
             return None
-        for t in InterfaceType:
+        for t in SFType:
             if ntype == str(t):
                 return t
 
 
-class InterfaceInfo:
+class SwitchFabricInfo:
+
     def __init__(self):
-        self.interfaces = {}
+        self.switch_fabrics = {}
 
-    def add_interface(self, interface_info: InterfaceSliver):
-        self.interfaces[interface_info.resource_name] = interface_info
+    def add_switch_fabric(self, sf_info: SwitchFabricSliver):
+        self.switch_fabrics[sf_info.resource_name] = sf_info
 
-    def remove_interface(self, name: str):
-        if name in self.interfaces.keys():
-            self.interfaces.pop(name)
+    def remove_switch_fabric(self, name: str):
+        if name in self.switch_fabrics.keys():
+            self.switch_fabrics.pop(name)
 
-    def get_interface(self, name: str):
-        return self.interfaces.get(name, None)
+    def get_switch_fabric(self, name: str):
+        return self.switch_fabrics.get(name, None)

@@ -23,17 +23,59 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
+
+import enum
+
 from .base_sliver import BaseSliver
-from .interface_info import InterfaceInfo
+from .switch_fabric import SwitchFabricInfo
 
 
-class StitchPortSliver(BaseSliver):
+@enum.unique
+class ComponentType(enum.Enum):
+    GPU = enum.auto()
+    SmartNIC = enum.auto()
+    SharedNIC = enum.auto()
+    FPGA = enum.auto()
+    NVME = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class ComponentSliver(BaseSliver):
+
     def __init__(self):
         super().__init__()
-        self.interface_info = None
+        self.switch_fabric_info = None
 
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
+    def set_switch_fabric_info(self, sf_info: SwitchFabricInfo):
+        self.switch_fabric_info = sf_info
 
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
+    @staticmethod
+    def type_from_str(ctype: str) -> ComponentType or None:
+        if ctype is None:
+            return None
+        for t in ComponentType:
+            if ctype == str(t):
+                return t
+
+
+class AttachedComponentsInfo:
+    """
+    Stores attached components as a dictionary by PCI ID
+    """
+    def __init__(self):
+        self.devices = {}
+
+    def add_device(self, device_info: ComponentSliver):
+        self.devices[device_info.resource_name] = device_info
+
+    def remove_device(self, name: str):
+        if name in self.devices:
+            self.devices.pop(name)
+
+    def get_device(self, name: str):
+        return self.devices.get(name, None)

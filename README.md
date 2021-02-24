@@ -1,5 +1,7 @@
 [![Requirements Status](https://requires.io/github/fabric-testbed/InformationModel/requirements.svg?branch=master)](https://requires.io/github/fabric-testbed/InformationModel/requirements/?branch=master)
 
+[![PyPI](https://img.shields.io/pypi/v/fabric-fim?style=plastic)](https://pypi.org/manage/project/fabric-fim/releases/)
+
 # Information Model
 FABRIC Information Model library, containing class definitions and methods for operating
 on different types of information model representations (sliver and slice)
@@ -44,6 +46,15 @@ Test graphs are located under [tests/models](tests/models). All graphs were crea
 [yEd](https://www.yworks.com/products/yed)
 desktop graph editor (note that on-line version does not provide the same flexibility for creating custom node
 and link properties).
+
+## Testing
+
+Run pytest
+
+```bash
+$ pytest [-s] test
+```
+Neo4j docker needs to be running to support tests of neo4j.
 
 ### Rules for creating new graphs
 

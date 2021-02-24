@@ -29,17 +29,15 @@ Abstract definition of ADM (Aggregate Delegation Model) functionality
 
 from abc import ABCMeta, abstractmethod
 
-from ..delegations import DelegationType
-
 
 class ABCADMMixin(metaclass=ABCMeta):
     """
-    Interface for an ARM Mixin on top of a property graph
+    Interface for an ADM Mixin on top of a property graph
     """
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'generate_adms') and
-                callable(subclass.generate_adms) or NotImplemented)
+        return (hasattr(subclass, 'rewrite_delegations') and
+                callable(subclass.rewrite_delegations) or NotImplemented)
 
     @abstractmethod
     def rewrite_delegations(self, *, real_adm_id: str = None) -> None:

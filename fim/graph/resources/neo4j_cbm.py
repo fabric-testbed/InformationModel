@@ -32,12 +32,12 @@ import json
 from typing import List
 
 from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
-from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException, PropertyGraphImportException
+from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from .abc_cbm import ABCCBMMixin
 from .neo4j_adm import Neo4jADMGraph
-from ..delegations import DelegationType
+from fim.slivers.delegations import DelegationType
 
-from ...pluggable import PluggableRegistry, ABCPluggable, BrokerPluggable, PluggableType
+from ...pluggable import PluggableRegistry, BrokerPluggable, PluggableType
 
 
 class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
@@ -127,7 +127,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
         # CBM is not empty - need to merge ADM with it
 
         # locate nodes with matching IDs
-        common_node_ids = self.find_matching_nodes(graph=temp_adm_graph)
+        common_node_ids = self.find_matching_nodes(other_graph=temp_adm_graph)
 
         # Merging CBM properties with ADM (on merged nodes):
         # edited after the fact.
@@ -146,7 +146,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
             # default behavior - keep CBM node properties, discard
             # temp_adm_graph properties
             self.merge_nodes(node_id=node_id,
-                             graph=temp_adm_graph)
+                             other_graph=temp_adm_graph)
 
             # add delegation graph id to ADMGraphIDs property on common (merged) nodes
             _, cbm_node_props = self.get_node_properties(node_id=node_id)
@@ -157,6 +157,8 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
 
         # rewrite GraphID on the remaining nodes of
         # temporary ADM graph (after that it ceases to exist)
+        # NOTE: this takes advantage of Neo4j semantics of common store for all graphs
+        # and changing the GraphID property effectively makes graph takes on a new identity
         temp_adm_graph.update_nodes_property(prop_name="GraphID", prop_val=self.graph_id)
 
     def get_bqm(self, **kwargs) -> Neo4jPropertyGraph:

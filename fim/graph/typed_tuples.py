@@ -71,7 +71,6 @@ class TypeValidator:
             assert atype is not None
             return self.label_types[atype]
 
-
         def get_types(self) -> List:
             """
             returns a copy of available label types as list
@@ -267,6 +266,7 @@ class LabelException(TypedTupleException):
         assert msg is not None
         super().__init__(f"Label exception: {msg}")
 
+
 class LabelOrCapacityException(TypedTupleException):
     """
     Exception with either label or capacity
@@ -274,6 +274,7 @@ class LabelOrCapacityException(TypedTupleException):
     def __init__(self, msg: str):
         assert msg is not None
         super().__init__(f"Label or Capacity exception {msg}")
+
 
 class LocationException(TypedTupleException):
     """

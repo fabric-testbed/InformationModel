@@ -23,40 +23,20 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
-import fim.slivers.base_sliver
-import fim.slivers.interface_info
-from .base_sliver import BaseElement
-from .interface_info import InterfaceInfo
+
+from .network_node import NodeSliver
 
 
-class NetworkAttachedStorage(BaseElement):
+class NetworkAttachedStorageSliver(NodeSliver):
+    # maps onto NetworkNode
+    GRAPH_LABEL = 'NetworkNode'
+
     def __init__(self):
         super().__init__()
         self.technology = None
-        self.service_endpoint = None
-        self.size = 0
-        self.interface_info = None
 
     def get_technology(self) -> str:
         return self.technology
 
     def set_technology(self, technology: str):
         self.technology = technology
-
-    def set_service_endpoint(self, service_endpoint: str):
-        self.service_endpoint = service_endpoint
-
-    def get_service_endpoint(self) -> str:
-        return self.service_endpoint
-
-    def set_size(self, size: int):
-        self.size = size
-
-    def get_size(self) -> int:
-        return self.size
-
-    def set_interface_info(self, interface_info: InterfaceInfo):
-        self.interface_info = interface_info
-
-    def get_interface_info(self) -> InterfaceInfo:
-        return self.interface_info
