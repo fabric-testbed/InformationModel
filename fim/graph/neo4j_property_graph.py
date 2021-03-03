@@ -50,8 +50,6 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
     Neo4j-specific implementation of property graph abstraction
     """
 
-    NEO4j_NONE = "None"
-
     def __init__(self, *, graph_id: str, importer, logger=None):
         """
         Initialize a property graph object. Logger is optional.
@@ -59,13 +57,9 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         :param importer:
         :param logger:
         """
-        super().__init__(graph_id=graph_id, importer=importer)
+        super().__init__(graph_id=graph_id, importer=importer, logger=logger)
         assert isinstance(importer, Neo4jGraphImporter)
         self.driver = importer.driver
-        if logger is None:
-            self.log = logging.getLogger(__name__)
-        else:
-            self.log = logger
 
     def _validate_graph(self, rules_file: str) -> None:
         """ validate the graph imported in Neo4j according to a set of given Cypher rules"""

@@ -30,6 +30,7 @@ from typing import Any, List
 from abc import ABC, abstractmethod
 
 from fim.slivers.capacities_labels import Capacities, Labels
+from fim.slivers.delegations import Delegation, Pool
 
 
 class BaseSliver(ABC):
@@ -42,6 +43,8 @@ class BaseSliver(ABC):
         self.resource_model = None
         self.capacities = None
         self.labels = None
+        self.capacity_delegations = None
+        self.label_delegations = None
         self.node_id = None
         self.details = None
 
@@ -103,6 +106,18 @@ class BaseSliver(ABC):
 
     def get_labels(self) -> Labels:
         return self.labels
+
+    def set_capacity_delegations(self, cdel: Delegation):
+        self.capacity_delegations = cdel
+
+    def get_capacity_delegations(self) -> Delegation:
+        return self.capacity_delegations
+
+    def set_label_delegations(self, ldel: Delegation):
+        self.label_delegations = ldel
+
+    def get_label_delegations(self) -> Delegation:
+        return self.label_delegations
 
     def set_details(self, desc: str) -> None:
         self.details = desc
@@ -170,7 +185,9 @@ class BaseSliver(ABC):
         print_set.sort()
         print_vals = dict()
         for p in print_set:
-            print_vals[p] = self.get_property(p)
+            pval = self.get_property(p)
+            if pval is not None:
+                print_vals[p] = pval
         return str(print_vals)
 
     def __str__(self):

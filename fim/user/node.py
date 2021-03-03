@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 import uuid
 
@@ -33,7 +33,7 @@ from .component import Component, ComponentType
 from .switch_fabric import SwitchFabric
 from .interface import Interface
 
-from ..graph.abc_property_graph import ABCPropertyGraph
+from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 
 from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
@@ -76,7 +76,6 @@ class Node(ModelElement):
             if site is None:
                 raise RuntimeError("When creating nodes you must specify site")
 
-            self.node_id = node_id
             sliver = NodeSliver()
             sliver.node_id = self.node_id
             sliver.set_resource_name(self.name)
@@ -86,14 +85,13 @@ class Node(ModelElement):
 
             self.topo.graph_model.add_network_node_sliver(sliver=sliver)
         else:
+            assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
             # check that this node exists
             existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
                                                                        label=str(ABCPropertyGraph.CLASS_NetworkNode))
-            if node_id is not None and existing_node_id != node_id:
-                raise RuntimeError("Existing node id does not match provided. "
-                                   "In general you shouldn't need to specify node id for existing nodes.")
-            self.node_id = node_id
+            if existing_node_id != node_id:
+                raise RuntimeError(f'Node name {name} is not unique within the topology')
 
     def get_property(self, pname: str) -> Any:
         """
@@ -101,6 +99,7 @@ class Node(ModelElement):
         :param pname:
         :return:
         """
+        assert pname is not None
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         node_sliver = self.topo.graph_model.node_sliver_from_graph_properties_dict(node_properties)
         return node_sliver.get_property(pname)
@@ -150,6 +149,10 @@ class Node(ModelElement):
         :param kwargs: additional properties of the component
         :return:
         """
+        assert name is not None
+        # make sure name is unique within the node
+        if name in self.__list_components().keys():
+            raise RuntimeError('Component names must be unique within node.')
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
                       ctype=ctype, model=model, switch_fabric_node_id=switch_fabric_node_id,
@@ -164,6 +167,10 @@ class Node(ModelElement):
         :param layer:
         :return:
         """
+        assert name is not None
+        # make sure name is unique within the node
+        if name in self.__list_switch_fabrics().keys():
+            raise RuntimeError('SwitchFabric names must be unique within node.')
         sf = SwitchFabric(name=name, node_id=node_id, layer=layer, parent_node_id=self.node_id,
                           etype=ElementType.NEW, topo=self.topo)
         return sf
@@ -198,7 +205,8 @@ class Node(ModelElement):
         :return:
         """
         assert name is not None
-        node_id = self.topo.graph_model.find_component_by_name(parent_node_id=self.node_id, component_name=name)
+        node_id = self.topo.graph_model.find_component_by_name(parent_node_id=self.node_id,
+                                                               component_name=name)
         return Component(name=name, node_id=node_id, topo=self.topo)
 
     def __get_component_by_id(self, node_id: str) -> Component:
@@ -212,6 +220,16 @@ class Node(ModelElement):
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Component(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
+
+    def __get_sf_by_name(self, name: str) -> SwitchFabric:
+        """
+        Find SwitchFabric of a node by its name, return SwitchFabric object
+        :param name:
+        :return:
+        """
+        assert name is not None
+        node_id = self.topo.graph_model.find_sf_by_name(parent_node_id=self.node_id, component_name=name)
+        return SwitchFabric(name=name, node_id=node_id, topo=self.topo)
 
     def __get_sf_by_id(self, node_id: str) -> SwitchFabric:
         """
@@ -232,8 +250,9 @@ class Node(ModelElement):
         :return:
         """
         assert node_id is not None
-        _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
+        clazzes, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        assert ABCPropertyGraph.CLASS_ConnectionPoint in clazzes
         return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
@@ -293,6 +312,18 @@ class Node(ModelElement):
             direct_interfaces.update(comp_interfaces)
         return direct_interfaces
 
+    def __list_of_interfaces(self) -> Tuple[Interface]:
+        """
+        List all interfaces of node and its components
+        :return:
+        """
+        direct_interfaces = self.__list_direct_interfaces()
+        cdict = self.__list_components()
+        for k, v in cdict.items():
+            comp_interfaces = v.interfaces
+            direct_interfaces.update(comp_interfaces)
+        return Tuple(direct_interfaces.values())
+
     def get_component(self, name: str):
         """
         Get a component by this name
@@ -314,10 +345,13 @@ class Node(ModelElement):
             return self.__list_components()
         if item == 'interfaces':
             return self.__list_interfaces()
+        if item == 'interface_list':
+            return self.__list_of_interfaces()
         if item == 'direct_interfaces':
             return self.__list_direct_interfaces()
         if item == 'switch_fabrics':
             return self.__list_switch_fabrics()
+        raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

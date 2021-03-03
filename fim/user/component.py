@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import uuid
 
@@ -62,15 +62,13 @@ class Component(ModelElement):
 
         assert name is not None
         assert topo is not None
-        # cant use isinstance as it would create circular import dependencies
-        if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
-            raise RuntimeError("When adding components to substrate topology nodes you must specify static Node ID")
-        if etype == ElementType.NEW and model is None:
-            raise RuntimeError("When creating a new component, model must be specified")
-        if node_id is None:
-            node_id = str(uuid.uuid4())
-        super().__init__(name=name, node_id=node_id, topo=topo)
+
         if etype == ElementType.NEW:
+            # cant use isinstance as it would create circular import dependencies
+            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
+                raise RuntimeError("When adding components to substrate topology nodes you must specify static Node ID")
+            if node_id is None:
+                node_id = str(uuid.uuid4())
             if parent_node_id is None:
                 raise RuntimeError("Parent node id must be specified for new components")
             if model is None or ctype is None:
@@ -80,6 +78,7 @@ class Component(ModelElement):
                     (switch_fabric_node_id is None or interface_node_ids is None):
                 raise RuntimeError('For substrate topologies and components with network interfaces '
                                    'static switch_fabric node id and interface node ids must be specified')
+            super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   switch_fabric_node_id=switch_fabric_node_id,
@@ -89,13 +88,11 @@ class Component(ModelElement):
 
             self.topo.graph_model.add_component_sliver(parent_node_id=parent_node_id, component=comp_sliver)
         else:
-            # check that this node exists
-            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
-                                                                       label=str(ABCPropertyGraph.CLASS_Component))
-            if node_id is not None and existing_node_id != node_id:
-                raise RuntimeError("Existing node id does not match provided. "
-                                   "In general you shouldn't need to specify node id for existing nodes.")
-            self.node_id = node_id
+            assert node_id is not None
+            super().__init__(name=name, node_id=node_id, topo=topo)
+            if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
+                                                         label=ABCPropertyGraph.CLASS_Component):
+                raise RuntimeError(f"Component with this id and name {name} doesn't exist")
 
     def get_property(self, pname: str) -> Any:
         """
@@ -148,9 +145,21 @@ class Component(ModelElement):
         return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
+    def __get_sf_by_id(self, node_id: str) -> SwitchFabric:
+        """
+        Get an switch fabric of a node by its node_id, return SwitchFabric object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return SwitchFabric(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                            topo=self.topo)
+
     def __list_interfaces(self) -> Dict[str, Interface]:
         """
-        List all interfaces of the node as a dictionary
+        List all interfaces of the component as a dictionary
         :return:
         """
         node_id_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
@@ -160,6 +169,19 @@ class Component(ModelElement):
             i = self.__get_interface_by_id(nid)
             ret[i.name] = i
         return ret
+
+    def __list_of_interfaces(self) -> Tuple[Interface]:
+        """
+        List all interfaces of the component
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        # Could consider using frozendict here
+        ret = list()
+        for nid in node_id_list:
+            i = self.__get_interface_by_id(nid)
+            ret.append(i)
+        return tuple(ret)
 
     def __list_switch_fabrics(self) -> Dict[str, SwitchFabric]:
         """
@@ -187,8 +209,11 @@ class Component(ModelElement):
         """
         if item == 'interfaces':
             return self.__list_interfaces()
-        if item == 'switchfabrics':
+        if item == 'interface_list':
+            return self.__list_of_interfaces()
+        if item == 'switch_fabrics':
             return self.__list_switch_fabrics()
+        raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

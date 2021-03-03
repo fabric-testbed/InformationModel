@@ -94,8 +94,12 @@ class SwitchFabricInfo:
         self.switch_fabrics[sf_info.resource_name] = sf_info
 
     def remove_switch_fabric(self, name: str):
+        assert name is not None
+
         if name in self.switch_fabrics.keys():
             self.switch_fabrics.pop(name)
 
     def get_switch_fabric(self, name: str):
+        assert name is not None
+
         return self.switch_fabrics.get(name, None)

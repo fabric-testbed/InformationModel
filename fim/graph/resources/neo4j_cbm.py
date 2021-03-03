@@ -75,13 +75,13 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
         props_modified = False
         for delegation_prop_name in [self.PROP_LABEL_DELEGATIONS, self.PROP_CAPACITY_DELEGATIONS]:
             # one or both of properties can have data
-            if delegation_prop_name not in cbm_node_props.keys() or \
+            if cbm_node_props.get(delegation_prop_name, None) is None or \
                     cbm_node_props[delegation_prop_name] == self.NEO4j_NONE:
                 cbm_delegation_dict = dict()
             else:
                 cbm_delegation_dict = json.loads(cbm_node_props[delegation_prop_name])
 
-            if delegation_prop_name not in adm_node_props.keys() or \
+            if adm_node_props.get(delegation_prop_name, None) is None or \
                     adm_node_props[delegation_prop_name] == self.NEO4j_NONE:
                 continue
             props_modified = True
@@ -105,6 +105,8 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
 
         # clone ADM with temporary ID - we will be changing its properties
         temp_adm_graph_id = str(uuid.uuid4())
+        self.log.info('CREATED TEMPORARY ADM GRAPH ID ' + temp_adm_graph_id +
+                      ' when merging graph ' + adm.graph_id + ' into ' + self.graph_id)
         temp_graph = adm.clone_graph(new_graph_id=temp_adm_graph_id)
         # crude typecasting
         temp_adm_graph = Neo4jADMGraph(graph_id=temp_graph.graph_id,

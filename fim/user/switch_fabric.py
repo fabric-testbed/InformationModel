@@ -23,7 +23,7 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 import uuid
 
 from .model_element import ModelElement, ElementType
@@ -52,20 +52,20 @@ class SwitchFabric(ModelElement):
         """
         assert name is not None
         assert topo is not None
-        # cant use isinstance as it would create circular import dependencies
-        if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
-            raise RuntimeError("When adding switch fabrics to substrate topology nodes you must specify static Node ID")
-        if node_id is None:
-            node_id = str(uuid.uuid4())
-        super().__init__(name=name, node_id=node_id, topo=topo)
+
         if etype == ElementType.NEW:
+            # cant use isinstance as it would create circular import dependencies
+            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
+                raise RuntimeError(
+                    "When adding switch fabrics to substrate topology nodes you must specify static Node ID")
+            if node_id is None:
+                node_id = str(uuid.uuid4())
             if parent_node_id is None:
                 raise RuntimeError("For new switch fabrics parent node id must be specified")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
                 raise RuntimeError("When adding switch fabrics to substrate topology nodes "
                                    "you must specify static Node ID")
-            if node_id is None:
-                node_id = str(uuid.uuid4())
+            super().__init__(name=name, node_id=node_id, topo=topo)
             sfsliver = SwitchFabricSliver()
             sfsliver.node_id = node_id
             sfsliver.set_resource_name(name)
@@ -73,13 +73,11 @@ class SwitchFabric(ModelElement):
             sfsliver.set_layer(layer)
             self.topo.graph_model.add_switch_fabric_sliver(parent_node_id=parent_node_id, switch_fabric=sfsliver)
         else:
-            # check that this node exists
-            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
-                                                                       label=str(ABCPropertyGraph.CLASS_SwitchFabric))
-            if node_id is not None and existing_node_id != node_id:
-                raise RuntimeError("Existing node id does not match provided. "
-                                   "In general you shouldn't need to specify node id for existing nodes.")
-            self.node_id = node_id
+            assert node_id is not None
+            super().__init__(name=name, node_id=node_id, topo=topo)
+            if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
+                                                         label=ABCPropertyGraph.CLASS_SwitchFabric):
+                raise RuntimeError(f"SwitchFabric with this id and name {name} doesn't exist")
 
     def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort,
                       **kwargs):
@@ -91,6 +89,10 @@ class SwitchFabric(ModelElement):
         :param kwargs: additional parameters
         :return:
         """
+        assert name is not None
+        # check uniqueness
+        if name in self.__list_interfaces().keys():
+            raise RuntimeError('Interface names must be unique within a switch fabric')
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=itype,
                         **kwargs)
@@ -160,9 +162,20 @@ class SwitchFabric(ModelElement):
         return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
+    def __get_interface_by_name(self, name: str) -> Interface:
+        """
+        Get an interface of switch fabric by its name
+        :param name:
+        :return:
+        """
+        assert name is not None
+        node_id = self.topo.graph_model.find_connection_point_by_name(parent_node_id=self.node_id,
+                                                                      iname=name)
+        return Interface(name=name, node_id=node_id, topo=self.topo)
+
     def __list_interfaces(self) -> Dict[str, Interface]:
         """
-        List all interfaces of the topology as a dictionary
+        List all interfaces of the switch fabric as a dictionary
         :return:
         """
         node_id_list = self.topo.graph_model.get_all_sf_connection_points(parent_node_id=self.node_id)
@@ -172,6 +185,18 @@ class SwitchFabric(ModelElement):
             c = self.__get_interface_by_id(nid)
             ret[c.name] = c
         return ret
+
+    def __list_of_interfaces(self) -> Tuple[Interface]:
+        """
+        Return a list of all interfaces of switch fabric
+        :return:
+        """
+        node_id_list = self.topo.graph_model.get_all_sf_connection_points(parent_node_id=self.node_id)
+        ret = list()
+        for nid in node_id_list:
+            c = self.__get_interface_by_id(nid)
+            ret.append(c)
+        return tuple(ret)
 
     def __getattr__(self, item):
         """
@@ -184,6 +209,9 @@ class SwitchFabric(ModelElement):
         """
         if item == 'interfaces':
             return self.__list_interfaces()
+        if item == 'interface_list':
+            return self.__list_of_interfaces()
+        raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

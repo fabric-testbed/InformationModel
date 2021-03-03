@@ -25,19 +25,21 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import enum
 
 import uuid
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from .model_element import ModelElement
 from ..slivers.network_node import NodeType, NodeSliver
 from ..slivers.network_link import LinkType, NetworkLinkSliver
 from ..slivers.switch_fabric import SFLayer
 from ..graph.slices.networkx_asm import NetworkxASM
-from ..graph.networkx_property_graph import NetworkXGraphImporter
 from ..graph.abc_property_graph import ABCPropertyGraph
+from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
+from ..slivers.delegations import Delegation, ARMDelegations, Pool, ARMPools, DelegationType
 
 from .model_element import ElementType
 from .node import Node
@@ -199,15 +201,15 @@ class Topology(ABC):
             ret[n.name] = n
         return ret
 
-    def __list_interfaces(self) -> Dict[str, Interface]:
+    def __list_of_interfaces(self) -> Tuple[Interface]:
         """
         List all interfaces of the topology as a dictionary
         :return:
         """
-        ret = dict()
+        ret = list()
         for n in self.nodes.values():
-            ret.update(n.interfaces)
-        return ret
+            ret.extend(n.interfaces.values())
+        return tuple(ret)
 
     def __getattr__(self, item):
         """
@@ -222,8 +224,9 @@ class Topology(ABC):
             return self.__list_nodes()
         if item == 'links':
             return self.__list_links()
-        if item == 'interfaces':
-            return self.__list_interfaces()
+        if item == 'interface_list':
+            return self.__list_of_interfaces()
+        raise RuntimeError(f'Attribute {item} not available')
 
     def serialize(self, file_name=None) -> str or None:
         """
@@ -313,7 +316,7 @@ class Topology(ABC):
                 for nint in node_ints:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
-                        if nint in l.interfaces:
+                        if nint in l.interface_list:
                             derived_graph.add_edge(n.name, l.name)
 
             pos = layout(derived_graph)
@@ -342,3 +345,74 @@ class SubstrateTopology(Topology):
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
         super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
 
+    def as_adm(self):
+        """
+        Return mode as ADM graph built on top of internal model. Model is not cloned or copied,
+        rather recast into ADM, so any changes to the model propagate back to the topology.
+        :return:
+        """
+        return NetworkXADMGraph(graph_id=self.graph_model.graph_id,
+                                importer=self.graph_model.importer,
+                                logger=self.graph_model.log)
+
+    @staticmethod
+    def __copy_to_delegation(e: ModelElement, atype: DelegationType,
+                             delegation_id: str) -> Delegation or None:
+        """
+        From a model element (node, components, switch_fabric, interface), copy
+        capacities or labels to delegation and return delegation)
+        :param e:
+        :return:
+        """
+        assert e is not None
+        assert delegation_id is not None
+        ret = Delegation(atype=atype, defined_on=e.node_id, delegation_id=delegation_id)
+        if atype == DelegationType.CAPACITY:
+            caps_or_labels = e.get_property(pname='capacities')
+            if caps_or_labels is not None:
+                ret.set_details_from_capacities(caps_or_labels)
+                return ret
+        else:
+            caps_or_labels = e.get_property(pname='labels')
+            if caps_or_labels is not None:
+                ret.set_details_from_labels(caps_or_labels)
+                return ret
+        return None
+
+    def single_delegation(self, *, delegation_id: str, label_pools: ARMPools, capacity_pools: ARMPools):
+        """
+        For simple cases when there is one delegation that delegates everything. Be sure to have
+        capacities and labels specified on individual elements where needed - they get copied
+        into delegations. Pools must be specified externally.
+        :param delegation_id:
+        :param label_pools:
+        :param capacity_pools:
+        :return:
+        """
+        assert label_pools.pool_type == DelegationType.LABEL
+        assert capacity_pools.pool_type == DelegationType.CAPACITY
+
+        delegations = {DelegationType.CAPACITY: ARMDelegations(DelegationType.CAPACITY),
+                       DelegationType.LABEL: ARMDelegations(DelegationType.LABEL)}
+        pool_dict = {DelegationType.CAPACITY: capacity_pools,
+                     DelegationType.LABEL: label_pools}
+        for t in DelegationType:
+            for n in self.nodes.values():
+                # delegate every node and its component by copying their capacities and labels
+                # if present
+                delegation = self.__copy_to_delegation(e=n, atype=t,
+                                                       delegation_id=delegation_id)
+                if delegation is not None:
+                    delegations[t].add_delegation(delegation)
+                for c in n.components.values():
+                    delegation = self.__copy_to_delegation(e=c, atype=t,
+                                                           delegation_id=delegation_id)
+                    if delegation is not None:
+                        delegations[t].add_delegation(delegation)
+                    for i in c.interfaces.values():
+                        delegation = self.__copy_to_delegation(e=i, atype=t,
+                                                               delegation_id=delegation_id)
+                        if delegation is not None:
+                            delegations[t].add_delegation(delegation)
+            self.as_adm().annotate_delegations_and_pools(dels=delegations[t],
+                                                         pools=pool_dict[t])

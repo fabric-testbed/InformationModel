@@ -23,7 +23,7 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-from typing import List
+from typing import List, Dict
 import json
 
 from abc import ABC, abstractmethod
@@ -39,17 +39,19 @@ class JSONField(ABC):
         :return:
         """
 
-    def to_json(self) -> str or None:
+    def to_json(self) -> str:
         """
         Dumps to JSON the __dict__ of the instance. Be careful as the fields in this
         class should only be those that can be present in JSON output.
-        If there are no values in the object, returns None
+        If there are no values in the object, returns empty string.
         :return:
         """
         d = self.__dict__.copy()
         for k in self.__dict__:
             if d[k] is None or d[k] == 0:
                 d.pop(k)
+        if len(d) == 0:
+            return ''
         return json.dumps(d, skipkeys=True, sort_keys=True)
 
     def from_json(self, json_string: str):
@@ -64,6 +66,20 @@ class JSONField(ABC):
         d = json.loads(json_string)
         self.set_fields(**d)
         return self
+
+    def to_dict(self) -> Dict[str, str] or None:
+        """
+        Convert to a dictionary skipping empty fields. Returns None
+        if all fields are empty
+        :return:
+        """
+        d = self.__dict__.copy()
+        for k in self.__dict__:
+            if d[k] is None or d[k] == 0:
+                d.pop(k)
+        if len(d) == 0:
+            return None
+        return d
 
     def __repr__(self):
         return self.to_json()
