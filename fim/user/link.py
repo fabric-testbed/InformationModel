@@ -71,11 +71,11 @@ class Link(ModelElement):
             if ltype is None:
                 raise RuntimeError("When creating new links you must specify LinkType")
             # FIXME isinstance
-            if interfaces is None or len(interfaces) == 0 or not isinstance(interfaces, list):
+            if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
+                                                              not isinstance(interfaces, list)):
                 raise RuntimeError("When creating new links you must specify the list of interfaces to connect")
 
-            self.node_id = node_id
-            self.interfaces = interfaces
+            self._interfaces = interfaces
             sliver = NetworkLinkSliver()
             sliver.node_id = self.node_id
             sliver.set_resource_name(self.name)
@@ -88,15 +88,14 @@ class Link(ModelElement):
             interface_ids = (iff.node_id for iff in interfaces)
             self.topo.graph_model.add_network_link_sliver(interfaces=interface_ids, lsliver=sliver)
         else:
+            assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
             # check that this node exists
             existing_node_id = self.topo.\
                 graph_model.find_node_by_name(node_name=name,
-                                              label=str(ABCPropertyGraph.CLASS_Link))
-            if node_id is not None and existing_node_id != node_id:
-                raise RuntimeError("Existing node id does not match provided. "
-                                   "In general you shouldn't need to specify node id for existing interfaces.")
-            self.node_id = node_id
+                                              label=ABCPropertyGraph.CLASS_Link)
+            if existing_node_id != node_id:
+                raise RuntimeError(f'Link name {name} is not unique within the topology.')
             # collect a list of interfaces it attaches to
             interface_list = self.topo.graph_model.get_all_link_interfaces(link_id=self.node_id)
             name_id_tuples = list()
@@ -104,7 +103,7 @@ class Link(ModelElement):
             for iff in interface_list:
                 _, props = self.topo.graph_model.get_node_properties(node_id=iff)
                 name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
-            self.interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
+            self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
     def get_property(self, pname: str) -> Any:
         """
@@ -145,12 +144,33 @@ class Link(ModelElement):
     def list_properties() -> List[str]:
         return NetworkLinkSliver.list_properties()
 
+    def __list_of_interfaces(self) -> List[Interface] or None:
+        """
+        Make a copy and return a list of interface objects
+        :return:
+        """
+        if self._interfaces is not None:
+            return self._interfaces.copy()
+        return None
+
+    def __getattr__(self, item):
+        """
+        Special handling for attributes like 'nodes' and 'links' -
+        which query into the model. They return dicts and list
+        containers. Modifying containers does not affect the underlying
+        graph mode, but modifying elements of lists or values of dicts does.
+        :param item:
+        :return:
+        """
+
+        if item == 'interface_list':
+            return self.__list_of_interfaces()
+        raise RuntimeError(f'Attribute {item} not available')
+
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         link_sliver = self.topo.graph_model.link_sliver_from_graph_properties_dict(node_properties)
-        interface_names = list()
-        for iff in self.interfaces:
-            interface_names.append(iff.name)
+        interface_names = [iff.name for iff in self._interfaces]
         return link_sliver.__repr__() + str(interface_names)
 
     def __str__(self):

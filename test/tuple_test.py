@@ -1,7 +1,7 @@
 import unittest
 
 from fim.graph.typed_tuples import Label, Capacity, Location
-from fim.slivers.delegations import Pool, Pools, DelegationType
+from fim.slivers.delegations import Pool, ARMPools, DelegationType
 
 class TupleTests(unittest.TestCase):
 
@@ -53,7 +53,7 @@ class TupleTests(unittest.TestCase):
         p.add_defined_for(node_ids=["node2", "node3", "node1"])
         p.set_pool_details(pool_dict={"blah": "blahblah"})
 
-        pp = Pools(atype=DelegationType.LABEL)
+        pp = ARMPools(atype=DelegationType.LABEL)
         pp.add_pool(pool=p)
         pp.build_index_by_delegation_id()
         p1l = pp.get_pools_by_delegation_id(delegation_id="del1")

@@ -30,7 +30,7 @@ from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from ..networkx_property_graph import NetworkXPropertyGraph, NetworkXGraphImporter
 
 
-class NetworkxASM(NetworkXPropertyGraph, ABCASMPropertyGraph):
+class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
     """
     Class implementing Abstract Slice Model on top of NetworkX
     """
@@ -107,4 +107,19 @@ class NetworkxASM(NetworkXPropertyGraph, ABCASMPropertyGraph):
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
                                             ]}))
         return len(graph_nodes) == 0
+
+    def check_node_name(self, *, node_id: str, label: str, name: str) -> bool:
+        assert node_id is not None
+        assert name is not None
+        assert label is not None
+
+        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_NAME, name]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]},
+                                                {'eq': [ABCPropertyGraph.NODE_ID, node_id]}
+                                            ]}))
+        return len(graph_nodes) > 0
+
 

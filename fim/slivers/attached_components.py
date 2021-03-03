@@ -23,7 +23,7 @@
 #
 #
 # Author: Komal Thareja (kthare10@renci.org)
-
+from typing import Any, List
 import enum
 
 from .base_sliver import BaseSliver
@@ -69,13 +69,36 @@ class AttachedComponentsInfo:
     """
     def __init__(self):
         self.devices = {}
+        self.by_type = {}
 
-    def add_device(self, device_info: ComponentSliver):
+    def add_device(self, device_info: ComponentSliver) -> None:
+        assert device_info.resource_name is not None
+        assert device_info.resource_type is not None
+
         self.devices[device_info.resource_name] = device_info
+        devices = self.by_type.get(device_info.resource_type, list())
+        devices.append(device_info)
+        self.by_type[device_info.resource_type] = devices
 
-    def remove_device(self, name: str):
+    def remove_device(self, name: str) -> None:
+        assert name is not None
+
         if name in self.devices:
-            self.devices.pop(name)
+            device_info = self.devices.pop(name)
+            devices = self.by_type.get(device_info.resource_type, list())
+            devices.remove(device_info)
 
-    def get_device(self, name: str):
+    def get_device(self, name: str) -> ComponentSliver or None:
+        assert name is not None
+
         return self.devices.get(name, None)
+
+    def get_devices_by_type(self, resource_type: Any) -> List[ComponentSliver]:
+        """
+        Returns a copy of list of devices of this type
+        :param resource_type:
+        :return:
+        """
+        assert resource_type is not None
+
+        return list(self.by_type.get(resource_type, list()))

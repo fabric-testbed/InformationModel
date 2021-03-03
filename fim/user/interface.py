@@ -48,7 +48,7 @@ class Interface(ModelElement):
         :param node_id:
         :param topo:
         :param etype: is this supposed to exist or new should be created
-        :param parent_node_id: parent switch fabric when creating new interface
+        :param parent_node_id: parent switch fabric or parent interface
         :param itype: node type if it is new
         :param kwargs: any additional properties
         """
@@ -63,11 +63,9 @@ class Interface(ModelElement):
                 raise RuntimeError("When adding new nodes to substrate topology nodes you must specify static Node ID")
             if node_id is None:
                 node_id = str(uuid.uuid4())
-            super().__init__(name=name, node_id=node_id, topo=topo)
             if itype is None:
                 raise RuntimeError("When creating interfaces you must specify InterfaceType")
-
-            self.node_id = node_id
+            super().__init__(name=name, node_id=node_id, topo=topo)
             sliver = InterfaceSliver()
             sliver.node_id = self.node_id
             sliver.set_resource_name(self.name)
@@ -76,15 +74,11 @@ class Interface(ModelElement):
 
             self.topo.graph_model.add_interface_sliver(parent_node_id=parent_node_id, interface=sliver)
         else:
+            assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            # check that this node exists
-            existing_node_id = self.topo.\
-                graph_model.find_node_by_name(node_name=name,
-                                              label=str(ABCPropertyGraph.CLASS_ConnectionPoint))
-            if node_id is not None and existing_node_id != node_id:
-                raise RuntimeError("Existing node id does not match provided. "
-                                   "In general you shouldn't need to specify node id for existing interfaces.")
-            self.node_id = node_id
+            if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
+                                                         label=ABCPropertyGraph.CLASS_ConnectionPoint):
+                raise RuntimeError(f"Interface with this id and name {name} doesn't exist")
 
     def add_child_interface(self):
         raise RuntimeError("Not implemented")

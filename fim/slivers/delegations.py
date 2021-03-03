@@ -33,7 +33,8 @@ from enum import Enum
 from typing import List, Dict, Set
 import json
 
-from fim.graph.abc_property_graph import ABCPropertyGraph
+from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
+from .capacities_labels import Capacities, Labels
 
 
 class DelegationType(Enum):
@@ -60,7 +61,10 @@ class Delegation:
         self.delegation_id = delegation_id
         self.delegation_details = None
 
-    def set_details(self, *, dele_dict: Dict) -> None:
+    def get_defined_on(self) -> str:
+        return self.on_
+
+    def set_details(self, dele_dict: Dict) -> None:
         """
         set details of the delegation dictionary, removing the delegation
         identifier field from dictionary
@@ -69,30 +73,119 @@ class Delegation:
         """
         assert dele_dict is not None
         # pop the delegation field
-        dele_dict.pop(ABCPropertyGraph.FIELD_DELEGATION, None)
+        if dele_dict.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
+            dele_dict.pop(ABCPropertyGraphConstants.FIELD_DELEGATION, None)
         self.delegation_details = dele_dict
 
-    def get_details(self) -> Dict:
+    def set_details_from_labels(self, l: Labels) -> None:
+        """
+        Set details from a Labels object
+        :param l:
+        :return:
+        """
+        assert l is not None
+        assert self.type is not DelegationType.CAPACITY
+        self.delegation_details = l.to_dict()
+
+    def set_details_from_capacities(self, c: Capacities) -> None:
+        """
+        Set details from a Capacities object
+        :param c:
+        :return:
+        """
+        assert c is not None
+        assert self.type is not DelegationType.LABEL
+        self.delegation_details = c.to_dict()
+
+    def get_details(self) -> Dict or None:
         """
         get delegation details as a dictionary (minus the delegation id)
         :return:
         """
-        return self.delegation_details
+        if self.delegation_details is None:
+            return None
+        return self.delegation_details.copy()
+
+    def get_full_details(self) -> Dict or None:
+        """
+        Get delegation details as a dictionary, including the delegation id
+        :return:
+        """
+        ret = self.get_details()
+        if ret is None:
+            return None
+        ret[ABCPropertyGraphConstants.FIELD_DELEGATION] = self.delegation_id
+        return ret
+
+    def get_details_as_capacities(self) -> Capacities:
+        """
+        Get delegation details as a Capacities object
+        :return:
+        """
+        assert self.type is DelegationType.CAPACITY
+        c = Capacities()
+        if self.delegation_details is not None:
+            c.set_fields(**self.delegation_details)
+        return c
+
+    def get_details_as_labels(self) -> Labels:
+        """
+        Get delegation details as Labels object
+        :return:
+        """
+        assert self.type is DelegationType.LABEL
+        l = Labels()
+        if self.delegation_details is not None:
+            l.set_fields(**self.delegation_details)
+        return l
+
+    def to_json(self) -> str or None:
+        """
+        Convert to a JSON representation adding back delegation id
+        :return:
+        """
+        ret_dict = self.get_full_details()
+        if ret_dict is None:
+            return None
+        return json.dumps(ret_dict, skipkeys=True, sort_keys=True)
 
     def __repr__(self) -> str:
         return f"{self.type} delegation delegated to {self.delegation_id}: " \
                f"{self.on_} with {self.delegation_details} "
 
+    @staticmethod
+    def from_json_to_list(j: str or None) -> List[Dict] or None:
+        """
+        Produce a list of dictionaries representing delegations. Does NOT
+        properly parse into Delegation or Pool objects
+        :param j:
+        :return:
+        """
+        if j is None:
+            return None
+        return json.loads(j)
 
-class Delegations:
+    @staticmethod
+    def from_list_to_json(l: List[Dict] or None) -> str or None:
+        """
+        Produce a JSON expression of list of dictionaries or None.
+        :param l:
+        :return:
+        """
+        if l is None:
+            return None
+        return json.dumps(l)
+
+
+class ARMDelegations:
     """
-    Multiple delegations references by delegation id
+    Multiple delegations references by delegation id within an ARM
     """
     def __init__(self, atype: DelegationType):
         self.type = atype
         self.delegations = {}
 
-    def add_delegation(self, *, delegation: Delegation) -> None:
+    def add_delegation(self, delegation: Delegation) -> None:
         """
         Append a well-formed delegation to the list of delegations matching
         this id
@@ -105,7 +198,7 @@ class Delegations:
 
         self.delegations[delegation.delegation_id].append(delegation)
 
-    def get_by_delegation_id(self, *, delegation_id: str) -> List[Delegation]:
+    def get_by_delegation_id(self, delegation_id: str) -> List[Delegation]:
         """
         retrieve a list of delegations by their id or None
         :param delegation_id:
@@ -121,7 +214,7 @@ class Delegations:
         """
         return set(self.delegations.keys())
 
-    def get_node_ids(self, *, delegation_id: str) -> Set:
+    def get_node_ids(self, delegation_id: str) -> Set:
         """
         return a set of nodes ids for a given delegation id
         :param delegation_id:
@@ -167,7 +260,7 @@ class Pool:
         self.pool_id = pool_id
         self.pool_details = None
 
-    def set_defined_on(self, *, node_id: str) -> None:
+    def set_defined_on(self, node_id: str) -> None:
         """
         Set ID of node on which this pool is defined
         :param node_id:
@@ -176,7 +269,7 @@ class Pool:
         assert node_id is not None
         self.on_ = node_id
 
-    def set_defined_for(self, *, node_id_list: List[str]) -> None:
+    def set_defined_for(self, node_id_list: List[str]) -> None:
         """
         set/replace the pool's defined_for list of nodes
         :param node_id_list:
@@ -187,7 +280,7 @@ class Pool:
 
         self.for_ = node_id_list
 
-    def add_defined_for(self, *, node_ids) -> None:
+    def add_defined_for(self, node_ids: str or List) -> None:
         """
         Add to the list of nodes for which the pool is defined for.
         Individual items or lists
@@ -200,7 +293,7 @@ class Pool:
         elif isinstance(node_ids, list):
             self.for_.extend(node_ids)
 
-    def set_pool_details(self, *, pool_dict: Dict) ->None:
+    def set_pool_details(self, pool_dict: Dict) ->None:
         """
         set details of the pool dictionary, removing delegation
         identifier field from dictionary
@@ -208,33 +301,99 @@ class Pool:
         :return:
         """
         assert pool_dict is not None
-        pool_dict.pop(ABCPropertyGraph.FIELD_DELEGATION, None)
+        if pool_dict.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
+            pool_dict.pop(ABCPropertyGraphConstants.FIELD_DELEGATION, None)
+        if pool_dict.get(ABCPropertyGraphConstants.FIELD_LABEL_POOL, None) is not None:
+            pool_dict.pop(ABCPropertyGraphConstants.FIELD_LABEL_POOL)
+        if pool_dict.get(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL, None) is not None:
+            pool_dict.pop(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL)
         self.pool_details = pool_dict
 
-    def get_pool_details(self) -> Dict:
+    def set_pool_details_from_labels(self, l: Labels) -> None:
         """
-        Return pool label or capacity details as a dictionary.
+        Set details from a Labels object
+        :param l:
         :return:
         """
-        return self.pool_details
+        assert l is not None
+        assert self.type is not DelegationType.CAPACITY
+        self.pool_details = l.to_dict()
+
+    def set_pool_details_from_capacities(self, c: Capacities) -> None:
+        """
+        Set details from a Capacities object
+        :param c:
+        :return:
+        """
+        assert c is not None
+        assert self.type is not DelegationType.LABEL
+        self.pool_details = c.to_dict()
+
+    def get_pool_details(self) -> Dict or None:
+        """
+        Return label or capacity pool details as a dictionary
+        along with pool identifier.
+        :return:
+        """
+        # don't forget to add pool id back
+        if self.pool_details is None:
+            return None
+        ret = self.pool_details.copy()
+        if self.type == DelegationType.CAPACITY:
+            ret[ABCPropertyGraphConstants.FIELD_CAPACITY_POOL] = self.pool_id
+        else:
+            ret[ABCPropertyGraphConstants.FIELD_LABEL_POOL] = self.pool_id
+        return ret
+
+    def get_full_pool_details(self) -> Dict or None:
+        """
+        Return label or capacity pool details as a dictionary
+        with pool identifier and delegation identifier
+        :return:
+        """
+        ret = self.get_pool_details()
+        if ret is None:
+            return None
+        ret[ABCPropertyGraphConstants.FIELD_DELEGATION] = self.delegation_id
+        return ret
+
+    def get_pool_details_as_capacities(self) -> Capacities:
+        """
+        Get delegation details as a Capacities object
+        :return:
+        """
+        assert self.type is DelegationType.CAPACITY
+        c = Capacities()
+        if self.pool_details is not None:
+            c.set_fields(**self.pool_details)
+        return c
+
+    def get_pool_details_as_labels(self) -> Labels:
+        """
+        Get delegation details as Labels object
+        :return:
+        """
+        assert self.type is DelegationType.LABEL
+        l = Labels()
+        if self.pool_details is not None:
+            l.set_fields(**self.pool_details)
+        return l
+
+    def to_json(self) -> str or None:
+        """
+        Add back pool and delegation details and return JSON string
+        :return:
+        """
+        ret_dict = self.get_full_pool_details()
+        if ret_dict is None:
+            return None
+        return json.dumps(ret_dict, skipkeys=True, sort_keys=True)
 
     def set_delegation_id(self, *, delegation_id: str) -> None:
         assert delegation_id is not None
         self.delegation_id = delegation_id
 
-    def add_defined_for(self, *, node_ids) -> None:
-        """
-        add a single element or a list
-        :param node_ids: single node id or list
-        :return:
-        """
-        assert node_ids is not None
-        if isinstance(node_ids, list):
-            self.for_.extend(node_ids)
-        elif isinstance(node_ids, str):
-            self.for_.append(node_ids)
-
-    def is_defined_on(self, *, node_id: str) -> bool:
+    def is_defined_on(self, node_id: str) -> bool:
         """
         Is this pool defined on this node?
         :param node_id:
@@ -242,7 +401,7 @@ class Pool:
         """
         return node_id == self.on_
 
-    def is_defined_for(self, *, node_id: str) -> bool:
+    def is_defined_for(self, node_id: str) -> bool:
         """
         Is this pool defined for this node?
         :param node_id:
@@ -286,7 +445,7 @@ class Pool:
                f"{self.on_}=> {self.for_} with {self.pool_details} "
 
 
-class Pools:
+class ARMPools:
     """
     Map between node ids, pools and delegations
     """
@@ -325,11 +484,11 @@ class Pools:
         self.pools_by_delegation = {}
         for pool in self.pool_by_id.values():
             pool.validate_pool()
-            if self.pools_by_delegation.get(pool.get_delegation_id(), None) is None:
-                self.pools_by_delegation[pool.get_delegation_id()] = []
-            self.pools_by_delegation[pool.get_delegation_id()].append(pool)
+            el = self.pools_by_delegation.get(pool.get_delegation_id(), list())
+            el.append(pool)
+            self.pools_by_delegation[pool.get_delegation_id()] = el
 
-    def get_pools_by_delegation_id(self, *, delegation_id: str) -> List[Pool]:
+    def get_pools_by_delegation_id(self, delegation_id: str) -> List[Pool]:
         """
         return a list of Pool(s) for a delegation. raises PoolException if the index based on
         delegation ids have not been built yet
@@ -360,7 +519,7 @@ class Pools:
             raise PoolException("Pools are not indexed by delegation, unable to get set of delegation ids")
         return set(self.pools_by_delegation.keys())
 
-    def get_node_ids(self, *, delegation_id: str) -> Set:
+    def get_node_ids(self, delegation_id: str) -> Set:
         """
         Get a set of nodes for a given delegation across all pools
         :param delegation_id:

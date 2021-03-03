@@ -24,18 +24,18 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Neo4j implementation of ADM (Aggregate Delegation Model) functionality.
+NetworkX implementation of ADM (Aggregate Delegation Model) functionality.
 """
 
 import uuid
 
-from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
+from ..networkx_property_graph import NetworkXPropertyGraph, NetworkXGraphImporter
 from .abc_adm import ABCADMPropertyGraph
 
 
-class Neo4jADMGraph(ABCADMPropertyGraph, Neo4jPropertyGraph):
+class NetworkXADMGraph(ABCADMPropertyGraph, NetworkXPropertyGraph):
 
-    def __init__(self, *, graph_id: str = None, importer: Neo4jGraphImporter, logger=None):
+    def __init__(self, *, graph_id: str = None, importer: NetworkXGraphImporter, logger=None):
         """
         Initialize CBM either from existing ID or generate new graph id
         :param graph_id:
@@ -45,4 +45,3 @@ class Neo4jADMGraph(ABCADMPropertyGraph, Neo4jPropertyGraph):
             graph_id = str(uuid.uuid4())
 
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
-

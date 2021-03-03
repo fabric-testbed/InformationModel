@@ -9,6 +9,7 @@ import fim.slivers.attached_components as atcomp
 import fim.slivers.component_catalog as cata
 import fim.slivers.interface_info as iinfo
 import fim.slivers.capacities_labels as caplab
+import fim.slivers.delegations as dlg
 
 # push some definitions up to simplify import management
 
@@ -26,5 +27,7 @@ Layer = sf.SFLayer
 Link = link.Link
 LinkType = nlink.LinkType
 TopologyDetail = topo.TopologyDetail
-
-
+Delegation = dlg.Delegation
+DelegationType = dlg.DelegationType
+Pool = dlg.Pool
+ARMPools = dlg.ARMPools

@@ -55,13 +55,9 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         :param importer: should be an instance of NetworkXGraphImporter
         :param logger: optional
         """
-        super().__init__(graph_id=graph_id, importer=importer)
+        super().__init__(graph_id=graph_id, importer=importer, logger=logger)
         assert isinstance(importer, NetworkXGraphImporter)
         self.storage = importer.storage
-        if logger is None:
-            self.log = logging.getLogger(__name__)
-        else:
-            self.log = logger
 
     def validate_graph(self) -> None:
         """
