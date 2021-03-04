@@ -161,7 +161,7 @@ class Delegation:
         :param j:
         :return:
         """
-        if j is None or j == 'None':
+        if j is None or j == ABCPropertyGraphConstants.NEO4j_NONE:
             return None
         return json.loads(j)
 
