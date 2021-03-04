@@ -445,6 +445,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class NetworkNode")
         # create top-level sliver
         ns = self.node_sliver_from_graph_properties_dict(props)
+        ns.node_id = node_id
         # find and build deep slivers of switch fabrics (if any) and components (if any)
         comps = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                         node_label=ABCPropertyGraph.CLASS_Component)
@@ -473,6 +474,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class SwitchFabric")
         # create top-level sliver
         sfs = self.switch_fabric_sliver_from_graph_properties_dict(props)
+        sfs.node_id = node_id
         # find interfaces and attach
         ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
@@ -481,6 +483,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             for i in ifs:
                 _, iprops = self.get_node_properties(node_id=i)
                 ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
+                ifsl.node_id = node_id
                 ifi.add_interface(ifsl)
             sfs.interface_info = ifi
         return sfs
@@ -492,6 +495,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class Component")
         # create top-level sliver
         cs = self.component_sliver_from_graph_properties_dict(props)
+        cs.node_id = node_id
         # find any switch fabrics, build and attach
         sfs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                       node_label=ABCPropertyGraph.CLASS_SwitchFabric)

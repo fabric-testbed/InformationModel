@@ -161,7 +161,7 @@ class Delegation:
         :param j:
         :return:
         """
-        if j is None:
+        if j is None or j == 'None':
             return None
         return json.loads(j)
 

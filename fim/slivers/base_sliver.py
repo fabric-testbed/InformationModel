@@ -47,6 +47,7 @@ class BaseSliver(ABC):
         self.label_delegations = None
         self.node_id = None
         self.details = None
+        self.bqm_node_id = None
 
     def set_resource_type(self, resource_type):
         """

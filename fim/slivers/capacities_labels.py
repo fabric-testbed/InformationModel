@@ -61,7 +61,7 @@ class JSONField(ABC):
         :param json_string:
         :return: self for call chaining
         """
-        if json_string is None or len(json_string) == 0:
+        if json_string is None or len(json_string) == 0 or json_string == 'None':
             return self
         d = json.loads(json_string)
         self.set_fields(**d)
