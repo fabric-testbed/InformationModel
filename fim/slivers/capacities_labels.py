@@ -28,6 +28,8 @@ import json
 
 from abc import ABC, abstractmethod
 
+from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
+
 
 class JSONField(ABC):
 
@@ -61,7 +63,7 @@ class JSONField(ABC):
         :param json_string:
         :return: self for call chaining
         """
-        if json_string is None or len(json_string) == 0:
+        if json_string is None or len(json_string) == 0 or json_string == ABCPropertyGraphConstants.NEO4j_NONE:
             return self
         d = json.loads(json_string)
         self.set_fields(**d)

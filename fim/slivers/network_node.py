@@ -58,6 +58,10 @@ class NodeSliver(BaseSliver):
         self.service_endpoint = None
         self.switch_fabric_info = None
         self.site = None
+        self.worker_node_name = None
+        self.instance_name = None
+        self.state = None
+        self.management_interface_mac_address = None
 
     #
     # Setters are only needed for things we want users to be able to set
