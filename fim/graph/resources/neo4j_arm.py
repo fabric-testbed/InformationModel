@@ -26,7 +26,7 @@
 """
 Implementation of ARM (Aggregate Resource Model) functionality
 """
-from ..neo4j_property_graph import Neo4jPropertyGraph
+from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
 from .abc_arm import ABCARMPropertyGraph
 
 
@@ -41,7 +41,3 @@ class Neo4jARMGraph(ABCARMPropertyGraph, Neo4jPropertyGraph):
         :param graph:
         """
         super().__init__(graph=graph, logger=logger)
-
-
-
-

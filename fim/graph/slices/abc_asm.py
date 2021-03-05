@@ -27,8 +27,10 @@
 Abstract definition of ASM (Abstract Slice Model) functionality
 """
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from abc import ABCMeta, abstractmethod
+
+import json
 
 from fim.slivers.network_node import NodeSliver
 from fim.slivers.attached_components import ComponentSliver
@@ -42,8 +44,10 @@ from fim.graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryExc
 
 class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
     """
-    Interface for an ASM Mixin on top of a property graph
+    Interface for ASM
     """
+    PROP_NODE_MAP = "NodeMap"
+
     @abstractmethod
     def __init__(self, *, graph_id=str, importer, logger=None):
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
@@ -54,7 +58,7 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
                 callable(subclass.get_all_network_nodes) or NotImplemented)
 
     @abstractmethod
-    def check_node_unique(self, *, label: str, name: str):
+    def check_node_unique(self, *, label: str, name: str) -> bool:
         """
         Check no other node of this class/label and name exists. Doesn't
         apply universally as e.g. Component names are only unique
@@ -97,6 +101,40 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         :param label: node label or class of the node
         :return:
         """
+
+    def set_mapping(self, *, node_id: str, to_graph_id: str, to_node_id: str) -> None:
+        """
+        Create a mapping from a node to another graph, node
+        :param node_id:
+        :param to_graph_id:
+        :param to_node_id:
+        :return:
+        """
+        assert node_id is not None
+        assert to_graph_id is not None
+        assert to_node_id is not None
+
+        # save tuple as JSON list of guids
+        l = [to_graph_id, to_node_id]
+        jsonl = json.dumps(l)
+        self.update_node_property(node_id=node_id, prop_name=ABCASMPropertyGraph.PROP_NODE_MAP,
+                                  prop_val=jsonl)
+
+    def get_mapping(self, *, node_id: str) -> Tuple[str, str] or None:
+        """
+        Retrieve a mapping, if exists for this node to another graph, node
+        :param node_id:
+        :return: graph_id, node_id tuple or None
+        """
+        assert node_id is not None
+        # retrieve tuple as a json 2-member list
+        _, props = self.get_node_properties(node_id=node_id)
+        jsonl = props.get(ABCASMPropertyGraph.PROP_NODE_MAP, None)
+        if jsonl is not None:
+            l = json.loads(jsonl)
+            assert(len(l) == 2)
+            return tuple(l)
+        return None
 
     def find_node_by_name_as_child(self, *, node_name: str, label: str, rel: str, parent_node_id: str) -> str or None:
         """

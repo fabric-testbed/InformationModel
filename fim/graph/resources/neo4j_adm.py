@@ -46,3 +46,16 @@ class Neo4jADMGraph(ABCADMPropertyGraph, Neo4jPropertyGraph):
 
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
 
+
+class Neo4jADMFactory:
+    """
+    Help convert graphs between formats so long as they are rooted in Neo4jPropertyGraph
+    """
+    @staticmethod
+    def create(graph: Neo4jPropertyGraph) -> Neo4jADMGraph:
+        assert graph is not None
+        assert isinstance(graph.importer, Neo4jGraphImporter)
+
+        return Neo4jADMGraph(graph_id=graph.graph_id,
+                             importer=graph.importer,
+                             logger=graph.log)
