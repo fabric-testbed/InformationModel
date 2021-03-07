@@ -123,3 +123,15 @@ class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
         return len(graph_nodes) > 0
 
 
+class NetworkXASMFactory:
+    """
+    Help convert graphs between formats so long as they are rooted in NetworkXPropertyGraph
+    """
+    @staticmethod
+    def create(graph: NetworkXPropertyGraph) -> NetworkxASM:
+        assert graph is not None
+        assert isinstance(graph.importer, NetworkXGraphImporter)
+
+        return NetworkxASM(graph_id=graph.graph_id,
+                           importer=graph.importer,
+                           logger=graph.log)

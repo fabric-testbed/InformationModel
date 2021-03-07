@@ -89,9 +89,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
     @abstractmethod
     def get_node_properties(self, *, node_id: str) -> (List[str], Dict[str, Any]):
         """
-        return all labels and properties of a node node_id in graph graph_id
+        return a tuple of labels and properties of a node node_id in graph graph_id
         :param node_id:
-        :return: dictionary[string, Any]
+        :return: List[str], dictionary[string, Any]
         """
 
     @abstractmethod
@@ -248,7 +248,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
 
     @abstractmethod
-    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any] = None) -> None:
         """
         Add a new node with specified
         :param node_id:

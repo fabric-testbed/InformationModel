@@ -442,7 +442,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
                                               msg="Duplicate node found while checking for node uniqueness")
         return len(graph_nodes) == 1
 
-    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any] = None) -> None:
         """
         Add a node with specified label, classes and initial properties. Properties can be empty,
         but set graph id, node id and label

@@ -205,3 +205,17 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
                                                   f"of {type(deleg_prop_val)}")
         #print(f"Looking for {delegation_type} delegation from {adm_id} in {deleg_prop_val}")
         return deleg_prop_val.get(adm_id, None)
+
+
+class Neo4jCBMFactory:
+    """
+    Help convert graphs between formats so long as they are rooted in Neo4jPropertyGraph
+    """
+    @staticmethod
+    def create(graph: Neo4jPropertyGraph) -> Neo4jCBMGraph:
+        assert graph is not None
+        assert isinstance(graph.importer, Neo4jGraphImporter)
+
+        return Neo4jCBMGraph(graph_id=graph.graph_id,
+                             importer=graph.importer,
+                             logger=graph.log)

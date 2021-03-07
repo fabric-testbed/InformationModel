@@ -45,3 +45,17 @@ class NetworkXADMGraph(ABCADMPropertyGraph, NetworkXPropertyGraph):
             graph_id = str(uuid.uuid4())
 
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
+
+
+class NetworkXADMFactory:
+    """
+    Help convert graphs between formats so long as they are rooted in NetworkXPropertyGraph
+    """
+    @staticmethod
+    def create(graph: NetworkXPropertyGraph) -> NetworkXADMGraph:
+        assert graph is not None
+        assert isinstance(graph.importer, NetworkXGraphImporter)
+
+        return NetworkXADMGraph(graph_id=graph.graph_id,
+                                importer=graph.importer,
+                                logger=graph.log)

@@ -421,13 +421,47 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         :param label:
         :return:
         """
-        raise RuntimeError("Method node implemented")
+        assert node_id is not None
+        assert label is not None
+        query = f"MATCH (n:{label} {{GraphID: $graphId, NodeID: $nodeId}} RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeId=node_id).single()
+            if val is None or len(val.data()) == 0 or len(val.data()['nodeids']) == 0:
+                return False
+            return True
 
-    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any]) -> None:
-        raise RuntimeError("Method not implemented")
+    def add_node(self, *, node_id: str, label: str, props: Dict[str, Any] = None) -> None:
+
+        assert node_id is not None
+        assert label is not None
+
+        all_props = f"Class: '{label}', GraphID: '{self.graph_id}', NodeID: '{node_id}', "
+        if props is not None:
+            for k, v in props.items():
+                all_props += f"{k}: '{v}', "
+        all_props = all_props[:-2]
+        labels = f"'GraphNode', '{label}'"
+        query = f"CALL apoc.create.node([ {labels} ], {{ {all_props} }});"
+        with self.driver.session() as session:
+            session.run(query)
 
     def add_link(self, *, node_a: str, rel: str, node_b: str, props: Dict[str, Any] = None) -> None:
-        raise RuntimeError("Method not implemented")
+
+        assert node_a is not None
+        assert rel is not None
+        assert node_b is not None
+
+        all_props = f", "
+        if props is not None:
+            for k, v in props.items():
+                all_props += f"{k}: '{v}', "
+        all_props = all_props[:-2]
+        query = f"MATCH (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) " \
+                f"MATCH (b:GraphNode {{GraphID: $graphId, NodeID: $nodeB}}) " \
+                f"CALL apoc.create.relationship(a, \"{rel}\", {{ {all_props} }}, b)" \
+                f"YIELD rel RETURN rel"
+        with self.driver.session() as session:
+            session.run(query, graphId=self.graph_id, nodeA=node_a, nodeB=node_b)
 
     def find_matching_nodes(self, *, other_graph) -> Set:
         """
@@ -536,6 +570,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # save to file
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph)
+            f1.flush()
             # read using networkx
             g = nx.read_graphml(f1.name)
 
