@@ -285,7 +285,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         Serialize a given graph into GraphML string or return None if graph not found
         :return:
         """
-        inner_query = f'match(n {{GraphID: "{self.graph_id}"}}) -[r]- (m) return n, r, m'
+        inner_query = f'match(n {{GraphID: "{self.graph_id}"}}) optional match(n) -[r]- (m) return n, r, m'
         # run inner query to check the graph has anything in it
         with self.driver.session() as session:
             val = session.run(inner_query)
@@ -696,6 +696,15 @@ class Neo4jGraphImporter(ABCGraphImporter):
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
                     'readLabels: true, storeNodeIds: true } ) ',
                     fileName=mapped_file_name).single()
+                # force one common label on all imported nodes
+                self.log.debug(f"Adding GraphNode label to graph {graph_id}")
+                query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
+                session.run(query_string, graphId=graph_id)
+                # convert class property into a label as well
+                self.log.debug(f"Converting Class property into Neo4j label for all nodes")
+                query_string = "MATCH (n {GraphID: $graphId }) " \
+                               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
+                session.run(query_string, graphId=graph_id)
         except Exception as e:
             msg = f"Neo4j APOC import error {str(e)}"
             raise PropertyGraphImportException(graph_id=None, msg=msg)
@@ -734,6 +743,15 @@ class Neo4jGraphImporter(ABCGraphImporter):
                     'call apoc.import.graphml( $fileName, {batchSize: 10000, '
                     'readLabels: true, storeNodeIds: true } ) ',
                     fileName=mapped_file_name).single()
+                # force one common label on all imported nodes
+                self.log.debug(f"Adding GraphNode label to graph {graph_id}")
+                query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
+                session.run(query_string, graphId=graph_id)
+                # convert class property into a label as well
+                self.log.debug(f"Converting Class property into Neo4j label for all nodes")
+                query_string = "MATCH (n {GraphID: $graphId }) " \
+                               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
+                session.run(query_string, graphId=graph_id)
         except Exception as e:
             msg = f"Neo4j APOC import error {str(e)}"
             raise PropertyGraphImportException(graph_id=None, msg=msg)

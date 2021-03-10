@@ -12,7 +12,7 @@ class CatalogTest(unittest.TestCase):
 
         c = cata.generate_component(name='myNIC', model='ConnectX-6', ctype=ComponentType.SmartNIC)
         self.assertIsNotNone(c.switch_fabric_info)
-        self.assertEqual(len(c.switch_fabric_info.get_switch_fabric('myNIC_l2sf').interface_info.interfaces.keys()), 2)
+        self.assertEqual(len(c.switch_fabric_info.get_switch_fabric('myNIC-l2sf').interface_info.interfaces.keys()), 2)
         c1 = cata.generate_component(name='myGPU', model='RTX6000', ctype=ComponentType.GPU)
         self.assertIsNone(c1.switch_fabric_info)
         with self.assertRaises(CatalogException):

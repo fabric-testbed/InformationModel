@@ -113,9 +113,9 @@ class SliceTest(unittest.TestCase):
         self.assertNotEqual(deep_sliver.attached_components_info, None)
         self.assertNotEqual(deep_sliver.attached_components_info.devices['nic1'].switch_fabric_info, None)
         self.assertNotEqual(deep_sliver.attached_components_info.
-                            devices['nic1'].switch_fabric_info.switch_fabrics['nic1_l2sf'].interface_info, None)
+                            devices['nic1'].switch_fabric_info.switch_fabrics['nic1-l2sf'].interface_info, None)
         self.assertEqual(len(deep_sliver.attached_components_info.
-                             devices['nic1'].switch_fabric_info.switch_fabrics['nic1_l2sf'].
+                             devices['nic1'].switch_fabric_info.switch_fabrics['nic1-l2sf'].
                              interface_info.interfaces), 1)
 
     def testSerDes(self):

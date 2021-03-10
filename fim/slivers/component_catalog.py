@@ -55,6 +55,8 @@ class ComponentCatalog:
     def generate_component(self, *, name: str, ctype: ComponentType, model: str,
                            switch_fabric_node_id: str = None,
                            interface_node_ids: List[str] = None) -> ComponentSliver:
+        # FIXME: need to pass labels (PCI and MAC) for substrate ads so they can be
+        # FIXME: propagated to ConnectionPoints/interfaces as part of creation
         """
         Generate a component sliver with this name and model and properties, and interfaces as needed
         based on the catalog description. Interfaces if present are named
@@ -94,7 +96,7 @@ class ComponentCatalog:
             id_index = 0
             for interface_name in interfaces_dict.keys():
                 isliver = InterfaceSliver()
-                isliver.set_resource_name(name + '_' + interface_name)
+                isliver.set_resource_name(name + '-' + interface_name)
                 isliver.set_resource_type(InterfaceType.TrunkPort)
                 if interface_node_ids is not None:
                     isliver.node_id = interface_node_ids[id_index]
@@ -110,7 +112,7 @@ class ComponentCatalog:
             if switch_fabric_node_id is None:
                 switch_fabric_node_id = str(uuid.uuid4())
             sf.node_id = switch_fabric_node_id
-            sf.set_resource_name(name + '_l2sf')
+            sf.set_resource_name(name + '-l2sf')
             sf.set_resource_type(SFType.SwitchFabric)
             # default to L2 for now
             sf.set_layer(SFLayer.L2)

@@ -26,13 +26,18 @@ class DelegationTests(unittest.TestCase):
     def testLabelAssignment(self):
         c = Labels()
 
-        c.set_fields(bdf='some', mac=['other'])
+        c.set_fields(mac=['0C:42:A1:BE:8F:D5', '0C:42:A1:BE:8F:E9'],
+                     bdf=['0000:41:00.0', '0000:41:00.1'])
 
-        self.assertEqual(c.bdf, 'some')
-        s = '{"ipv4": ["192.168.1.1", "192.168.1.2"], "vlan": ["100", "101", "102"]}'
+        self.assertEqual(c.bdf, ['0000:41:00.0', '0000:41:00.1'])
+        s = '{"bdf": ["0000:41:00.0", "0000:41:00.1"], ' \
+            '"ipv4": ["192.168.1.1", "192.168.1.2"], ' \
+            '"vlan": ["100", "101", "102"]}'
         l1 = Labels()
         l1.from_json(s)
         self.assertEqual(l1.vlan, ["100", "101", "102"])
+        print(s)
+        print(l1.to_json())
         self.assertEqual(l1.to_json(), s)
 
 
