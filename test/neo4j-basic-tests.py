@@ -1,7 +1,9 @@
 import fim.user as fu
-from fim.graph.abc_property_graph import ABCPropertyGraphConstants
+from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyGraph
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter, Neo4jPropertyGraph
+from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
+from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
 neo4j = {"url": "neo4j://0.0.0.0:7687",
          "user": "neo4j",
@@ -14,6 +16,16 @@ This is not a unit test in a proper sense. It is a harness to manually validate 
 until proper unit tests are implemented.
 """
 
+class MyPlug:
+    """
+    Fake pluggable BQM broker class for FIM testing
+    """
+    def __init__(self):
+        print("Creating MyPlug")
+
+    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs) -> ABCPropertyGraph:
+        print(f"Producing CBM as BQM {kwargs}")
+        return cbm
 
 def test_basic_neo4j():
     """
@@ -98,8 +110,39 @@ def test_asm_transfer():
     to_graph, to_node = asm_graph.get_mapping(node_id=node_id)
     assert(to_graph == "dead-beef")
     assert(to_node == "beef-beef")
-    #neo4j_graph_importer.delete_all_graphs()
+    neo4j_graph_importer.delete_all_graphs()
 
+
+def test_arm_load():
+    """
+    Load an ARM, transform to ADM, then merge into BQM
+    :return:
+    """
+
+    n4j_imp = Neo4jGraphImporter(url=neo4j["url"], user=neo4j["user"],
+                                 pswd=neo4j["pass"],
+                                 import_host_dir=neo4j["import_host_dir"],
+                                 import_dir=neo4j["import_dir"])
+    plain_neo4j = n4j_imp.import_graph_from_file_direct(graph_file='../RENCI-ad.graphml')
+
+    cbm = Neo4jCBMGraph(importer=n4j_imp)
+
+    site_arm = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
+                                                      importer=n4j_imp))
+    # generate a dict of ADMs from site graph ARM
+    site_adms = site_arm.generate_adms()
+    print('ADMS' + str(site_adms.keys()))
+
+    # desired ADM is under 'primary'
+    site_adm = site_adms['primary']
+    cbm.merge_adm(adm=site_adm)
+
+    print('Deleting ADM and ARM graphs')
+    for adm in site_adms.values():
+        adm.delete_graph()
+    site_arm.delete_graph()
+
+    print('CBM ID is ' + cbm.graph_id)
 
 if __name__ == "__main__":
 
@@ -111,4 +154,7 @@ if __name__ == "__main__":
 
     print("Running ASM transfer tests")
     test_asm_transfer()
+
+    print("Testing loading ARM")
+    test_arm_load()
 
