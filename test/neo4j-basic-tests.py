@@ -125,6 +125,8 @@ def test_arm_load():
                                  import_dir=neo4j["import_dir"])
     plain_neo4j = n4j_imp.import_graph_from_file_direct(graph_file='../RENCI-ad.graphml')
 
+    plain_neo4j.validate_graph()
+
     cbm = Neo4jCBMGraph(importer=n4j_imp)
 
     site_arm = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,

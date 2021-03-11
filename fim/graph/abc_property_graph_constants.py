@@ -55,6 +55,10 @@ class ABCPropertyGraphConstants(ABC):
     PROP_ALLOCATION_CONSTRAINTS = 'AllocationConstraints'
     PROP_SERVICE_ENDPOINT = 'ServiceEndpoint'
     PROP_DETAILS = 'Details'
+    PROP_BQM_NODE_ID = "BQMNodeId"
+    PROP_WORKER_NODE_NAME = 'ResourceNodeName'
+    PROP_INSTANCE_STATE = 'InstanceState'
+    PROP_INSTANCE_NAME = 'InstanceName'
 
     CLASS_NetworkNode = 'NetworkNode'
     CLASS_Component = 'Component'
