@@ -31,8 +31,8 @@ import json
 
 from typing import List
 
+from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants, PropertyGraphQueryException
 from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
-from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from .abc_cbm import ABCCBMMixin
 from .neo4j_adm import Neo4jADMGraph
 from fim.slivers.delegations import DelegationType
@@ -44,7 +44,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
     """
     Neo4j implementation of CBM
     """
-    ADM_GRAPH_IDS = "ADMGraphIDs"
+    PROP_ADM_GRAPH_IDS = "ADMGraphIDs"
     BQM_MERGED_FIELDS = ['LabelDelegations', 'CapacityDelegations']
     DELEGATION_TYPE_TO_PROP_NAME = {DelegationType.LABEL: ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
                                     DelegationType.CAPACITY: ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS
@@ -118,12 +118,13 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
         temp_adm_graph.rewrite_delegations(real_adm_id=adm.graph_id)
 
         # update the ADMGraphIDs property to a single member list on all CBM nodes
-        temp_adm_graph.update_nodes_property(prop_name=self.ADM_GRAPH_IDS,
+        temp_adm_graph.update_nodes_property(prop_name=self.PROP_ADM_GRAPH_IDS,
                                              prop_val=json.dumps([adm.graph_id]))
 
         # if CBM is empty, just force ADM into it
         if not self.graph_exists():
-            temp_adm_graph.update_nodes_property(prop_name="GraphID", prop_val=self.graph_id)
+            temp_adm_graph.update_nodes_property(prop_name=ABCPropertyGraphConstants.GRAPH_ID,
+                                                 prop_val=self.graph_id)
             return
 
         # CBM is not empty - need to merge ADM with it
@@ -152,16 +153,46 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
 
             # add delegation graph id to ADMGraphIDs property on common (merged) nodes
             _, cbm_node_props = self.get_node_properties(node_id=node_id)
-            adm_list = json.loads(cbm_node_props[self.ADM_GRAPH_IDS])
+            adm_list = json.loads(cbm_node_props[self.PROP_ADM_GRAPH_IDS])
             adm_list.append(adm.graph_id)
-            self.update_node_property(node_id=node_id, prop_name=self.ADM_GRAPH_IDS,
+            self.update_node_property(node_id=node_id, prop_name=self.PROP_ADM_GRAPH_IDS,
                                       prop_val=json.dumps(adm_list))
 
         # rewrite GraphID on the remaining nodes of
         # temporary ADM graph (after that it ceases to exist)
         # NOTE: this takes advantage of Neo4j semantics of common store for all graphs
         # and changing the GraphID property effectively makes graph takes on a new identity
-        temp_adm_graph.update_nodes_property(prop_name="GraphID", prop_val=self.graph_id)
+        temp_adm_graph.update_nodes_property(prop_name=ABCPropertyGraphConstants.GRAPH_ID,
+                                             prop_val=self.graph_id)
+
+    def unmerge_adm(self, *, graph_id: str) -> None:
+        # Search ADMGraphIDs property and remove those nodes where it is the only
+        # member of the list. For those that have two members, update the list
+        # to remove.
+        delete_nodes = list()
+        for node in self.list_all_node_ids():
+            adm_graph_ids = self.get_node_json_property_as_object(node_id=node,
+                                                                  prop_name=self.PROP_ADM_GRAPH_IDS)
+            if adm_graph_ids is None:
+                self.log.warn(f'When unmerging ADMs encountered node {node} '
+                              f'without {self.PROP_ADM_GRAPH_IDS} property')
+                continue
+            if not isinstance(adm_graph_ids, list):
+                raise PropertyGraphQueryException(node_id=node, graph_id=self.graph_id,
+                                                  msg=f"When unmerging graph {graph_id}, encountered wrongly"
+                                                      f"formatted {self.PROP_ADM_GRAPH_IDS} field")
+            if graph_id in adm_graph_ids:
+                # update the ADM Graph IDs field
+                adm_graph_ids.remove(graph_id)
+                if len(adm_graph_ids) == 0:
+                    delete_nodes.append(node)
+                else:
+                    # update
+                    self.update_node_property(node_id=node, prop_name=self.PROP_ADM_GRAPH_IDS,
+                                              prop_val=json.dumps(adm_graph_ids))
+        # remove the merged nodes
+        for node in delete_nodes:
+            self.delete_node(node_id=node)
 
     def get_bqm(self, **kwargs) -> Neo4jPropertyGraph:
         """

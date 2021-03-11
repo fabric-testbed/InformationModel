@@ -29,21 +29,16 @@ Abstract definition of CBM (Combined Broker Model) functionality.
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from ..abc_property_graph import ABCPropertyGraph
+import uuid
+
+from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants
 from fim.slivers.delegations import DelegationType
 
 
-class ABCCBMMixin(metaclass=ABCMeta):
+class ABCCBMMixin(ABCPropertyGraph):
     """
     Abstract definition of CBM
     """
-    @classmethod
-    def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'merge_adm') and
-                callable(subclass.merge_adm) and
-                hasattr(subclass, 'get_bqm') and
-                callable(subclass.get_bqm) or NotImplemented)
-
     @abstractmethod
     def merge_adm(self, *, adm: ABCPropertyGraph) -> None:
         """
@@ -51,6 +46,41 @@ class ABCCBMMixin(metaclass=ABCMeta):
         :param adm:
         :return:
         """
+
+    @abstractmethod
+    def unmerge_adm(self, *, graph_id: str) -> None:
+        """
+        Unmerge an ADM with this graph id from CBM
+        :param graph_id:
+        :return:
+        """
+
+    def snapshot(self) -> str:
+        """
+        Take a snapshot of CBM and return its graph ID
+        :return:
+        """
+        new_graph_id = str(uuid.uuid4())
+        self.clone_graph(new_graph_id=new_graph_id)
+
+        return new_graph_id
+
+    def rollback(self, *, graph_id: str) -> None:
+        """
+        Roll back CBM to a specified snapshot,
+        deleting the snapshot. Note that no checks are done
+        that the offered graph_id belongs to a CBM snapshot.
+        :param graph_id: if None, use previous snapshot
+        :return:
+        """
+        assert graph_id is not None
+        # delete self
+        self.delete_graph()
+        # clone other graph into self
+        cbm_temp = self.importer.cast_graph(graph_id=graph_id)
+        # renumber cbm temp to be the original graph id
+        cbm_temp.update_nodes_property(prop_name=ABCPropertyGraphConstants.GRAPH_ID,
+                                       prop_val=self.graph_id)
 
     @abstractmethod
     def get_bqm(self, **kwargs) -> ABCPropertyGraph:

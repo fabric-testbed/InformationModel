@@ -552,6 +552,14 @@ class ABCGraphImporter(ABC):
         :return:
         """
 
+    @abstractmethod
+    def cast_graph(self, *, graph_id: str) -> ABCPropertyGraph:
+        """
+        Recast a graph with a given node id, checks that graph exists
+        :param graph_id:
+        :return:
+        """
+
     @staticmethod
     def enumerate_graph_nodes(*, graph_file: str, new_graph_file: str, node_id_prop: str = "NodeID") -> None:
         """
