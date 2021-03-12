@@ -779,3 +779,10 @@ class Neo4jGraphImporter(ABCGraphImporter):
         self.log.debug(f'Deleting graph {graph_id}')
         with self.driver.session() as session:
             session.run('match (n:GraphNode {GraphID: $graphId })detach delete n', graphId=graph_id)
+
+    def cast_graph(self, *, graph_id: str) -> ABCPropertyGraph:
+
+        assert graph_id is not None
+        neo4jg = Neo4jPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
+        assert neo4jg.graph_exists()
+        return neo4jg

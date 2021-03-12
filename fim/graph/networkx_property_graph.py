@@ -749,3 +749,10 @@ class NetworkXGraphImporter(ABCGraphImporter):
         :return:
         """
         self.storage.del_all_graphs()
+
+    def cast_graph(self, *, graph_id: str) -> ABCPropertyGraph:
+
+        assert graph_id is not None
+        neo4jg = NetworkXPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
+        assert neo4jg.graph_exists()
+        return neo4jg

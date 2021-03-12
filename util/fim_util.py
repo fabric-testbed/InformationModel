@@ -50,15 +50,14 @@ https://hub.docker.com/repository/docker/fabrictestbed/neo4j-apoc
 
 import argparse
 import sys
-import logging
 import yaml
+import logging
 
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.graph.neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter, PropertyGraphImportException
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
-from fim.pluggable import PluggableRegistry, PluggableType
-from fim.graph.delegations import DelegationType
+from fim.pluggable import PluggableRegistry
 
 FIM_CONFIG_YAML = "fim_config.yaml"
 
@@ -182,9 +181,9 @@ def test_graph(*, graph_ids, neo4j_config):
     print(f"CBM graph ID is {cbm.graph_id}")
 
     net_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_ids[0], importer=neo4j_graph_importer))
-    for node_id in net_graph.list_all_node_ids():
-        print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL))
-        print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY))
+    #for node_id in net_graph.list_all_node_ids():
+    #    print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL))
+    #    print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY))
 
     net_adms = net_graph.generate_adms()
     print(f"Delegation graph(s) for net AM {net_adms}")
@@ -199,8 +198,23 @@ def test_graph(*, graph_ids, neo4j_config):
     print(f"Delegation graph(s) for site AM {am_adms}")
     # use del1
     am_adm = am_adms['del1']
+    to_unmerge = am_adm.graph_id
     print("Merging AM ADM")
     cbm.merge_adm(adm=am_adm)
+
+    # unmerge then merge again
+    print('Unmerging ' + to_unmerge)
+    cbm.unmerge_adm(graph_id=to_unmerge)
+
+    print("Merging AM ADM again")
+    cbm.merge_adm(adm=am_adm)
+
+    snapshot = cbm.snapshot()
+
+    cbm.unmerge_adm(graph_id=to_unmerge)
+
+    cbm.rollback(graph_id=snapshot)
+
     for graph in am_adms.values():
         graph.delete_graph()
 
@@ -224,9 +238,9 @@ def test_graph(*, graph_ids, neo4j_config):
     for graph in am_adms.values():
         graph.delete_graph()
 
-    for node_id in cbm.list_all_node_ids():
-        print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL, adm_id=am_adm.graph_id))
-        print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY, adm_id=am_adm.graph_id))
+    #for node_id in cbm.list_all_node_ids():
+    #    print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL, adm_id=am_adm.graph_id))
+    #    print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY, adm_id=am_adm.graph_id))
 
     cbm.get_bqm(some=5)
 
@@ -324,10 +338,10 @@ if __name__ == "__main__":
         graph = args.graph
         print(f"Running test command on {graph}")
         #test_graph(graph_id=graph, neo4j_config=yaml_config["neo4j"])
-        test_graph(graph_ids=["807ce9f2-c02c-401a-8f19-b13d4ffbd398",
-                              "d752722a-4598-48dc-a34e-62e0a1426218",
-                              "caca8303-ca19-424a-ab13-45cdd502e120",
-                              "6038b4e7-ae79-41ba-bad2-9d0ad2feb9d5"],
+        test_graph(graph_ids=["936bbc55-b3c0-43b7-aee5-fbfbdeffd513",
+                              "0394b803-e0ec-41c4-b7e7-4769c9d9873b",
+                              "24f6ce3f-5860-4dcb-bf88-acc77a663f8f",
+                              "e8f66ca9-90d3-4b0f-8f55-2c734a2b60ab"],
                    neo4j_config=yaml_config["neo4j"])
     else:
         print("Please specify one of -h, -l, -e or -w", file=sys.stderr)
