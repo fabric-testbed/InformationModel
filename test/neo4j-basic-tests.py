@@ -5,6 +5,8 @@ from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
+import fim.user as fu
+
 neo4j = {"url": "neo4j://0.0.0.0:7687",
          "user": "neo4j",
          "pass": "password",
@@ -40,9 +42,25 @@ def test_basic_neo4j():
     n4j_pg.add_node(node_id="dead-beef", label=ABCPropertyGraphConstants.CLASS_NetworkNode)
     n4j_pg.add_node(node_id="beef-dead", label=ABCPropertyGraphConstants.CLASS_Component,
                     props={"some_property": "some_value"})
-    n4j_pg.add_link(node_a="dead-beef", node_b="beef-dead", rel=ABCPropertyGraphConstants.REL_HAS)
-    n4j_imp.delete_all_graphs()
+    _, props = n4j_pg.get_node_properties(node_id='beef-dead')
+    print(props)
+    assert props.get('some_property', None) is not None
+    n4j_pg.unset_node_property(node_id='beef-dead', prop_name='some_property')
+    _, props = n4j_pg.get_node_properties(node_id='beef-dead')
+    print(props)
+    assert props.get('some_property', None) is None
 
+    n4j_pg.add_link(node_a='dead-beef', node_b='beef-dead', rel=ABCPropertyGraphConstants.REL_HAS,
+                    props={'some_prop': 2})
+    lt, props = n4j_pg.get_link_properties(node_a='dead-beef', node_b='beef-dead')
+    assert lt == ABCPropertyGraph.REL_HAS
+    assert 'some_prop' in props.keys()
+    n4j_pg.unset_link_property(node_a='dead-beef', node_b='beef-dead', kind=ABCPropertyGraph.REL_HAS,
+                               prop_name='some_prop')
+    lt, props = n4j_pg.get_link_properties(node_a='dead-beef', node_b='beef-dead')
+    assert 'some_prop' not in props.keys()
+
+    n4j_imp.delete_all_graphs()
 
 def test_neo4j_asm():
     """
@@ -105,11 +123,22 @@ def test_asm_transfer():
     node_ids = asm_graph.list_all_node_ids()
     print(node_ids)
     node_id = next(iter(node_ids))
+
+    # this is how you map  to BQM
     asm_graph.set_mapping(node_id=node_id, to_graph_id="dead-beef",
                           to_node_id='beef-beef')
     to_graph, to_node = asm_graph.get_mapping(node_id=node_id)
+
     assert(to_graph == "dead-beef")
     assert(to_node == "beef-beef")
+
+    # test creating an experiment topology as a cast of an ASM loaded into Neo4j
+    neo4j_topo = fu.ExperimentTopology()
+    neo4j_topo.cast(asm_graph=asm_graph)
+
+    print(f'New topology on top of {neo4j_topo.graph_model.graph_id}')
+    print(neo4j_topo.nodes)
+
     neo4j_graph_importer.delete_all_graphs()
 
 
@@ -125,6 +154,7 @@ def test_arm_load():
                                  import_dir=neo4j["import_dir"])
     plain_neo4j = n4j_imp.import_graph_from_file_direct(graph_file='../RENCI-ad.graphml')
 
+    print("Validating ARM graph")
     plain_neo4j.validate_graph()
 
     cbm = Neo4jCBMGraph(importer=n4j_imp)
@@ -145,6 +175,7 @@ def test_arm_load():
     site_arm.delete_graph()
 
     print('CBM ID is ' + cbm.graph_id)
+
 
 if __name__ == "__main__":
 
