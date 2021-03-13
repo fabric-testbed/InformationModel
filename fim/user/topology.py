@@ -24,22 +24,25 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Tuple
+from abc import ABC
+from typing import List, Dict, Tuple, Any
 import enum
 
 import uuid
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from fim.view_only_dict import ViewOnlyDict
+
 from .model_element import ModelElement
-from ..slivers.network_node import NodeType, NodeSliver
-from ..slivers.network_link import LinkType, NetworkLinkSliver
+from ..slivers.network_node import NodeType
+from ..slivers.network_link import LinkType
 from ..slivers.switch_fabric import SFLayer
+from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
-from ..slivers.delegations import Delegation, ARMDelegations, Pool, ARMPools, DelegationType
+from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
 
 from .model_element import ElementType
 from .node import Node
@@ -58,7 +61,9 @@ class TopologyDetail(enum.Enum):
 
 class Topology(ABC):
     """
-    Define and manipulate a topology over its life cycle
+    Define and manipulate a topology over its life cycle. Default constructor and load
+    functions create NetworkX-based graphs. If you want to operate on top of a Neo4j
+    graph, use the cast() method.
     """
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
 
@@ -174,7 +179,7 @@ class Topology(ABC):
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
-    def __list_nodes(self) -> Dict[str, Node]:
+    def __list_nodes(self) -> ViewOnlyDict:
         """
         List all NetworkNodes in the topology as a dictionary
         organized by node name. Modifying the dictionary will not affect
@@ -187,9 +192,9 @@ class Topology(ABC):
         for nid in node_id_list:
             n = self.__get_node_by_id(nid)
             ret[n.name] = n
-        return ret
+        return ViewOnlyDict(ret)
 
-    def __list_links(self) -> Dict[str, Link]:
+    def __list_links(self) -> ViewOnlyDict:
         """
         List all Links in the topology as a dictionary organized by Link name.
         :return:
@@ -199,9 +204,9 @@ class Topology(ABC):
         for nid in link_id_list:
             n = self.__get_link_by_id(nid)
             ret[n.name] = n
-        return ret
+        return ViewOnlyDict(ret)
 
-    def __list_of_interfaces(self) -> Tuple[Interface]:
+    def __list_of_interfaces(self) -> Tuple[Any]:
         """
         List all interfaces of the topology as a dictionary
         :return:
@@ -255,10 +260,20 @@ class Topology(ABC):
         else:
             assert graph_string is not None
             nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
-
         self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
                                        importer=nx_pgraph.importer,
                                        logger=nx_pgraph.log)
+
+    def cast(self, *, asm_graph: ABCASMPropertyGraph):
+        """
+        'Cast' an existing instance of ASM graph into a topology. This can create Neo4j or NetworkX-based
+        topology classes
+        :param asm_graph:
+        :return:
+        """
+        assert asm_graph is not None
+        assert isinstance(asm_graph, ABCASMPropertyGraph)
+        self.graph_model = asm_graph
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
@@ -347,7 +362,7 @@ class SubstrateTopology(Topology):
 
     def as_adm(self):
         """
-        Return mode as ADM graph built on top of internal model. Model is not cloned or copied,
+        Return model as ADM graph built on top of internal model. Model is not cloned or copied,
         rather recast into ADM, so any changes to the model propagate back to the topology.
         :return:
         """

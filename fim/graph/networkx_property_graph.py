@@ -155,12 +155,29 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         assert node_id is not None
         assert prop_name is not None
         assert prop_val is not None
-        # note that we are not copying node properties, which means the next line modifies
+
         if prop_name == self.NETWORKX_LABEL:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
                                               msg=f"Changing {self.NETWORKX_LABEL} property is not permitted")
+        # note that we are not copying node properties, which means the next line modifies
         node_props = self.storage.get_graph(self.graph_id).nodes[self._find_node(node_id=node_id)]
         node_props[prop_name] = prop_val
+
+    def unset_node_property(self, *, node_id: str, prop_name: str) -> None:
+        assert node_id is not None
+        assert prop_name is not None
+
+        if prop_name == self.NETWORKX_LABEL:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg=f"Unsetting {self.NETWORKX_LABEL} property is not permitted")
+        if prop_name in ABCPropertyGraph.NO_UNSET_PROPERTIES:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg=f"Unsetting property {prop_name} is not allowed)")
+
+        # since this is not a copy, after that we modify live graph
+        node_props = self.storage.get_graph(self.graph_id).nodes[self._find_node(node_id=node_id)]
+        if prop_name in node_props.keys():
+            node_props.pop(prop_name)
 
     def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
         """
@@ -228,6 +245,31 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a,
                                               msg="Link of this type doesn't exist")
         edge_props[prop_name] = prop_val
+
+    def unset_link_property(self, *, node_a: str, node_b: str, kind: str, prop_name: str) -> None:
+        assert node_a is not None
+        assert node_b is not None
+        assert kind is not None
+        assert prop_name is not None
+
+        if prop_name == self.NETWORKX_LABEL:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
+                                              msg=f"Unsetting {self.NETWORKX_LABEL} property is not permitted")
+        # find nodes matching those IDs and get link properties
+        real_node_a = self._find_node(node_id=node_a)
+        real_node_b = self._find_node(node_id=node_b)
+        try:
+            # not a copy
+            edge_props = self.storage.get_graph(self.graph_id).edges[(real_node_a, real_node_b)]
+        except KeyError:
+            # no edge exists
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a, msg="Link doesn't exist")
+        etype = edge_props.get(self.NETWORKX_LABEL, None)
+        if etype != kind:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a,
+                                              msg="Link of this type doesn't exist")
+        if prop_name in edge_props.keys():
+            edge_props.pop(prop_name)
 
     def update_link_properties(self, *, node_a: str, node_b: str, kind: str, props: Dict[str, Any]) -> None:
         """

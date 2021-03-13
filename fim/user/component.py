@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Tuple
 
 import uuid
 
+from fim.view_only_dict import ViewOnlyDict
 from ..graph.abc_property_graph import ABCPropertyGraph
 from .model_element import ModelElement, ElementType
 from .interface import Interface
@@ -130,7 +131,7 @@ class Component(ModelElement):
         self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
 
     @staticmethod
-    def list_properties() -> List[str]:
+    def list_properties() -> Tuple[str]:
         return ComponentSliver.list_properties()
 
     def __get_interface_by_id(self, node_id: str) -> Interface:
@@ -157,7 +158,7 @@ class Component(ModelElement):
         return SwitchFabric(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                             topo=self.topo)
 
-    def __list_interfaces(self) -> Dict[str, Interface]:
+    def __list_interfaces(self) -> ViewOnlyDict:
         """
         List all interfaces of the component as a dictionary
         :return:
@@ -168,7 +169,7 @@ class Component(ModelElement):
         for nid in node_id_list:
             i = self.__get_interface_by_id(nid)
             ret[i.name] = i
-        return ret
+        return ViewOnlyDict(ret)
 
     def __list_of_interfaces(self) -> Tuple[Interface]:
         """
@@ -183,7 +184,7 @@ class Component(ModelElement):
             ret.append(i)
         return tuple(ret)
 
-    def __list_switch_fabrics(self) -> Dict[str, SwitchFabric]:
+    def __list_switch_fabrics(self) -> ViewOnlyDict:
         """
         List all switch fabric children of a node as a dictionary organized
         by switch fabric name. Modifying the dictionary will not affect
@@ -196,7 +197,7 @@ class Component(ModelElement):
         for nid in node_id_list:
             c = self.__get_sf_by_id(nid)
             ret[c.name] = c
-        return ret
+        return ViewOnlyDict(ret)
 
     def __getattr__(self, item):
         """

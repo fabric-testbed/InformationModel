@@ -181,7 +181,22 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             val = session.run(query, graphId=self.graph_id, nodeId=node_id, propVal=prop_val)
             if val is None or len(val.value()) == 0:
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                                  node_id=node_id, msg="Unable to set property")
+                                                  node_id=node_id, msg=f"Unable to set property {prop_name}")
+
+    def unset_node_property(self, *, node_id: str, prop_name: str) -> None:
+        assert node_id is not None
+        assert prop_name is not None
+
+        if prop_name in ABCPropertyGraph.NO_UNSET_PROPERTIES:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg=f"Not allowed to unset property {prop_name}")
+        query = f"MATCH (n:GraphNode {{GraphID: $graphId, NodeID: $nodeId}}) " \
+                f"REMOVE n.{prop_name} RETURN n.NodeID"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeId=node_id)
+            if val is None or len(val.value()) == 0:
+                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                                  msg=f"Unable to unset property {prop_name}")
 
     def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
         """
@@ -198,7 +213,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             val = session.run(query, graphId=self.graph_id, propVal=prop_val)
             if val is None or len(val.value()) == 0:
                 raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
-                                                  msg="Unable to set property on graph nodes")
+                                                  msg=f"Unable to set property {prop_name} on graph nodes")
 
     def update_node_properties(self, *, node_id: str, props: Dict[str, Any]) -> None:
         """
@@ -223,7 +238,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             if val is None or len(val.value()) == 0:
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
                                                   node_id=node_id,
-                                                  msg="Unable to set properties")
+                                                  msg="Unable to set multiple properties")
 
     def update_link_property(self, *, node_a: str, node_b: str, kind: str, prop_name: str,
                              prop_val: Any) -> None:
@@ -242,13 +257,27 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert prop_name is not None
         assert prop_val is not None
         query = f"MATCH (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[r:{kind}]- " \
-            f"(b:GraphNode {{GraphID: $graphId, NodeID:$nodeB}}) SET s+={{ {prop_name}: $propVal}} " \
+            f"(b:GraphNode {{GraphID: $graphId, NodeID:$nodeB}}) SET r+={{ {prop_name}: $propVal}} " \
             f"RETURN properties(r)"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeB=node_b, propVal=prop_val)
             if val is None or len(val.value()) == 0:
                 raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a,
-                                                  msg="Unable to set property on a link")
+                                                  msg=f"Unable to set property {prop_name} on a link")
+
+    def unset_link_property(self, *, node_a: str, node_b: str, kind: str, prop_name: str) -> None:
+        assert node_a is not None
+        assert node_b is not None
+        assert kind is not None
+        assert prop_name is not None
+
+        query = f"MATCH (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[r:{kind}]- " \
+                f"(b:GraphNode {{GraphID: $graphId, NodeID:$nodeB}}) REMOVE r.{prop_name} RETURN r"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeB=node_b)
+            if val is None or len(val.value()) == 0:
+                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a,
+                                                  msg=f"Unable to set property {prop_name} on a link")
 
     def update_link_properties(self, *, node_a: str, node_b: str, kind: str,
                                props: Dict[str, Any]) -> None:
@@ -272,7 +301,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             all_props = all_props[:-2]
 
         query = "MATCH (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[r:{kind}]- " \
-            f"(b:GraphNode {{GraphID: $graphId, NodeID:$nodeB}}) SET s+= {{ {all_props} }} RETURN properties(s)"
+            f"(b:GraphNode {{GraphID: $graphId, NodeID:$nodeB}}) SET r+= {{ {all_props} }} RETURN properties(s)"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeB=node_b)
             if val is None or len(val.value()) == 0:
@@ -451,7 +480,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert rel is not None
         assert node_b is not None
 
-        all_props = f", "
+        all_props = ""
         if props is not None:
             for k, v in props.items():
                 all_props += f"{k}: '{v}', "

@@ -26,10 +26,10 @@
 """
 Base class for all sliver types
 """
-from typing import Any, List
+from typing import Any, List, Tuple
 from abc import ABC, abstractmethod
 
-from fim.slivers.capacities_labels import Capacities, Labels
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo
 from fim.slivers.delegations import Delegation, Pool
 
 
@@ -45,9 +45,11 @@ class BaseSliver(ABC):
         self.labels = None
         self.capacity_delegations = None
         self.label_delegations = None
+        self.capacity_allocations = None
+        self.label_allocations = None
+        self.reservation_info = None
         self.node_id = None
         self.details = None
-        self.bqm_node_id = None
 
     def set_resource_type(self, resource_type):
         """
@@ -120,6 +122,24 @@ class BaseSliver(ABC):
     def get_label_delegations(self) -> Delegation:
         return self.label_delegations
 
+    def set_label_allocations(self, lab: Labels) -> None:
+        self.label_allocations = lab
+
+    def get_label_allocations(self) -> Labels:
+        return self.label_allocations
+
+    def set_capacity_allocations(self, cap: Capacities) -> None:
+        self.capacity_allocations = cap
+
+    def get_capacity_allocations(self) -> Capacities:
+        return self.capacity_allocations
+
+    def set_reservation_info(self, ri: ReservationInfo) -> None:
+        self.reservation_info = ri
+
+    def get_reservation_inf(self) -> ReservationInfo:
+        return self.reservation_info
+
     def set_details(self, desc: str) -> None:
         self.details = desc
 
@@ -141,7 +161,7 @@ class BaseSliver(ABC):
                 raise RuntimeError(f'Unable to set property {k} on the sliver - no such property available')
 
     @classmethod
-    def list_properties(cls):
+    def list_properties(cls) -> Tuple[str]:
         """
         List properties available for setting/getting on a sliver (those exposing
         setters)
@@ -152,7 +172,7 @@ class BaseSliver(ABC):
         for k in dir(cls):
             if k.startswith('set_') and k not in exclude_set:
                 ret.append(k[4:])
-        return ret
+        return tuple(ret)
 
     def set_property(self, prop_name: str, prop_val: Any):
         """

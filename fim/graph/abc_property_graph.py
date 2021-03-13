@@ -32,15 +32,16 @@ import json
 import uuid
 import networkx as nx
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Tuple
 
 import logging
 
 from fim.slivers.attached_components import ComponentSliver, AttachedComponentsInfo
-from fim.slivers.capacities_labels import Capacities, Labels
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo
 from fim.slivers.delegations import Delegation
 from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.network_node import NodeSliver
+from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.switch_fabric import SwitchFabricSliver, SwitchFabricInfo
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
@@ -126,6 +127,16 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
 
     @abstractmethod
+    def unset_node_property(self, *, node_id: str, prop_name: str) -> None:
+        """
+        Unset/remove this property from a node. Not all properties can be
+        unset (e.g. graph id and node id cannot)
+        :param node_id:
+        :param prop_name:
+        :return:
+        """
+
+    @abstractmethod
     def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
         """
         update a selected property on all nodes of the graph
@@ -153,6 +164,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param kind: - link/relationship type
         :param prop_name:
         :param prop_val:
+        :return:
+        """
+
+    @abstractmethod
+    def unset_link_property(self, *, node_a: str, node_b: str, kind: str,
+                             prop_name: str) -> None:
+        """
+        Unset a property on a specified link
+        :param node_a:
+        :param node_b:
+        :param kind:
+        :param prop_name:
         :return:
         """
 
@@ -299,7 +322,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
     def __repr__(self):
         return f"Graph with id {self.graph_id}"
 
-    def _validate_json_property(self, node_id: str, prop_name: str, strict: bool = False) -> str:
+    def _validate_json_property(self, node_id: str, props: Dict, strict: bool = False) -> Tuple[str, str] or None:
         """
         Validate that JSON in a particular node in a particular property is valid or throw
         a JSONDecodeError exception. Strict set to true causes exception if property is not found.
@@ -309,25 +332,24 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param strict
         :return:
         """
-        assert node_id is not None
-        assert prop_name is not None
-        _, props = self.get_node_properties(node_id=node_id)
-        if prop_name not in props.keys():
-            if strict:
-                # if property is not there, raise exception
-                raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node_id,
-                                                   msg=f"Unable to find property {prop_name} on a node")
+        for prop_name in ABCPropertyGraphConstants.JSON_PROPERTY_NAMES:
+            if prop_name not in props.keys():
+                if strict:
+                    # if property is not there, raise exception
+                    raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node_id,
+                                                       msg=f"Unable to find property {prop_name} on a node")
+                else:
+                    # if property is not there, just return
+                    continue
+            # try loading it as JSON. Exception may be thrown
+            if props[prop_name] is not None and props[prop_name] != "None":
+                try:
+                    json.loads(props[prop_name])
+                except json.decoder.JSONDecodeError:
+                    return prop_name, props[prop_name]
             else:
-                # if property is not there, just return
-                return None
-        # try loading it as JSON. Exception may be thrown
-        if props[prop_name] is not None and props[prop_name] != "None":
-            try:
-                json.loads(props[prop_name])
-            except json.decoder.JSONDecodeError:
-                return props[prop_name]
-        else:
-            return None
+                continue
+        return None
 
     def _validate_all_json_properties(self) -> None:
         """
@@ -339,11 +361,179 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             raise PropertyGraphQueryException(graph_id=self.graph_id,
                                               node_id=None, msg="Unable to list nodes of graph")
         for node in nodes:
-            for prop in self.JSON_PROPERTY_NAMES:
-                prop_val = self._validate_json_property(node_id=node, prop_name=prop)
-                if prop_val is not None:
-                    raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node,
-                                                       msg=f"Unable to parse JSON property {prop} with value {prop_val}")
+            _, props = self.get_node_properties(node_id=node)
+            prop_tuple = self._validate_json_property(node_id=node, props=props)
+            if prop_tuple is not None:
+                raise PropertyGraphImportException(graph_id=self.graph_id, node_id=node,
+                                                   msg=f"Unable to parse JSON property {prop_tuple[0]} "
+                                                       f"with value {prop_tuple[1]}")
+
+    @staticmethod
+    def node_sliver_to_graph_properties_dict(sliver: NodeSliver) -> Dict[str, str]:
+        """
+        This method knows how to map sliver fields to graph properties
+        :param sliver:
+        :return:
+        """
+        prop_dict = dict()
+
+        if sliver.resource_name is not None:
+            prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
+        if sliver.resource_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
+        if sliver.capacities is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.capacity_delegations)
+        if sliver.label_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.label_delegations)
+        if sliver.capacity_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
+        if sliver.label_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
+        if sliver.reservation_info is not None:
+            prop_dict[ABCPropertyGraph.PROP_RESERVATION_INFO] = sliver.reservation_info.to_json()
+        if sliver.site is not None:
+            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
+        if sliver.image_ref is not None and sliver.image_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_IMAGE_REF] = sliver.image_ref + ',' + str(sliver.image_type)
+        if sliver.management_ip is not None:
+            prop_dict[ABCPropertyGraph.PROP_MGMT_IP] = str(sliver.management_ip)
+        if sliver.allocation_constraints is not None:
+            prop_dict[ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS] = sliver.allocation_constraints
+        if sliver.service_endpoint is not None:
+            prop_dict[ABCPropertyGraph.PROP_SERVICE_ENDPOINT] = str(sliver.service_endpoint)
+        if sliver.details is not None:
+            prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
+        return prop_dict
+
+    @staticmethod
+    def link_sliver_to_graph_properties_dict(sliver: NetworkLinkSliver) -> Dict[str, str]:
+        """
+        This method knows how to map sliver fields to graph properties
+        :param sliver:
+        :return:
+        """
+        prop_dict = dict()
+
+        if sliver.resource_name is not None:
+            prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
+        if sliver.resource_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
+        if sliver.capacities is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.capacity_delegations)
+        if sliver.label_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.label_delegations)
+        if sliver.capacity_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
+        if sliver.label_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
+        if sliver.reservation_info is not None:
+            prop_dict[ABCPropertyGraph.PROP_RESERVATION_INFO] = sliver.reservation_info.to_json()
+        if sliver.layer is not None:
+            prop_dict[ABCPropertyGraph.PROP_LAYER] = str(sliver.layer)
+        if sliver.technology is not None:
+            prop_dict[ABCPropertyGraph.PROP_TECHNOLOGY] = str(sliver.technology)
+        if sliver.details is not None:
+            prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
+
+        return prop_dict
+
+    @staticmethod
+    def component_sliver_to_graph_properties_dict(sliver: ComponentSliver) -> Dict[str, str]:
+        """
+        This method knows how to map component sliver fields to graph properties
+        :param sliver:
+        :return:
+        """
+        prop_dict = dict()
+
+        if sliver.resource_name is not None:
+            prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
+        if sliver.resource_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
+        if sliver.capacities is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.capacity_delegations)
+        if sliver.label_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.label_delegations)
+        if sliver.details is not None:
+            prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
+
+        return prop_dict
+
+    @staticmethod
+    def switch_fabric_sliver_to_graph_properties_dict(sliver: SwitchFabricSliver) -> Dict[str, str]:
+        """
+        This method knows how to map switch fabric sliver fields to graph properties
+        :param sliver:
+        :return:
+        """
+        prop_dict = dict()
+
+        if sliver.resource_name is not None:
+            prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
+        if sliver.resource_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
+        if sliver.capacities is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.capacity_delegations)
+        if sliver.label_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.label_delegations)
+        if sliver.layer is not None:
+            prop_dict[ABCPropertyGraph.PROP_LAYER] = str(sliver.layer)
+        if sliver.details is not None:
+            prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
+
+        return prop_dict
+
+    @staticmethod
+    def interface_sliver_to_graph_properties_dict(sliver: InterfaceSliver) -> Dict[str, str]:
+        """
+        This method knows how to map interface sliver fields to graph properties
+        :param sliver:
+        :return:
+        """
+        prop_dict = dict()
+
+        if sliver.resource_name is not None:
+            prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
+        if sliver.resource_type is not None:
+            prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
+        if sliver.capacities is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.capacity_delegations)
+        if sliver.label_delegations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
+                Delegation.from_list_to_json(sliver.label_delegations)
+        if sliver.details is not None:
+            prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
+
+        return prop_dict
 
     @staticmethod
     def node_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NodeSliver:
@@ -357,6 +547,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          resource_type=n.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                          capacities=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
                          labels=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
+                         capacity_allocations=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                                                           None)),
+                         label_allocations=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                    None)),
+                         reservation_info=ReservationInfo().from_json(d.get(ABCPropertyGraph.PROP_RESERVATION_INFO,
+                                                                            None)),
                          capacity_delegations=Delegation.from_json_to_list(
                              d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
                          label_delegations=Delegation.from_json_to_list(
@@ -368,6 +564,30 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          details=d.get(ABCPropertyGraph.PROP_DETAILS, None)
+                         )
+        return n
+
+    @staticmethod
+    def link_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NetworkLinkSliver:
+        n = NetworkLinkSliver()
+        n.set_properties(resource_name=d.get(ABCPropertyGraph.PROP_NAME, None),
+                         resource_type=n.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
+                         capacities=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
+                         labels=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
+                         capacity_allocations=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                                                           None)),
+                         label_allocations=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                    None)),
+                         reservation_info=ReservationInfo().from_json(d.get(ABCPropertyGraph.PROP_RESERVATION_INFO,
+                                                                            None)),
+                         capacity_delegations=Delegation.from_json_to_list(
+                             d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
+                         label_delegations=Delegation.from_json_to_list(
+                             d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
+                         allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
+                         details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
+                         layer=d.get(ABCPropertyGraph.PROP_LAYER),
+                         technology=d.get(ABCPropertyGraph.PROP_TECHNOLOGY)
                          )
         return n
 
@@ -464,6 +684,33 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                 sfsl = self.build_deep_sf_sliver(node_id=s)
                 sfi.add_switch_fabric(sfsl)
             ns.switch_fabric_info = sfi
+
+        return ns
+
+    def build_deep_link_sliver(self, *, node_id: str) -> NetworkLinkSliver:
+        """
+        Build a deep NetworkLinkSliver from a graph node
+        :param node_id:
+        :return:
+        """
+        clazzes, props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_Link not in clazzes:
+            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
+                                              msg="Node is not of class Link")
+        # create top-level sliver
+        ns = self.link_sliver_from_graph_properties_dict(props)
+        ns.node_id = node_id
+        # find interfaces and attach
+        ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                      node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        if ifs is not None and len(ifs) > 0:
+            ifi = InterfaceInfo()
+            for i in ifs:
+                _, iprops = self.get_node_properties(node_id=i)
+                ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
+                ifsl.node_id = node_id
+                ifi.add_interface(ifsl)
+            ns.interface_info = ifi
 
         return ns
 
