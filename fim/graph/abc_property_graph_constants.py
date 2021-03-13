@@ -40,7 +40,8 @@ class ABCPropertyGraphConstants(ABC):
     PROP_LABEL_DELEGATIONS = "LabelDelegations"
     PROP_CAPACITIES = "Capacities"
     PROP_LABELS = "Labels"
-    JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS, PROP_CAPACITY_DELEGATIONS]
+    PROP_LABEL_ALLOCATIONS = "LabelAllocations"
+    PROP_CAPACITY_ALLOCATIONS = "CapacityAllocations"
     GRAPH_ID = 'GraphID'
     NODE_ID = 'NodeID'
     PROP_NAME = 'Name'
@@ -55,10 +56,14 @@ class ABCPropertyGraphConstants(ABC):
     PROP_ALLOCATION_CONSTRAINTS = 'AllocationConstraints'
     PROP_SERVICE_ENDPOINT = 'ServiceEndpoint'
     PROP_DETAILS = 'Details'
-    PROP_BQM_NODE_ID = "BQMNodeId"
-    PROP_WORKER_NODE_NAME = 'ResourceNodeName'
-    PROP_INSTANCE_STATE = 'InstanceState'
-    PROP_INSTANCE_NAME = 'InstanceName'
+    PROP_NODE_MAP = 'NodeMap'
+    PROP_RESERVATION_INFO = 'ReservationInfo'
+    # these properties get validated to be valid JSON objects whenever someone validates the graph
+    JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
+                           PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
+                           PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO]
+    # these properties cannot be unset
+    NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS]
 
     CLASS_NetworkNode = 'NetworkNode'
     CLASS_Component = 'Component'

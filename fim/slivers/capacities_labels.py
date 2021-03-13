@@ -117,7 +117,8 @@ class Capacities(JSONField):
         :return: self to support call chaining
         """
         for k, v in kwargs.items():
-            assert v >= 0
+            if v is not None:
+                assert v >= 0
             try:
                 # will toss an exception if field is not defined
                 self.__getattribute__(k)
@@ -142,7 +143,37 @@ class Labels(JSONField):
         self.asn = None
         self.vlan = None
         self.vlan_range = None
-        self.node = None
+        self.instance = None
+        self.instance_parent = None
+
+    def set_fields(self, **kwargs):
+        """
+        Universal setter for all fields. Values should be strings or lists of strings.
+        Throws a RuntimeError if you try to set a non-existent field.
+        :param kwargs:
+        :return: self to support call chaining
+        """
+        for k, v in kwargs.items():
+            assert v is not None  # could be strings or lists of strings
+            assert isinstance(v, str) or isinstance(v, list)
+            try:
+                # will toss an exception if field is not defined
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
+            except AttributeError:
+                raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
+        # to support call chaining
+        return self
+
+
+class ReservationInfo(JSONField):
+    """
+    Reservation info structure for ASM sliver objects
+    """
+
+    def __init__(self):
+        self.reservation_id = None
+        self.reservation_state = None
 
     def set_fields(self, **kwargs):
         """
@@ -160,6 +191,6 @@ class Labels(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
+                raise RuntimeError(f"Unable to set field {k} of reservation info, no such field available")
         # to support call chaining
         return self

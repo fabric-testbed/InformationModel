@@ -28,6 +28,7 @@ from typing import Dict, Any, List, Tuple
 
 import uuid
 
+from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, ElementType
 from .component import Component, ComponentType
 from .switch_fabric import SwitchFabric
@@ -130,8 +131,8 @@ class Node(ModelElement):
         self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
 
     @staticmethod
-    def list_properties() -> List[str]:
-        return NodeSliver.list_properties()
+    def list_properties() -> Tuple[str]:
+        return tuple(NodeSliver.list_properties())
 
     def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
                       model: str,  switch_fabric_node_id: str = None, interface_node_ids=None,
@@ -256,7 +257,7 @@ class Node(ModelElement):
         return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
-    def __list_components(self) -> Dict[str, Component]:
+    def __list_components(self) -> ViewOnlyDict:
         """
         List all Components children of a node in the topology as a dictionary
         organized by component name. Modifying the dictionary will not affect
@@ -269,9 +270,9 @@ class Node(ModelElement):
         for nid in node_id_list:
             c = self.__get_component_by_id(nid)
             ret[c.name] = c
-        return ret
+        return ViewOnlyDict(ret)
 
-    def __list_switch_fabrics(self) -> Dict[str, SwitchFabric]:
+    def __list_switch_fabrics(self) -> ViewOnlyDict:
         """
         List all switch fabric children of a node as a dictionary organized
         by switch fabric name. Modifying the dictionary will not affect
@@ -284,45 +285,44 @@ class Node(ModelElement):
         for nid in node_id_list:
             c = self.__get_sf_by_id(nid)
             ret[c.name] = c
-        return ret
+        return ViewOnlyDict(ret)
 
-    def __list_direct_interfaces(self) -> Dict[str, Interface]:
+    def __list_direct_interfaces(self) -> ViewOnlyDict:
         """
         List all directly-attached interfaces of the node as a dictionary
         :return:
         """
         # immediately-attached interfaces
         node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
-        # Could consider using frozendict here
         ret = dict()
         for nid in node_if_list:
             i = self.__get_interface_by_id(nid)
             ret[i.name] = i
-        return ret
+        return ViewOnlyDict(ret)
 
-    def __list_interfaces(self) -> Dict[str, Interface]:
+    def __list_interfaces(self) -> ViewOnlyDict:
         """
         List all interfaces of node and its components
         :return:
         """
-        direct_interfaces = self.__list_direct_interfaces()
+        # immediately-attached interfaces
+        node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        direct_interfaces = dict()
+        for nid in node_if_list:
+            i = self.__get_interface_by_id(nid)
+            direct_interfaces[i.name] = i
         cdict = self.__list_components()
         for k, v in cdict.items():
             comp_interfaces = v.interfaces
             direct_interfaces.update(comp_interfaces)
-        return direct_interfaces
+        return ViewOnlyDict(direct_interfaces)
 
-    def __list_of_interfaces(self) -> Tuple[Interface]:
+    def __list_of_interfaces(self) -> Tuple[Any]:
         """
         List all interfaces of node and its components
         :return:
         """
-        direct_interfaces = self.__list_direct_interfaces()
-        cdict = self.__list_components()
-        for k, v in cdict.items():
-            comp_interfaces = v.interfaces
-            direct_interfaces.update(comp_interfaces)
-        return Tuple(direct_interfaces.values())
+        return tuple(self.__list_interfaces().values())
 
     def get_component(self, name: str):
         """

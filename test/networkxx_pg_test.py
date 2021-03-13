@@ -4,6 +4,7 @@ from typing import Dict
 import uuid
 
 import fim.graph.networkx_property_graph as nx_graph
+from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyGraph
 
 
 class NetworkXPropertyGraphTests(unittest.TestCase):
@@ -42,6 +43,35 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         """
         self.g.validate_graph()
 
+    def test_basic(self):
+        """
+        Basic create/delete tests
+        :return:
+        """
+        nx_imp = nx_graph.NetworkXGraphImporter()
+        nx_pg = nx_graph.NetworkXPropertyGraph(graph_id="beef-beed", importer=nx_imp)
+        nx_pg.add_node(node_id="dead-beef", label=ABCPropertyGraphConstants.CLASS_NetworkNode)
+        nx_pg.add_node(node_id="beef-dead", label=ABCPropertyGraphConstants.CLASS_Component,
+                       props={"some_property": "some_value"})
+        _, props = nx_pg.get_node_properties(node_id='beef-dead')
+        print(props)
+        assert props.get('some_property', None) is not None
+        nx_pg.unset_node_property(node_id='beef-dead', prop_name='some_property')
+        _, props = nx_pg.get_node_properties(node_id='beef-dead')
+        print(props)
+        assert props.get('some_property', None) is None
+
+        nx_pg.add_link(node_a='dead-beef', node_b='beef-dead', rel=ABCPropertyGraphConstants.REL_HAS,
+                        props={'some_prop': 2})
+        lt, props = nx_pg.get_link_properties(node_a='dead-beef', node_b='beef-dead')
+        assert lt == ABCPropertyGraph.REL_HAS
+        assert 'some_prop' in props.keys()
+        nx_pg.unset_link_property(node_a='dead-beef', node_b='beef-dead', kind=ABCPropertyGraph.REL_HAS,
+                                  prop_name='some_prop')
+        lt, props = nx_pg.get_link_properties(node_a='dead-beef', node_b='beef-dead')
+        assert 'some_prop' not in props.keys()
+        nx_imp.delete_all_graphs()
+
     def test_node_properties(self):
         """
         Test node property manipulation
@@ -50,6 +80,7 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         favs = self._find_favorite_nodes()
         assert(favs.get('Worker1'), None) is not None
         worker1 = favs['Worker1']
+        gpu1 = favs['GPU1']
         worker1_labels, worker1_props = self.g.get_node_properties(node_id=worker1)
         assert('NetworkNode' in worker1_labels)
         assert('Capacities' in worker1_props
@@ -80,6 +111,10 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         self.g.update_nodes_property(prop_name='RandomProp', prop_val='NewRandomVal')
         _, worker1_props = self.g.get_node_properties(node_id=worker1)
         assert(worker1_props['Type'] == 'Server' and worker1_props['RandomProp'] == 'NewRandomVal')
+
+        self.g.unset_node_property(node_id=worker1, prop_name='RandomProp')
+        _, worker1_props = self.g.get_node_properties(node_id=worker1)
+        assert(worker1_props.get('RandomProp', None) is None)
 
     def test_edge_properties(self):
         favs = self._find_favorite_nodes()
