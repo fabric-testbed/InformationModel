@@ -5,7 +5,6 @@ from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
-import fim.user as fu
 
 neo4j = {"url": "neo4j://0.0.0.0:7687",
          "user": "neo4j",
@@ -83,6 +82,8 @@ def test_neo4j_asm():
                                      name="MyComponent") is False)
     assert (n4j_asm.check_node_unique(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                       name="MyNode1") is True)
+
+    # this is how to set a mapping to BQM, for example
     n4j_asm.set_mapping(node_id="dead-beef", to_graph_id="some_graph", to_node_id="some_id")
     map_graph, map_node = n4j_asm.get_mapping(node_id="dead-beef")
 
@@ -93,7 +94,6 @@ def test_neo4j_asm():
     assert(tup is None)
 
     n4j_imp.delete_all_graphs()
-
 
 def test_asm_transfer():
     """
@@ -139,7 +139,17 @@ def test_asm_transfer():
     print(f'New topology on top of {neo4j_topo.graph_model.graph_id}')
     print(neo4j_topo.nodes)
 
-    neo4j_graph_importer.delete_all_graphs()
+    # set allocated capacities or labels
+    # in orchestrator
+    alloc_labels = fu.Labels().set_fields(instance_parent="worker_node-1")
+    neo4j_topo.nodes['n1'].set_properties(label_allocations=alloc_labels)
+    # in AM
+    provisioned_labels = fu.Labels().set_fields(instance="open-stack-instance-id-123")
+    neo4j_topo.nodes['n1'].set_properties(labels=provisioned_labels)
+    ri = fu.ReservationInfo().set_fields(reservation_id="01234", reservation_state='READY')
+    neo4j_topo.nodes['n1'].set_properties(reservation_info=ri)
+
+    #neo4j_graph_importer.delete_all_graphs()
 
 
 def test_arm_load():
@@ -179,15 +189,15 @@ def test_arm_load():
 
 if __name__ == "__main__":
 
-    print("Running basic tests")
-    test_basic_neo4j()
+    #print("Running basic tests")
+    #test_basic_neo4j()
 
-    print("Running Neo4j ASM tests")
-    test_neo4j_asm()
+    #print("Running Neo4j ASM tests")
+    #test_neo4j_asm()
 
     print("Running ASM transfer tests")
     test_asm_transfer()
 
-    print("Testing loading ARM")
-    test_arm_load()
+    #print("Testing loading ARM")
+    #test_arm_load()
 
