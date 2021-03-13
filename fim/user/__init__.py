@@ -23,6 +23,7 @@ ComponentCatalog = cata.ComponentCatalog
 InterfaceType = iinfo.InterfaceType
 Capacities = caplab.Capacities
 Labels = caplab.Labels
+ReservationInfo = caplab.ReservationInfo
 Layer = sf.SFLayer
 Link = link.Link
 LinkType = nlink.LinkType
