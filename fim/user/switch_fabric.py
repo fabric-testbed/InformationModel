@@ -26,6 +26,7 @@
 from typing import Any, List, Dict, Tuple
 import uuid
 
+from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, ElementType
 from .interface import Interface
 from ..slivers.switch_fabric import SwitchFabricSliver, SFType, SFLayer
@@ -147,7 +148,7 @@ class SwitchFabric(ModelElement):
         self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
 
     @staticmethod
-    def list_properties() -> List[str]:
+    def list_properties() -> Tuple[str]:
         return SwitchFabricSliver.list_properties()
 
     def __get_interface_by_id(self, node_id: str) -> Interface:
@@ -173,7 +174,7 @@ class SwitchFabric(ModelElement):
                                                                       iname=name)
         return Interface(name=name, node_id=node_id, topo=self.topo)
 
-    def __list_interfaces(self) -> Dict[str, Interface]:
+    def __list_interfaces(self) -> ViewOnlyDict:
         """
         List all interfaces of the switch fabric as a dictionary
         :return:
@@ -184,7 +185,7 @@ class SwitchFabric(ModelElement):
         for nid in node_id_list:
             c = self.__get_interface_by_id(nid)
             ret[c.name] = c
-        return ret
+        return ViewOnlyDict(ret)
 
     def __list_of_interfaces(self) -> Tuple[Interface]:
         """

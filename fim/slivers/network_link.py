@@ -49,6 +49,7 @@ class NetworkLinkSliver(BaseSliver):
         self.layer = None
         self.technology = None
         self.interface_info = None
+        self.allocation_constraints = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -64,6 +65,12 @@ class NetworkLinkSliver(BaseSliver):
 
     def set_technology(self, technology: str):
         self.technology = technology
+
+    def set_allocation_constraints(self, allocation_constraints: str):
+        self.allocation_constraints = allocation_constraints
+
+    def get_allocation_constraints(self) -> str:
+        return self.allocation_constraints
 
     @staticmethod
     def type_from_str(ltype: str) -> LinkType or None:
