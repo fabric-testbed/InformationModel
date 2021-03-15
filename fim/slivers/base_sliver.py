@@ -109,7 +109,7 @@ class BaseSliver(ABC):
     def set_reservation_info(self, ri: ReservationInfo) -> None:
         self.reservation_info = ri
 
-    def get_reservation_inf(self) -> ReservationInfo:
+    def get_reservation_info(self) -> ReservationInfo:
         return self.reservation_info
 
     def set_details(self, desc: str) -> None:
