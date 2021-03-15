@@ -1,17 +1,23 @@
 # Experiment abstractions
 
+## Overview
+
 This package implements experimenter-facing abstractions for building and manipulating slices.
 It also supports building substrate advertisements using slightly modified models.
+
+To buils a slice model, start with
+```
+t = ExperimentTopology()
+```
 
 To build a substrate model, start with
 ```
 t = SubstrateTopology()
 ```
-And then use the same abstractions as below, making sure to specify all GUIDs for new objects. 
-Each individual substrate module should be packaged as a Python module. Using the same GUIDs
-guarantees that when minor edits are made to the python script, the underlying graph model
-also undergoes only minor changes, making it easily suitable for updating the AM, rather than 
-doing a clean-restart.
+
+And then use the abstractions shown below, to define a topology. SubstrateTopology elements
+require more parameters to be specified in order to be valid (persistent, hardware-based
+identifiers, MAC addresses etc).
 
 ## Installation
 
@@ -23,18 +29,28 @@ $ pip install fabric-fim
 
 Some example scripts that *should* run.
 
-### Trivial script
+### Simple script
 
 ```python
 import fim.user as fu
 t = fu.ExperimentTopology()
-t.add_node(name='n1', site='RENC')
+n1 = t.add_node(name='n1', site='RENC')
 t.add_node(name='n2', site='RENC')
-t.nodes['n1'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
-t.nodes['n2'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
-t.add_link(name='l1', interfaces=list(t.interfaces.values()), ltype=fu.LinkType.Wave)
+cap = fu.Capacities().set_fields(ram=1000, core=8)
+n1.set_property('capacities', cap)
+nic1 = t.nodes['n1'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+nic2 = t.nodes['n2'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
+cap = fu.Capacities()
+cap.set_fields(bw=50, unit=1)
+lab = fu.Labels()
+lab.set_fields(ipv4="192.168.1.12")
+nic1.set_properties(capacities=cap, labels=lab)
+nic1.get_property('capacities')
+nic1.unset_property('labels')
+t.add_link(name='l1', interfaces=t.interface_list, ltype=fu.LinkType.Wave)
 t.draw()
 t.serialize('test_slice.graphml')
+print(t)
 ```
 
 Parsing on orchestrator side
@@ -48,6 +64,8 @@ for nn_id in asm.get_all_network_nodes():
     sliver = asm.build_deep_node_sliver(node_id=nn_id)
     print(sliver)
 ```
+
+
 ## Pseudocode scripts
 
 The following scripts show the general idea of how FIM is to be used but the implementation may
