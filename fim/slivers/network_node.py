@@ -109,3 +109,11 @@ class NodeSliver(BaseSliver):
         for t in NodeType:
             if ntype == str(t):
                 return t
+
+
+class CompositeNodeSliver(NodeSliver):
+    """
+    Does the same thing as NodeSliver, but want to distinguish the class
+    """
+    def __init__(self):
+        super().__init__()

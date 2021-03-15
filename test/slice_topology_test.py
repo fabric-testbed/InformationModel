@@ -85,6 +85,14 @@ class SliceTest(unittest.TestCase):
         with self.assertRaises(AssertionError) as e:
             self.topo.add_link(name='l1', ltype=f.LinkType.Wave, interfaces=self.topo.interface_list)
 
+        #print(self.topo)
+
+        # nodemap and unset
+        n1.set_properties(node_map=('dead-beef-graph', 'dead-beef-node'))
+        assert n1.get_property('node_map') == ('dead-beef-graph', 'dead-beef-node')
+        n1.unset_property('node_map')
+        assert n1.get_property('node_map') is None
+
         self.assertEqual(len(self.topo.links), 1)
         # removal checks
         self.topo.remove_node(name='Node2')

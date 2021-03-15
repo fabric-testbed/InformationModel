@@ -178,6 +178,9 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         node_props = self.storage.get_graph(self.graph_id).nodes[self._find_node(node_id=node_id)]
         if prop_name in node_props.keys():
             node_props.pop(prop_name)
+        else:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg=f"Unable to unset property {prop_name}")
 
     def update_nodes_property(self, *, prop_name: str, prop_val: Any) -> None:
         """
@@ -302,6 +305,21 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_a,
                                               msg="Link of this type doesn't exist")
         edge_props.update(props)
+
+    def get_all_nodes_by_class(self, *, label: str) -> List[str]:
+        assert label is not None
+        my_graph = self.storage.get_graph(self.graph_id)
+        graph_nodes = list(nxq.search_nodes(my_graph,
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS,
+                                                        label]}
+                                            ]
+                                            }))
+        ret = list()
+        for n in graph_nodes:
+            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
+        return ret
 
     def list_all_node_ids(self) -> List[str]:
         """

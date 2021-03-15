@@ -20,8 +20,8 @@
     "msg": "All Components must be of type NIC, SmartNIC, GPU, FPGA or NVMe"
   },
   {
-    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"AccessPort\", \"TrunkPort\", \"AccessVint\", \"TrunkVint\"])",
-    "msg": "All ConnectionPoints must be of type Port"
+    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Port\", \"AccessPort\", \"TrunkPort\", \"AccessVint\", \"TrunkVint\"])",
+    "msg": "All ConnectionPoints must be of type Port, AccessPort, TrunkPort, AccessVint or TrunkVint"
   },
   {
     "rule": "MATCH (n:SwitchFabric {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"SwitchFabric\"])",
@@ -32,19 +32,19 @@
     "msg": "All Links must be of type DAC, Patch or Wave"
   },
   {
-    "rule": "MATCH(n:ConnectionPoint {GraphID: $graphId}) -[:connects]- (m {GraphID: $graphId}) where m.Class=\"SwitchFabric\" with count(n) as vcps match(c:ConnectionPoint) with vcps, count(c) as cps return cps = vcps",
+    "rule": "MATCH(n:ConnectionPoint {GraphID: $graphId}) -[:connects]- (m {GraphID: $graphId}) where m.Class=\"SwitchFabric\" with count(n) as vcps match(c:ConnectionPoint {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
     "msg": "All ConnectionPoints must be connected to a SwitchFabric"
   },
   {
-    "rule": "MATCH(n:SwitchFabric {GraphID: $graphId}) -[:has]- (m {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"Component\" with count(n) as vcps match(c:SwitchFabric) with vcps, count(c) as cps return cps = vcps",
+    "rule": "MATCH(n:SwitchFabric {GraphID: $graphId}) -[:has]- (m {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"Component\" with count(n) as vcps match(c:SwitchFabric {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
     "msg": "All SwitchFabrics must be owned by a Component or a NetworkNode"
   },
   {
-    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m {GraphID: $graphId}) where m.Class=\"NetworkNode\" with count(n) as vcs match(c:Component) with vcs, count(c) as cs return cs = vcs",
+    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m {GraphID: $graphId}) where m.Class=\"NetworkNode\" with count(n) as vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) as cs return cs = vcs",
     "msg": "All Components must be owned by a NetworkNode"
   },
   {
-    "rule": "MATCH (o) -[:connects]- (n:Link {GraphID: $graphId}) where o.Class <> \"ConnectionPoint\" return count(o)=0",
+    "rule": "MATCH (o {GraphID: $graphId}) -[:connects]- (n:Link {GraphID: $graphId}) where o.Class <> \"ConnectionPoint\" return count(o)=0",
     "msg": "Links can only connect to ConnectionPoints"
   }
 ]

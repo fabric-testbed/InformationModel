@@ -11,19 +11,19 @@ class TestSlivers(unittest.TestCase):
     def testComponentSliver(self):
         cs = ComponentSliver()
         cs.set_property('details', 'these are details')
-        cs.set_properties(resource_type=ComponentType.GPU, resource_name='name')
+        cs.set_properties(type=ComponentType.GPU, name='name')
 
         self.assertEqual(cs.get_details(), 'these are details')
-        self.assertEqual(cs.get_resource_type(), ComponentType.GPU)
-        self.assertEqual(cs.get_resource_name(), 'name')
+        self.assertEqual(cs.get_type(), ComponentType.GPU)
+        self.assertEqual(cs.get_name(), 'name')
 
         cs1 = ComponentSliver()
         cs1.set_property('details', 'these are other details')
-        cs1.set_properties(resource_type=ComponentType.GPU, resource_name='name1')
+        cs1.set_properties(type=ComponentType.GPU, name='name1')
 
         cs2 = ComponentSliver()
         cs2.set_property('details', 'these are some details')
-        cs2.set_properties(resource_type=ComponentType.SmartNIC, resource_name='name2')
+        cs2.set_properties(type=ComponentType.SmartNIC, name='name2')
 
         acs = AttachedComponentsInfo()
         acs.add_device(cs)
@@ -41,7 +41,7 @@ class TestSlivers(unittest.TestCase):
 
     def testNodeSliver(self):
         ns = NodeSliver()
-        ns.set_properties(resource_name='node1', resource_type=NodeType.Server,
+        ns.set_properties(name='node1', type=NodeType.Server,
                           management_ip='192.168.1.1')
         with self.assertRaises(ValueError) as ve:
             ns.set_property('management_ip', '192.168.1.x')

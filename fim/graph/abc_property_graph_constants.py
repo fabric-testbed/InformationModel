@@ -56,8 +56,8 @@ class ABCPropertyGraphConstants(ABC):
     PROP_ALLOCATION_CONSTRAINTS = 'AllocationConstraints'
     PROP_SERVICE_ENDPOINT = 'ServiceEndpoint'
     PROP_DETAILS = 'Details'
-    PROP_NODE_MAP = 'NodeMap'
     PROP_RESERVATION_INFO = 'ReservationInfo'
+    PROP_NODE_MAP = "NodeMap"
     # these properties get validated to be valid JSON objects whenever someone validates the graph
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,

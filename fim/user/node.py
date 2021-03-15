@@ -79,8 +79,8 @@ class Node(ModelElement):
 
             sliver = NodeSliver()
             sliver.node_id = self.node_id
-            sliver.set_resource_name(self.name)
-            sliver.set_resource_type(ntype)
+            sliver.set_name(self.name)
+            sliver.set_type(ntype)
             sliver.set_site(site)
             sliver.set_properties(**kwargs)
 
@@ -210,7 +210,7 @@ class Node(ModelElement):
                                                                component_name=name)
         return Component(name=name, node_id=node_id, topo=self.topo)
 
-    def __get_component_by_id(self, node_id: str) -> Component:
+    def _get_component_by_id(self, node_id: str) -> Component:
         """
         Get component of a node by its node_id, return Component object
         :param node_id:
@@ -265,10 +265,9 @@ class Node(ModelElement):
         :return:
         """
         node_id_list = self.topo.graph_model.get_all_network_node_components(parent_node_id=self.node_id)
-        # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
-            c = self.__get_component_by_id(nid)
+            c = self._get_component_by_id(nid)
             ret[c.name] = c
         return ViewOnlyDict(ret)
 
@@ -280,7 +279,6 @@ class Node(ModelElement):
         :return:
         """
         node_id_list = self.topo.graph_model.get_all_network_node_or_component_sfs(parent_node_id=self.node_id)
-        # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
             c = self.__get_sf_by_id(nid)

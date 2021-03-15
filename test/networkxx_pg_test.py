@@ -116,6 +116,7 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         _, worker1_props = self.g.get_node_properties(node_id=worker1)
         assert(worker1_props.get('RandomProp', None) is None)
 
+
     def test_edge_properties(self):
         favs = self._find_favorite_nodes()
         assert((favs.get('Worker1'), None) is not None)

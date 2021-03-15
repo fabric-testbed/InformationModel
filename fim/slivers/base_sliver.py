@@ -26,11 +26,11 @@
 """
 Base class for all sliver types
 """
-from typing import Any, List, Tuple
+from typing import Any, Tuple
 from abc import ABC, abstractmethod
 
 from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo
-from fim.slivers.delegations import Delegation, Pool
+from fim.slivers.delegations import Delegation
 
 
 class BaseSliver(ABC):
@@ -50,50 +50,22 @@ class BaseSliver(ABC):
         self.reservation_info = None
         self.node_id = None
         self.details = None
+        self.node_map = None
 
-    def set_resource_type(self, resource_type):
-        """
-        Could be NodeType, ComponentType, InterfaceType etc
-        :param resource_type:
-        :return:
-        """
+    def set_type(self, resource_type):
         self.resource_type = resource_type
 
-    def get_resource_type(self):
-        return self.resource_type
-
     def get_type(self):
-        """
-        Aliased to get_resource_type
-        :return:
-        """
-        return self.get_resource_type()
-
-    def set_resource_name(self, resource_name: str):
-        self.resource_name = resource_name
+        return self.resource_type
 
     def set_name(self, resource_name: str):
         self.resource_name = resource_name
 
-    def get_resource_name(self):
-        return self.resource_name
-
     def get_name(self):
         return self.resource_name
 
-    def set_resource_model(self, resource_model: str):
-        self.resource_model = resource_model
-
     def set_model(self, resource_model: str):
-        """
-        Aliased to set_resource_model
-        :param resource_model:
-        :return:
-        """
         self.resource_model = resource_model
-
-    def get_resource_model(self):
-        return self.resource_model
 
     def get_model(self):
         return self.resource_model
@@ -137,7 +109,7 @@ class BaseSliver(ABC):
     def set_reservation_info(self, ri: ReservationInfo) -> None:
         self.reservation_info = ri
 
-    def get_reservation_inf(self) -> ReservationInfo:
+    def get_reservation_info(self) -> ReservationInfo:
         return self.reservation_info
 
     def set_details(self, desc: str) -> None:
@@ -145,6 +117,12 @@ class BaseSliver(ABC):
 
     def get_details(self) -> str:
         return self.details
+
+    def set_node_map(self, node_map: Tuple[str, str]) -> None:
+        self.node_map = node_map
+
+    def get_node_map(self) -> Tuple[str, str] or None:
+        return tuple(self.node_map) if self.node_map is not None else None
 
     def set_properties(self, **kwargs):
         """

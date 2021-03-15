@@ -39,7 +39,9 @@ import inspect
 from typing import List
 from enum import Enum
 
-from .graph.abc_property_graph import ABCPropertyGraph
+from fim.graph.abc_property_graph import ABCPropertyGraph
+from fim.graph.resources.abc_cbm import ABCCBMPropertyGraph
+from fim.graph.resources.abc_bqm import ABCBQMPropertyGraph
 
 
 class PluggableType(Enum):
@@ -111,7 +113,7 @@ class BrokerPluggable(ABCPluggable):
     PLUGGABLE_PRODUCE_BQM = 'plug_produce_bqm'
 
     @abstractmethod
-    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs) -> ABCPropertyGraph:
+    def plug_produce_bqm(self, *, cbm: ABCCBMPropertyGraph, **kwargs) -> ABCBQMPropertyGraph:
         """
         Produce a Broker Query Model based on a Combined Broker Model and
         some unspecified query parameters

@@ -5,6 +5,9 @@ from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
+from fim.pluggable import PluggableRegistry, PluggableType
+
+from fim.plugins.broker.aggregate_bqm_plugin import AggregateBQMPlugin
 
 neo4j = {"url": "neo4j://0.0.0.0:7687",
          "user": "neo4j",
@@ -16,17 +19,6 @@ neo4j = {"url": "neo4j://0.0.0.0:7687",
 This is not a unit test in a proper sense. It is a harness to manually validate operation
 until proper unit tests are implemented.
 """
-
-class MyPlug:
-    """
-    Fake pluggable BQM broker class for FIM testing
-    """
-    def __init__(self):
-        print("Creating MyPlug")
-
-    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs) -> ABCPropertyGraph:
-        print(f"Producing CBM as BQM {kwargs}")
-        return cbm
 
 def test_basic_neo4j():
     """
@@ -149,7 +141,7 @@ def test_asm_transfer():
     ri = fu.ReservationInfo().set_fields(reservation_id="01234", reservation_state='READY')
     neo4j_topo.nodes['n1'].set_properties(reservation_info=ri)
 
-    #neo4j_graph_importer.delete_all_graphs()
+    neo4j_graph_importer.delete_all_graphs()
 
 
 def test_arm_load():
@@ -185,19 +177,34 @@ def test_arm_load():
     site_arm.delete_graph()
 
     print('CBM ID is ' + cbm.graph_id)
+    return cbm
+
+
+def test_abqm(cbm):
+
+    r = PluggableRegistry()
+    r.register_pluggable(t=PluggableType.Broker, p=AggregateBQMPlugin)
+
+    bqm = cbm.get_bqm()
+
+    bqm_graph_string = bqm.serialize_graph()
+
+    print(bqm_graph_string)
 
 
 if __name__ == "__main__":
 
-    #print("Running basic tests")
-    #test_basic_neo4j()
+    print("Running basic tests")
+    test_basic_neo4j()
 
-    #print("Running Neo4j ASM tests")
-    #test_neo4j_asm()
+    print("Running Neo4j ASM tests")
+    test_neo4j_asm()
 
     print("Running ASM transfer tests")
     test_asm_transfer()
 
-    #print("Testing loading ARM")
-    #test_arm_load()
+    print("Testing loading ARM and BQM")
+    cbm = test_arm_load()
 
+    print("Testing pluggable BQM as ABQM")
+    test_abqm(cbm)

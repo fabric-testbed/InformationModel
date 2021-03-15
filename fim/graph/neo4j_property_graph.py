@@ -69,8 +69,11 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
         for r in rules_dict:
             with self.driver.session() as session:
-                # print('Applying rule ', r['msg'])
-                v = session.run(r['rule'], graphId=self.graph_id).single().value()
+                #print('Applying rule ', r['msg'])
+                single = session.run(r['rule'], graphId=self.graph_id).single()
+                if single is None:
+                    return
+                v = single.value()
                 # print("Rule {}, value {}".format(r['msg'], v))
                 if v is False:
                     raise PropertyGraphImportException(graph_id=self.graph_id, msg=r['msg'])
@@ -93,6 +96,16 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         self.log.debug(f'Deleting graph {self.graph_id}')
         with self.driver.session() as session:
             session.run('match (n:GraphNode {GraphID: $graphId })detach delete n', graphId=self.graph_id)
+
+    def get_all_nodes_by_class(self, *, label: str) -> List[str]:
+        assert label is not None
+        query = f"MATCH (n:{label} {{GraphID: $graphId}}) RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+            if val is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg="Unable to find network links")
+            return val.data()['nodeids']
 
     def list_all_node_ids(self) -> List[str]:
         """
