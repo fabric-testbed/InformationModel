@@ -52,6 +52,10 @@ The main set of abstractions is implemented under `fim.user` package, which prov
 Supporting intermediate models are implemented under `fim.sliver`, however these models are largely internal to FIM and
 Control Framework, and generally are not exposed to end-users. 
 
+## Structure of the code
+
+Follow this link into [fim/README.md](fim/README.md) to explore.
+
 ## Development environment
 
 The recommended way is to set up your development environment using `virtualenv` after checking
