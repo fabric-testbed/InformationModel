@@ -47,10 +47,14 @@ interchangeably use the property graph implementations (NetworkX or Neo4j) under
 inspection of data. 
 
 The main set of abstractions is implemented under `fim.user` package, which provides 
-[additional documentation](user/README.md).
+[additional documentation](fim/user/README.md).
 
 Supporting intermediate models are implemented under `fim.sliver`, however these models are largely internal to FIM and
 Control Framework, and generally are not exposed to end-users. 
+
+## Structure of the code
+
+Follow this link into [fim/README.md](fim/README.md) to explore.
 
 ## Development environment
 

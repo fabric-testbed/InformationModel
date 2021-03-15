@@ -112,7 +112,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         List all NodeID properties of nodes in a graph
         :return:
         """
-        query = "MATCH (n {GraphID: $graphId}) RETURN collect(n.NodeID) as nodeids"
+        query = "MATCH (n:GraphNode {GraphID: $graphId}) RETURN collect(n.NodeID) as nodeids"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id).single()
             if val is None:
@@ -327,7 +327,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         Serialize a given graph into GraphML string or return None if graph not found
         :return:
         """
-        inner_query = f'match(n {{GraphID: "{self.graph_id}"}}) optional match(n) -[r]- (m) return n, r, m'
+        inner_query = f'match(n:GraphNode {{GraphID: "{self.graph_id}"}}) optional match(n) -[r]- (m) return n, r, m'
         # run inner query to check the graph has anything in it
         with self.driver.session() as session:
             val = session.run(inner_query)
@@ -362,7 +362,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         Does the graph with this ID exist?
         :return:
         """
-        inner_query = f'match(n {{GraphID: "{self.graph_id}"}}) -[r]- (m) return n, r, m'
+        inner_query = f'match(n:GraphNode {{GraphID: "{self.graph_id}"}}) -[r]- (m) return n, r, m'
         # run  query to check the graph has anything in it
         with self.driver.session() as session:
             val = session.run(inner_query)

@@ -2,8 +2,9 @@
 
 ## Overview
 
-This package implements experimenter-facing abstractions for building and manipulating slices.
-It also supports building substrate advertisements using slightly modified models.
+This package implements experimenter-facing abstractions for building and manipulating slices and underlying property
+graph models.  It also supports building substrate advertisements and broker query models (BQMs) using slightly 
+modified models.
 
 To buils a slice model, start with
 ```
@@ -15,9 +16,15 @@ To build a substrate model, start with
 t = SubstrateTopology()
 ```
 
-And then use the abstractions shown below, to define a topology. SubstrateTopology elements
+To build a broker query model, start with
+```
+t = AdvertizedTopology()
+```
+
+And then use the abstractions shown below, to define and query a topology. SubstrateTopology elements
 require more parameters to be specified in order to be valid (persistent, hardware-based
-identifiers, MAC addresses etc).
+identifiers, MAC addresses etc). AdvertizedTopology elements are there largely for querying and do not
+allow any meaningful manipulation.
 
 ## Installation
 

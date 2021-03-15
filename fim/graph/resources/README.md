@@ -18,8 +18,6 @@ Basic operations on AM resource models (ARM) include
 - Updating a model (create/delete) from sliver information
 - Partitioning ARM into one or more delegation models (ADMs)
 
-Calendar support - ARMs or ADMs don't use calendars.
-
 ## Broker Models
 
 Basic operations on Broker models (CBM - Combined Broker Model and BQM - Broker Query Model) 
@@ -29,8 +27,6 @@ include
 - Stitching multiple ADMs into a combined CBM model
 - Updating CBM based on (create/delete) sliver information
 - Matching queries to CBM and creating responses for Orchestrator (BQM models)
-
-CBMs require a calendar (per resource). 
 
 BQM can be based on a time query. Some queries might return the entire calendar to help Orchestrator 
 make a decision

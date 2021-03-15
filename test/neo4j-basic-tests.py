@@ -176,6 +176,7 @@ def test_arm_load():
         adm.delete_graph()
     site_arm.delete_graph()
 
+    cbm.validate_graph()
     print('CBM ID is ' + cbm.graph_id)
     return cbm
 
