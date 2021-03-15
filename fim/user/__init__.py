@@ -15,6 +15,7 @@ import fim.slivers.delegations as dlg
 
 ExperimentTopology = topo.ExperimentTopology
 SubstrateTopology = topo.SubstrateTopology
+AdvertisedTopology = topo.AdvertizedTopology
 Node = node.Node
 Component = comp.Component
 NodeType = nnode.NodeType

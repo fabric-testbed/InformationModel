@@ -102,3 +102,6 @@ class AttachedComponentsInfo:
         assert resource_type is not None
 
         return list(self.by_type.get(resource_type, list()))
+
+    def list_devices(self):
+        return list(self.devices.values())

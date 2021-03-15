@@ -33,14 +33,14 @@ from typing import List
 
 from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants, PropertyGraphQueryException
 from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
-from .abc_cbm import ABCCBMMixin
+from .abc_cbm import ABCCBMPropertyGraph
 from .neo4j_adm import Neo4jADMGraph
 from fim.slivers.delegations import DelegationType
 
 from ...pluggable import PluggableRegistry, BrokerPluggable, PluggableType
 
 
-class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
+class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
     """
     Neo4j implementation of CBM
     """
@@ -194,7 +194,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
         for node in delete_nodes:
             self.delete_node(node_id=node)
 
-    def get_bqm(self, **kwargs) -> Neo4jPropertyGraph:
+    def get_bqm(self, **kwargs) -> ABCPropertyGraph:
         """
         Get a Broker Query Model (e.g. in response to a listResources() call)
         :param kwargs:
@@ -212,7 +212,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMMixin):
         bqm = self.clone_graph(new_graph_id=str(uuid.uuid4()))
         return bqm
 
-    def get_delegations(self, *, node_id: str, adm_id: str, delegation_type: DelegationType) -> List:
+    def get_delegations(self, *, node_id: str, adm_id: str, delegation_type: DelegationType) -> List or None:
         """
         Retrieve Label or Capacity delegations attribuited to a particular ADM. A delegation property
         is a dictionary of per ADM graph id delegations. Individual delegations

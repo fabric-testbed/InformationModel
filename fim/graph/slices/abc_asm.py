@@ -46,7 +46,6 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
     """
     Interface for ASM
     """
-    PROP_NODE_MAP = "NodeMap"
 
     @abstractmethod
     def __init__(self, *, graph_id=str, importer, logger=None):
@@ -79,20 +78,6 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_all_network_nodes(self) -> List[str]:
-        """
-        Get a list of nodes IDs in a slice model
-        :return:
-        """
-
-    @abstractmethod
-    def get_all_network_links(self) -> List[str]:
-        """
-        Get a list of link node ids in a slice model
-        :return:
-        """
-
-    @abstractmethod
     def find_node_by_name(self, *, node_name: str, label: str) -> str:
         """
         Get node id of node based on its name and class/label. Throw
@@ -101,6 +86,14 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         :param label: node label or class of the node
         :return:
         """
+
+    def get_all_network_nodes(self) -> List[str]:
+
+        return self.get_all_nodes_by_class(label=ABCASMPropertyGraph.CLASS_NetworkNode)
+
+    def get_all_network_links(self) -> List[str]:
+
+        return self.get_all_nodes_by_class(label=ABCASMPropertyGraph.CLASS_Link)
 
     def set_mapping(self, *, node_id: str, to_graph_id: str, to_node_id: str) -> None:
         """

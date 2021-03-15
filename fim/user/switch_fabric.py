@@ -69,8 +69,8 @@ class SwitchFabric(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             sfsliver = SwitchFabricSliver()
             sfsliver.node_id = node_id
-            sfsliver.set_resource_name(name)
-            sfsliver.set_resource_type(SFType.SwitchFabric)
+            sfsliver.set_name(name)
+            sfsliver.set_type(SFType.SwitchFabric)
             sfsliver.set_layer(layer)
             self.topo.graph_model.add_switch_fabric_sliver(parent_node_id=parent_node_id, switch_fabric=sfsliver)
         else:

@@ -68,8 +68,8 @@ class Interface(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             sliver = InterfaceSliver()
             sliver.node_id = self.node_id
-            sliver.set_resource_name(self.name)
-            sliver.set_resource_type(itype)
+            sliver.set_name(self.name)
+            sliver.set_type(itype)
             sliver.set_properties(**kwargs)
 
             self.topo.graph_model.add_interface_sliver(parent_node_id=parent_node_id, interface=sliver)

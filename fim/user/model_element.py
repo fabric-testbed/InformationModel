@@ -75,6 +75,17 @@ class ModelElement(ABC):
                                                    prop_name=ABCPropertyGraph.PROP_NAME,
                                                    prop_val=new_name)
 
+    def unset_property(self, pname: str):
+        """
+        Unset a property
+        :param pname:
+        :return:
+        """
+        assert pname is not None
+        prop_name = self.topo.graph_model.map_sliver_property_to_graph(pname)
+        if prop_name is not None:
+            self.topo.graph_model.unset_node_property(node_id=self.node_id, prop_name=prop_name)
+
     def __repr__(self):
         labels, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         node_props.pop(ABCPropertyGraph.GRAPH_ID)

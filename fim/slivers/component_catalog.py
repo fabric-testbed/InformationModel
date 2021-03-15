@@ -83,9 +83,9 @@ class ComponentCatalog:
             raise CatalogException(f'Unable to find model {model} of type {ctype}in the catalog')
 
         cs = ComponentSliver()
-        cs.set_resource_name(name)
-        cs.set_resource_model(model)
-        cs.set_resource_type(cs.type_from_str(component_dict['Type']))
+        cs.set_name(name)
+        cs.set_model(model)
+        cs.set_type(cs.type_from_str(component_dict['Type']))
         cs.set_details(component_dict['Details'])
         if 'Interfaces' in component_dict.keys():
             interfaces_dict = component_dict['Interfaces']
@@ -96,8 +96,8 @@ class ComponentCatalog:
             id_index = 0
             for interface_name in interfaces_dict.keys():
                 isliver = InterfaceSliver()
-                isliver.set_resource_name(name + '-' + interface_name)
-                isliver.set_resource_type(InterfaceType.TrunkPort)
+                isliver.set_name(name + '-' + interface_name)
+                isliver.set_type(InterfaceType.TrunkPort)
                 if interface_node_ids is not None:
                     isliver.node_id = interface_node_ids[id_index]
                 else:
@@ -112,8 +112,8 @@ class ComponentCatalog:
             if switch_fabric_node_id is None:
                 switch_fabric_node_id = str(uuid.uuid4())
             sf.node_id = switch_fabric_node_id
-            sf.set_resource_name(name + '-l2sf')
-            sf.set_resource_type(SFType.SwitchFabric)
+            sf.set_name(name + '-l2sf')
+            sf.set_type(SFType.SwitchFabric)
             # default to L2 for now
             sf.set_layer(SFLayer.L2)
             sf.interface_info = iinfo

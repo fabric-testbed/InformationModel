@@ -59,26 +59,6 @@ class Neo4jASM(ABCASMPropertyGraph, Neo4jPropertyGraph):
                 return False
             return len(val.data()['nodeids']) > 0
 
-    def get_all_network_nodes(self) -> List[str]:
-
-        query = "MATCH (n:NetworkNode {GraphID: $graphId}) RETURN collect(n.NodeID) as nodeids"
-        with self.driver.session() as session:
-            val = session.run(query, graphId=self.graph_id).single()
-            if val is None:
-                raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                                  node_id=None, msg="Unable to find network nodes")
-            return val.data()['nodeids']
-
-    def get_all_network_links(self) -> List[str]:
-
-        query = "MATCH (n:Link {GraphID: $graphId}) RETURN collect(n.NodeID) as nodeids"
-        with self.driver.session() as session:
-            val = session.run(query, graphId=self.graph_id).single()
-            if val is None:
-                raise PropertyGraphQueryException(graph_id=self.graph_id,
-                                                  node_id=None, msg="Unable to find network links")
-            return val.data()['nodeids']
-
     def find_node_by_name(self, *, node_name: str, label: str) -> str:
 
         assert node_name is not None

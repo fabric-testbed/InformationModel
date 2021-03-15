@@ -78,8 +78,8 @@ class Link(ModelElement):
             self._interfaces = interfaces
             sliver = NetworkLinkSliver()
             sliver.node_id = self.node_id
-            sliver.set_resource_name(self.name)
-            sliver.set_resource_type(ltype)
+            sliver.set_name(self.name)
+            sliver.set_type(ltype)
             sliver.set_layer(layer)
             sliver.set_technology(technology)
             sliver.set_properties(**kwargs)

@@ -37,38 +37,6 @@ class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
     def __init__(self, *, graph_id: str, importer: NetworkXGraphImporter, logger=None):
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
 
-    def get_all_network_nodes(self) -> List[str]:
-        """
-        Return a list of node ids of all graphs of type NetworkNode
-        :return:
-        """
-        my_graph = self.storage.get_graph(self.graph_id)
-        graph_nodes = list(nxq.search_nodes(my_graph,
-                                            {'and': [
-                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
-                                                {'eq': [ABCPropertyGraph.PROP_CLASS,
-                                                        ABCPropertyGraph.CLASS_NetworkNode]}
-                                            ]
-                                            }))
-        ret = list()
-        for n in graph_nodes:
-            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
-        return ret
-
-    def get_all_network_links(self) -> List[str]:
-        my_graph = self.storage.get_graph(self.graph_id)
-        graph_links = list(nxq.search_nodes(my_graph,
-                                            {'and': [
-                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
-                                                {'eq': [ABCPropertyGraph.PROP_CLASS,
-                                                        ABCPropertyGraph.CLASS_Link]}
-                                            ]
-                                            }))
-        ret = list()
-        for n in graph_links:
-            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
-        return ret
-
     def find_node_by_name(self, node_name: str, label: str) -> str:
         """
         Return a node id of a node with this name

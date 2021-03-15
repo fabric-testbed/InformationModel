@@ -100,6 +100,8 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
+    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'G'}
+
     def __init__(self):
         self.cpu = 0
         self.core = 0
@@ -126,6 +128,31 @@ class Capacities(JSONField):
             except AttributeError:
                 raise RuntimeError(f"Unable to set field {k} of capacity, no such field available")
         return self
+
+    def __add__(self, other):
+        assert isinstance(other, Capacities)
+        ret = Capacities()
+
+        ret.cpu = self.cpu + other.cpu
+        ret.core = self.core + other.core
+        ret.ram = self.ram + other.ram
+        ret.disk = self.disk + other.disk
+        ret.bw = self.bw + other.bw
+        ret.unit = self.unit + other.unit
+        return ret
+
+    def __repr__(self):
+        return self.to_json()
+
+    def __str__(self):
+        d = self.__dict__.copy()
+        for k in self.__dict__:
+            if d[k] is None or d[k] == 0:
+                d.pop(k)
+        ret = "{ "
+        for i, v in d.items():
+            ret = ret + i + ": " + str(v) + self.UNITS[i] + " "
+        return ret + "}"
 
 
 class Labels(JSONField):
@@ -164,6 +191,11 @@ class Labels(JSONField):
                 raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
         # to support call chaining
         return self
+
+    def __add__(self, other):
+        assert isinstance(other, Labels)
+        # FIXME: does ADD mean finding a union of label sets per type?
+        raise RuntimeError("Not Implemented")
 
 
 class ReservationInfo(JSONField):

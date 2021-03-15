@@ -35,7 +35,7 @@ from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants
 from fim.slivers.delegations import DelegationType
 
 
-class ABCCBMMixin(ABCPropertyGraph):
+class ABCCBMPropertyGraph(ABCPropertyGraph):
     """
     Abstract definition of CBM
     """

@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List, Dict, Tuple, Any
 import enum
 
@@ -42,10 +42,13 @@ from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
+from ..graph.resources.abc_bqm import ABCBQMPropertyGraph
 from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
+from fim.plugins.broker.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 
 from .model_element import ElementType
 from .node import Node
+from .composite_node import CompositeNode
 from .interface import Interface
 from .link import Link
 
@@ -187,7 +190,6 @@ class Topology(ABC):
         :return:
         """
         node_id_list = self.graph_model.get_all_network_nodes()
-        # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
             n = self.__get_node_by_id(nid)
@@ -264,17 +266,6 @@ class Topology(ABC):
                                        importer=nx_pgraph.importer,
                                        logger=nx_pgraph.log)
 
-    def cast(self, *, asm_graph: ABCASMPropertyGraph):
-        """
-        'Cast' an existing instance of ASM graph into a topology. This can create Neo4j or NetworkX-based
-        topology classes
-        :param asm_graph:
-        :return:
-        """
-        assert asm_graph is not None
-        assert isinstance(asm_graph, ABCASMPropertyGraph)
-        self.graph_model = asm_graph
-
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
@@ -343,6 +334,32 @@ class Topology(ABC):
         else:
             raise RuntimeError("This level of detail not yet implemented")
 
+    def __str__(self):
+        """
+        Print topology in tabulated form - network nodes, their components, interfaces, then print links
+        and their interfaces
+        :return:
+        """
+        ret = ""
+        for n in self.nodes.values():
+            ret = ret + n.name + "[" + str(n.get_property("type")) + "]: " + str(n.get_property("capacities")) + "\n"
+            for i in n.direct_interfaces.values():
+                ret = ret + "\t\t" + ": " + str(i) + "\n"
+            for c in n.components.values():
+                ret = ret + "\t" + c.name + ": " + " " + \
+                      str(c.get_property("type")) + " " + \
+                      c.get_property("model") + "\n"
+                for i in c.interfaces.values():
+                    ret = ret + "\t\t" + i.name + ": " + \
+                          str(i.get_property("type")) + " " + \
+                          str(i.get_property("capacities")) + "\n"
+        for l in self.links.values():
+            interface_names = [iff.name for iff in l.interface_list]
+            ret = ret + l.name + "[" + \
+                  str(l.get_property("type")) + "]: " + \
+                  str(interface_names) + "\n"
+        return ret
+
 
 class ExperimentTopology(Topology):
     """
@@ -350,6 +367,17 @@ class ExperimentTopology(Topology):
     """
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
         super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
+
+    def cast(self, *, asm_graph: ABCASMPropertyGraph):
+        """
+        'Cast' an existing instance of ASM graph into a topology. This can create Neo4j or NetworkX-based
+        topology classes
+        :param asm_graph:
+        :return:
+        """
+        assert asm_graph is not None
+        assert isinstance(asm_graph, ABCASMPropertyGraph)
+        self.graph_model = asm_graph
 
 
 class SubstrateTopology(Topology):
@@ -431,3 +459,148 @@ class SubstrateTopology(Topology):
                             delegations[t].add_delegation(delegation)
             self.as_adm().annotate_delegations_and_pools(dels=delegations[t],
                                                          pools=pool_dict[t])
+
+
+class AdvertizedTopology(Topology):
+    """
+    Topology object to operate on BQM (Query) models returned from e.g.
+    listResources etc. Does not inherit from Topology as it is a much
+    simpler interface for view only access.
+    """
+
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
+
+        self.graph_model = NetworkXAggregateBQM(graph_id=str(uuid.uuid4()),
+                                                importer=NetworkXGraphImporter(logger=logger),
+                                                logger=logger)
+        if graph_file is not None or graph_string is not None:
+            self.load(file_name=graph_file, graph_string=graph_string)
+
+    def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
+                 **kwargs) -> Node:
+        raise RuntimeError('Cannot add node to advertisement')
+
+    def add_link(self, *, name: str, node_id: str = None, ltype: LinkType = None,
+                 interfaces: List[Interface], layer: SFLayer = None, technology: str = None,
+                 **kwargs) -> Link:
+        raise RuntimeError('Cannod add link to advertisement')
+
+    def load(self, *, file_name: str = None, graph_string: str = None):
+        """
+        Load the BQM (query model) topology from file or string
+        :param file_name:
+        :param graph_string:
+        :return:
+        """
+        if file_name is not None:
+            nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
+        else:
+            assert graph_string is not None
+            nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
+        self.graph_model = NetworkXABQMFactory.create(nx_pgraph)
+
+    def __get_node_by_id(self, node_id: str) -> Node:
+        """
+        Get node by its node_id, return Node object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+
+    def __get_link_by_id(self, node_id: str) -> Link:
+        """
+        Get link by its node_id, return Link object
+        :param node_id:
+        :return:
+        """
+        assert node_id is not None
+        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+
+    def __list_sites(self) -> ViewOnlyDict:
+        """
+        List site information
+        :return:
+        """
+        node_id_list = self.graph_model.get_all_composite_nodes()
+        ret = dict()
+        for nid in node_id_list:
+            n = self.__get_node_by_id(nid)
+            ret[n.name] = n
+        return ViewOnlyDict(ret)
+
+    def __list_links(self) -> ViewOnlyDict:
+        raise RuntimeError('Not implemented')
+
+    def __getattr__(self, item):
+        if item == 'sites':
+            return self.__list_sites()
+        if item == 'links':
+            return self.__list_links()
+        raise RuntimeError(f'Attribute {item} not available')
+
+    def draw(self, *, file_name: str = None, interactive: bool = False,
+             layout=nx.spring_layout):
+        """
+        Use pyplot to draw the topology of the advertisement.
+        :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
+        :param interactive: use interactive pyplot mode (defaults to False)
+        :param layout: use one of available layout algorithms in NetworkX (defaults to spring_layout)
+        :return:
+        """
+        # clear the drawing
+        if not interactive:
+            plt.ioff()
+        else:
+            plt.ion()
+        plt.clf()
+
+        # collect all network nodes and links, draw edges between them
+        network_sites = self.graph_model.get_all_composite_nodes()
+        links = self.graph_model.get_all_network_links()
+
+        derived_graph = nx.Graph()
+        for n in network_sites:
+            _, props = self.graph_model.get_node_properties(node_id=n)
+            derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+        for l in links:
+            _, props = self.graph_model.get_node_properties(node_id=l)
+            derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+
+        for n in self.sites.values():
+            node_ints = n.interfaces.values()
+            for nint in node_ints:
+                for l in self.links.values():
+                    # this works because of custom ModelElement.__eq__()
+                    if nint in l.interface_list:
+                        derived_graph.add_edge(n.name, l.name)
+
+        pos = layout(derived_graph)
+        nx.draw_networkx(derived_graph, pos=pos)
+        if not interactive:
+            plt.show()
+        if file_name is not None:
+            plt.savefig(file_name)
+
+    def __str__(self):
+        """
+        Print topology in tabulated form - network nodes, their components, interfaces, then print links
+        and their interfaces
+        :return:
+        """
+        ret = ""
+        for n in self.sites.values():
+            ret = ret + n.name + ": " + str(n.get_property("capacities")) + "\n"
+            for i in n.interfaces.values():
+                ret = ret + "\t" + ": " + str(i) + "\n"
+            for c in n.components.values():
+                ret = ret + "\t" + c.name + ": " + " " + str(c.get_property("type")) + " " + \
+                      c.get_property("model") + " " + \
+                      str(c.get_property("capacities")) + "\n"
+        #for l in self.links.values():
+        #    ret = ret + l.name + ":" + str(l) + "\n"
+        return ret
