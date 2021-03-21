@@ -4,6 +4,7 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter, Neo4jPropertyGrap
 from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
+from fim.slivers.delegations import Delegation, DelegationFormat
 
 from fim.pluggable import PluggableRegistry, PluggableType
 
@@ -174,13 +175,28 @@ def test_arm_load():
     site_adm = site_adms['primary']
     cbm.merge_adm(adm=site_adm)
 
+    cbm.validate_graph()
+    print('CBM ID is ' + cbm.graph_id)
+
+    # test delegation format
+    list_of_nodes = cbm.get_matching_nodes_with_components(
+        label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+        props={'Name': 'renc-w3'})
+    _, props = cbm.get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.CBMDelegation
+    _, props = site_arm.get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.ARMDelegation
+    _, props = site_adms['primary'].get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.ADMDelegation
+
     print('Deleting ADM and ARM graphs')
     for adm in site_adms.values():
         adm.delete_graph()
     site_arm.delete_graph()
 
-    cbm.validate_graph()
-    print('CBM ID is ' + cbm.graph_id)
 
     #print("Printing component models")
     #for n in cbm.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_Component):
