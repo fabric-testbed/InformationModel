@@ -44,7 +44,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph
 from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
 from ..graph.resources.abc_bqm import ABCBQMPropertyGraph
 from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
-from fim.plugins.broker.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
+from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 
 from .model_element import ElementType
 from .node import Node

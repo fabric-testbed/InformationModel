@@ -26,7 +26,7 @@
 """
 Base class for all sliver types
 """
-from typing import Any, Tuple
+from typing import Any, Tuple, List, Dict
 from abc import ABC, abstractmethod
 
 from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo
@@ -82,16 +82,16 @@ class BaseSliver(ABC):
     def get_labels(self) -> Labels:
         return self.labels
 
-    def set_capacity_delegations(self, cdel: Delegation):
+    def set_capacity_delegations(self, cdel):
         self.capacity_delegations = cdel
 
-    def get_capacity_delegations(self) -> Delegation:
+    def get_capacity_delegations(self) -> List or Dict:
         return self.capacity_delegations
 
-    def set_label_delegations(self, ldel: Delegation):
+    def set_label_delegations(self, ldel):
         self.label_delegations = ldel
 
-    def get_label_delegations(self) -> Delegation:
+    def get_label_delegations(self) -> List or Dict:
         return self.label_delegations
 
     def set_label_allocations(self, lab: Labels) -> None:
