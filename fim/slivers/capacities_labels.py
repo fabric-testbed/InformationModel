@@ -132,14 +132,43 @@ class Capacities(JSONField):
     def __add__(self, other):
         assert isinstance(other, Capacities)
         ret = Capacities()
+        for f, v in self.__dict__.items():
+            ret.__dict__[f] = self.__dict__[f] + other.__dict__[f]
 
-        ret.cpu = self.cpu + other.cpu
-        ret.core = self.core + other.core
-        ret.ram = self.ram + other.ram
-        ret.disk = self.disk + other.disk
-        ret.bw = self.bw + other.bw
-        ret.unit = self.unit + other.unit
         return ret
+
+    def __sub__(self, other):
+        assert isinstance(other, Capacities)
+        ret = Capacities()
+
+        for f, v in self.__dict__.items():
+            ret.__dict__[f] = self.__dict__[f] - other.__dict__[f]
+
+        return ret
+
+    def negative_fields(self) -> List[str]:
+        """
+        returns list of fields that are negative
+        :return:
+        """
+        ret = list()
+        for f, v in self.__dict__.items():
+            if v < 0:
+                ret.append(f)
+
+        return ret
+
+    def positive_fields(self, fields: List[str]) -> bool:
+        """
+        Return true if indicated fields are positive >0
+        :param fields:
+        :return:
+        """
+        assert fields is not None
+        for f in fields:
+            if self.__dict__[f] <= 0:
+                return False
+        return True
 
     def __repr__(self):
         return self.to_json()

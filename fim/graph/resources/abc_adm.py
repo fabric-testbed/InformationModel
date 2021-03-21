@@ -28,6 +28,8 @@ Abstract definition of ADM (Aggregate Delegation Model) functionality
 """
 import json
 
+from collections import defaultdict
+
 from abc import ABCMeta, abstractmethod
 from ..abc_property_graph import ABCPropertyGraph
 from ...slivers.delegations import ARMDelegations, ARMPools, DelegationType
@@ -87,7 +89,7 @@ class ABCADMPropertyGraph(ABCPropertyGraph):
         assert pools is not None
         assert pools.pool_type == dels.type
 
-        delegations_and_pools_per_node = dict()
+        delegations_and_pools_per_node = defaultdict(list)
 
         # delegations are organized in lists by delegation id, each delegation
         # is a label or capacity specification with delegation id
@@ -96,11 +98,9 @@ class ABCADMPropertyGraph(ABCPropertyGraph):
             # each entry is a list
             for d in v:
                 # multiple (capacity or label) delegations can be defined on the same node
-                node_delegations = delegations_and_pools_per_node.get(d.on_, list())
                 full_details = d.get_full_details()
                 if full_details is not None:
-                    node_delegations.append(full_details)
-                    delegations_and_pools_per_node[d.on_] = node_delegations
+                    delegations_and_pools_per_node[d.on_].append(full_details)
 
         # pools are more complicated than delegations.
         # A pool definition includes capacities or labels,
@@ -108,17 +108,15 @@ class ABCADMPropertyGraph(ABCPropertyGraph):
         # included in the pool (including the node where pool is defined).
 
         # we need a place to put pool mentions for now
-        pool_mentions_per_node = dict()
+        pool_mentions_per_node = defaultdict(list)
 
         if pools.pools_by_delegation is not None:
             for k, pool_list in pools.pools_by_delegation.items():
                 # each entry is a list
                 for pool in pool_list:
-                    node_delegations = delegations_and_pools_per_node.get(pool.on_, list())
                     full_details = pool.get_full_pool_details()
                     if full_details is not None:
-                        node_delegations.append(full_details)
-                        delegations_and_pools_per_node[pool.on_] = node_delegations
+                        delegations_and_pools_per_node[pool.on_].append(full_details)
                         node_mentions = set()
                         node_mentions.update(pool.get_defined_for())
                         node_mentions.add(pool.on_)

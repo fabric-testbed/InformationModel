@@ -65,7 +65,7 @@ class ComponentSliver(BaseSliver):
 
 class AttachedComponentsInfo:
     """
-    Stores attached components as a dictionary by PCI ID
+    Stores attached components as a dictionary by PCI ID and name
     """
     def __init__(self):
         self.devices = {}

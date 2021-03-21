@@ -483,7 +483,7 @@ class AdvertizedTopology(Topology):
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType = None,
                  interfaces: List[Interface], layer: SFLayer = None, technology: str = None,
                  **kwargs) -> Link:
-        raise RuntimeError('Cannod add link to advertisement')
+        raise RuntimeError('Cannot add link to advertisement')
 
     def load(self, *, file_name: str = None, graph_string: str = None):
         """
