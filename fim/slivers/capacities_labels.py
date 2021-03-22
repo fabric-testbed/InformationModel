@@ -113,7 +113,7 @@ class Capacities(JSONField):
     def set_fields(self, **kwargs):
         """
         Universal integer setter for all fields.
-        Values should be non-negative integers. Throws a RuntimeError
+        Values should be non-negative integers. Throws a CapacityException
         if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
@@ -126,7 +126,7 @@ class Capacities(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of capacity, no such field available")
+                raise CapacityException(f"Unable to set field {k} of capacity, no such field available")
         return self
 
     def __add__(self, other):
@@ -205,7 +205,7 @@ class Labels(JSONField):
     def set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
-        Throws a RuntimeError if you try to set a non-existent field.
+        Throws a LabelException if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
         """
@@ -217,7 +217,7 @@ class Labels(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
+                raise LabelException(f"Unable to set field {k} of labels, no such field available")
         # to support call chaining
         return self
 
@@ -240,7 +240,7 @@ class ReservationInfo(JSONField):
         """
         Universal setter for all fields (just strip the l_ from the field
         name of the field). Values should be strings or lists of strings.
-        Throws a RuntimeError if you try to set a non-existent field.
+        Throws a ReservationInfoException if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
         """
@@ -252,6 +252,33 @@ class ReservationInfo(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of reservation info, no such field available")
+                raise ReservationInfoException(f"Unable to set field {k} of reservation info, no such field available")
         # to support call chaining
         return self
+
+
+class CapacityException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Delegation exception: {msg}")
+
+
+class LabelException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Label exception: {msg}")
+
+
+class ReservationInfoException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"ReservationInfo exception: {msg}")

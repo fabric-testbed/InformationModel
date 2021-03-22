@@ -497,6 +497,35 @@ class Pool:
         if self.get_pool_details() is None:
             raise PoolException(f"Pool {self.pool_id} does not have any resource details")
 
+    @staticmethod
+    def ispoolmention(self, d: Dict) -> bool:
+        """
+        This method helps distinguish pool mention from capacity or label delegations by
+        looking for 'pool' field in a dictionary.
+        :param self:
+        :param d:
+        :return:
+        """
+        assert d is not None
+        if d.get(ABCPropertyGraphConstants.FIELD_POOL, None) is not None:
+            return True
+        return False
+
+    @staticmethod
+    def ispooldefinition(self, d: Dict) -> bool:
+        """
+        This method helps distinguish pool definitions from capacity or label delegations
+        by looking for 'label_pool' or 'capacity_pool' fields in the dictionary.
+        :param self:
+        :param d:
+        :return:
+        """
+        assert d is not None
+        if d.get(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL, None) is not None or \
+                d.get(ABCPropertyGraphConstants.FIELD_LABEL_POOL, None) is not None:
+            return True
+        return False
+
     def __repr__(self) -> str:
         return f"{self.type} pool {self.pool_id} delegated to {self.delegation_id}: " \
                f"{self.on_}=> {self.for_} with {self.pool_details} "

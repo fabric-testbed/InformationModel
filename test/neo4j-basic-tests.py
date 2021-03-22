@@ -8,7 +8,7 @@ from fim.slivers.delegations import Delegation, DelegationFormat
 
 from fim.pluggable import PluggableRegistry, PluggableType
 
-from fim.plugins.broker.aggregate_bqm_plugin import AggregateBQMPlugin
+#from fim.plugins.broker.aggregate_bqm_plugin import AggregateBQMPlugin
 
 from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
 
@@ -185,6 +185,12 @@ def test_arm_load():
     _, props = cbm.get_node_properties(node_id=list_of_nodes[0])
     assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
            DelegationFormat.CBMDelegation
+    print(f'Delegation in CBM: {props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]}')
+    delegation_info = Delegation.from_json_to_sliver_field(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS])
+    print(f'Delegation as object {delegation_info}')
+    for k, d in delegation_info.items():
+        print(f'Delegation value type is {d.__class__}')
+
     _, props = site_arm.get_node_properties(node_id=list_of_nodes[0])
     assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
            DelegationFormat.ARMDelegation
@@ -249,18 +255,6 @@ def test_arm_load():
     return cbm
 
 
-def test_abqm(cbm):
-
-    r = PluggableRegistry()
-    r.register_pluggable(t=PluggableType.Broker, p=AggregateBQMPlugin)
-
-    bqm = cbm.get_bqm()
-
-    bqm_graph_string = bqm.serialize_graph()
-
-    #print(bqm_graph_string)
-
-
 if __name__ == "__main__":
 
     print("Running basic tests")
@@ -274,6 +268,3 @@ if __name__ == "__main__":
 
     print("Testing loading ARM and BQM")
     cbm = test_arm_load()
-
-    print("Testing pluggable BQM as ABQM")
-    test_abqm(cbm)
