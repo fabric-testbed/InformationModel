@@ -250,47 +250,49 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        port_labs = f.Labels()
-        port_labs.set_fields(vlan_range='1000-2000')
+        # labels should be part of pool delegations, generally not defined on substrate ports
+        # as native labels
+        #port_labs = f.Labels()
+        #port_labs.set_fields(vlan_range='1000-2000')
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:01'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:02'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:03'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:04'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:05'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:06'),
-                                  capacities=port_caps, labels=port_labs)
+                                  capacities=port_caps)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:07'),
-                                  capacities=port_caps1, labels=port_labs)
+                                  capacities=port_caps1)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:08'),
-                                  capacities=port_caps1, labels=port_labs)
+                                  capacities=port_caps1)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:09'),
-                                   capacities=port_caps1, labels=port_labs)
+                                   capacities=port_caps1)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:0A'),
-                                   capacities=port_caps1, labels=port_labs)
+                                   capacities=port_caps1)
 
         #
         # Links

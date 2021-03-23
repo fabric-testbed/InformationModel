@@ -4,10 +4,13 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter, Neo4jPropertyGrap
 from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
+from fim.slivers.delegations import Delegation, DelegationFormat
 
 from fim.pluggable import PluggableRegistry, PluggableType
 
-from fim.plugins.broker.aggregate_bqm_plugin import AggregateBQMPlugin
+#from fim.plugins.broker.aggregate_bqm_plugin import AggregateBQMPlugin
+
+from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
 
 neo4j = {"url": "neo4j://0.0.0.0:7687",
          "user": "neo4j",
@@ -113,6 +116,7 @@ def test_asm_transfer():
                                                                   graph_id=t.graph_model.graph_id)
     asm_graph = Neo4jASMFactory.create(generic_graph)
     node_ids = asm_graph.list_all_node_ids()
+    print('ASM Node IDs')
     print(node_ids)
     node_id = next(iter(node_ids))
 
@@ -171,26 +175,84 @@ def test_arm_load():
     site_adm = site_adms['primary']
     cbm.merge_adm(adm=site_adm)
 
+    cbm.validate_graph()
+    print('CBM ID is ' + cbm.graph_id)
+
+    # test delegation format
+    list_of_nodes = cbm.get_matching_nodes_with_components(
+        label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+        props={'Name': 'renc-w3'})
+    _, props = cbm.get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.CBMDelegation
+    print(f'Delegation in CBM: {props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]}')
+    delegation_info = Delegation.from_json_to_sliver_field(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS])
+    print(f'Delegation as object {delegation_info}')
+    for k, d in delegation_info.items():
+        print(f'Delegation value type is {d.__class__}')
+
+    _, props = site_arm.get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.ARMDelegation
+    _, props = site_adms['primary'].get_node_properties(node_id=list_of_nodes[0])
+    assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
+           DelegationFormat.ADMDelegation
+
     print('Deleting ADM and ARM graphs')
     for adm in site_adms.values():
         adm.delete_graph()
     site_arm.delete_graph()
 
-    cbm.validate_graph()
-    print('CBM ID is ' + cbm.graph_id)
+
+    #print("Printing component models")
+    #for n in cbm.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_Component):
+    #    _, prop = cbm.get_node_properties(node_id=n)
+    #    if prop.get(ABCPropertyGraphConstants.PROP_MODEL, None) is not None:
+    #        print(prop[ABCPropertyGraphConstants.PROP_MODEL])
+
+    # test CBM querying
+    node_props = { 'Site': 'RENC', 'Type': 'Server' }
+    list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+                                                           props=node_props)
+    assert len(list_of_nodes) == 3
+
+    # construct some components
+    c1 = ComponentSliver()
+    c1.resource_name = 'c1'
+    c1.resource_type = ComponentType.GPU
+    c1.resource_model = 'Tesla T4'
+    c2 = ComponentSliver()
+    c2.resource_name = 'c2'
+    c2.resource_type = ComponentType.SharedNIC
+    c3 = ComponentSliver()
+    c3.resource_name = 'c3'
+    c3.resource_type = ComponentType.SmartNIC
+    c3.resource_model = 'ConnectX-5'
+    c4 = ComponentSliver()
+    c4.resource_name = 'c4'
+    c4.resource_type = ComponentType.SmartNIC
+    c4.resource_model = 'ConnectX-5'
+
+    ci = AttachedComponentsInfo()
+    ci.add_device(c1)
+    ci.add_device(c2)
+    ci.add_device(c3)
+    ci.add_device(c4)
+    list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+                                                           props=node_props, comps=ci)
+    print(list_of_nodes)
+    assert len(list_of_nodes) == 1
+
+    c5 = ComponentSliver()
+    c5.resource_name = 'c5'
+    c5.resource_type = ComponentType.SmartNIC
+    c5.resource_model = 'ConnectX-5'
+    ci.add_device(c5)
+    list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+                                                           props=node_props, comps=ci)
+    print(list_of_nodes)
+    assert len(list_of_nodes) == 0
     return cbm
-
-
-def test_abqm(cbm):
-
-    r = PluggableRegistry()
-    r.register_pluggable(t=PluggableType.Broker, p=AggregateBQMPlugin)
-
-    bqm = cbm.get_bqm()
-
-    bqm_graph_string = bqm.serialize_graph()
-
-    print(bqm_graph_string)
 
 
 if __name__ == "__main__":
@@ -206,6 +268,3 @@ if __name__ == "__main__":
 
     print("Testing loading ARM and BQM")
     cbm = test_arm_load()
-
-    print("Testing pluggable BQM as ABQM")
-    test_abqm(cbm)

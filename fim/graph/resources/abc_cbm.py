@@ -27,12 +27,13 @@
 Abstract definition of CBM (Combined Broker Model) functionality.
 """
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Dict
 
 import uuid
 
 from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants
 from fim.slivers.delegations import DelegationType
+from fim.slivers.attached_components import AttachedComponentsInfo
 
 
 class ABCCBMPropertyGraph(ABCPropertyGraph):
@@ -101,3 +102,14 @@ class ABCCBMPropertyGraph(ABCPropertyGraph):
         :return:
         """
 
+    @abstractmethod
+    def get_matching_nodes_with_components(self, *, label: str, props: Dict, comps: AttachedComponentsInfo = None) -> List[str]:
+        """
+        Return a list of Node IDs of network nodes of this class with these properties
+        that have at least as many components of types and models as specified in comps.
+        Models or types of comps can be omitted, in which case only a match based on the
+        the one that is not omitted. Comps can be None in which case only a match
+        on properties is performed.
+        :param comps:
+        :return:
+        """

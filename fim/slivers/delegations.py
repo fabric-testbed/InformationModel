@@ -30,7 +30,7 @@ applies to and can be set/queried for that information.
 """
 
 from enum import Enum
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 import json
 
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
@@ -40,6 +40,16 @@ from .capacities_labels import Capacities, Labels
 class DelegationType(Enum):
     CAPACITY = 1
     LABEL = 2
+
+
+class DelegationFormat(Enum):
+    """
+    Delegations properties on graph nodes have different interpretation
+    depending on which model graph they are in.
+    """
+    ARMDelegation = 1 # List of dictionaries with delegation and pool identifiers
+    ADMDelegation = 2 # List of dictionaries without delegation id but with pool id
+    CBMDelegation = 3 # Dictionary keyed by ADM graph id with value matching ADMDelegation format
 
 
 class Delegation:
@@ -154,27 +164,74 @@ class Delegation:
                f"{self.on_} with {self.delegation_details} "
 
     @staticmethod
-    def from_json_to_list(j: str or None) -> List[Dict] or None:
+    def from_json_to_sliver_field(j: str or None) -> List[Dict] or Dict[str, List] or None:
         """
-        Produce a list of dictionaries representing delegations. Does NOT
-        properly parse into Delegation or Pool objects
+        Take JSON and produce an object for sliver field that is
+        one of the accepted DelegationFormats. Return None if corresponding
+        property in graph node is empty. Throw a DelegationException if format
+        is not what is expected.
         :param j:
         :return:
         """
         if j is None or j == ABCPropertyGraphConstants.NEO4j_NONE:
             return None
-        return json.loads(j)
+        sliver_field = json.loads(j)
+        if isinstance(sliver_field, list):
+            # either ARM or ADM
+            for e in sliver_field:
+                if not isinstance(e, dict):
+                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
+            return sliver_field
+        elif isinstance(sliver_field, dict):
+            # CBM
+            for k, v in sliver_field.items():
+                if not isinstance(v, list):
+                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
+            return sliver_field
+        raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
 
     @staticmethod
-    def from_list_to_json(l: List[Dict] or None) -> str or None:
+    def from_sliver_field_to_json(l: List[Dict] or None) -> str or None:
         """
-        Produce a JSON expression of list of dictionaries or None.
+        Produce a JSON expression sliver field encoding the delegation or None
         :param l:
         :return:
         """
         if l is None:
             return None
         return json.dumps(l)
+
+    @staticmethod
+    def get_delegation_format(j: str or None) -> DelegationFormat or None:
+        """
+        Determine the format of the encoded delegation - ARM, ADM or CBM
+        or None if string doesn't specify a delegation.
+        Throw exception if not what is expected.
+        :param j:
+        :return:
+        """
+        if j is None or j == ABCPropertyGraphConstants.NEO4j_NONE:
+            return None
+        sliver_field = json.loads(j)
+        if isinstance(sliver_field, list):
+            # either ARM or ADM
+            # ARM delegation have 'delegation' field present, ADM don't,
+            # but they both are lists of dicts
+            for e in sliver_field:
+                if not isinstance(e, dict):
+                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
+                if e.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
+                    return DelegationFormat.ARMDelegation
+            return DelegationFormat.ADMDelegation
+        elif isinstance(sliver_field, dict):
+            # CBM is a dict of lists of dicts, one for each ADM for that node.
+            # only stitch nodes have two entries, everyone else has one for corresponding
+            # ADM graph
+            for k, v in sliver_field.items():
+                if not isinstance(v, list):
+                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
+            return DelegationFormat.CBMDelegation
+        raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
 
 
 class ARMDelegations:
@@ -439,6 +496,35 @@ class Pool:
             raise PoolException(f"Pool {self.pool_id} is not mentioned on the node where it is defined")
         if self.get_pool_details() is None:
             raise PoolException(f"Pool {self.pool_id} does not have any resource details")
+
+    @staticmethod
+    def ispoolmention(d: Dict) -> bool:
+        """
+        This method helps distinguish pool mention from capacity or label delegations by
+        looking for 'pool' field in a dictionary.
+        :param self:
+        :param d:
+        :return:
+        """
+        assert d is not None
+        if d.get(ABCPropertyGraphConstants.FIELD_POOL, None) is not None:
+            return True
+        return False
+
+    @staticmethod
+    def ispooldefinition(d: Dict) -> bool:
+        """
+        This method helps distinguish pool definitions from capacity or label delegations
+        by looking for 'label_pool' or 'capacity_pool' fields in the dictionary.
+        :param self:
+        :param d:
+        :return:
+        """
+        assert d is not None
+        if d.get(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL, None) is not None or \
+                d.get(ABCPropertyGraphConstants.FIELD_LABEL_POOL, None) is not None:
+            return True
+        return False
 
     def __repr__(self) -> str:
         return f"{self.type} pool {self.pool_id} delegated to {self.delegation_id}: " \

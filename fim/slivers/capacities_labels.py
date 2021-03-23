@@ -113,7 +113,7 @@ class Capacities(JSONField):
     def set_fields(self, **kwargs):
         """
         Universal integer setter for all fields.
-        Values should be non-negative integers. Throws a RuntimeError
+        Values should be non-negative integers. Throws a CapacityException
         if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
@@ -126,20 +126,49 @@ class Capacities(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of capacity, no such field available")
+                raise CapacityException(f"Unable to set field {k} of capacity, no such field available")
         return self
 
     def __add__(self, other):
         assert isinstance(other, Capacities)
         ret = Capacities()
+        for f, v in self.__dict__.items():
+            ret.__dict__[f] = self.__dict__[f] + other.__dict__[f]
 
-        ret.cpu = self.cpu + other.cpu
-        ret.core = self.core + other.core
-        ret.ram = self.ram + other.ram
-        ret.disk = self.disk + other.disk
-        ret.bw = self.bw + other.bw
-        ret.unit = self.unit + other.unit
         return ret
+
+    def __sub__(self, other):
+        assert isinstance(other, Capacities)
+        ret = Capacities()
+
+        for f, v in self.__dict__.items():
+            ret.__dict__[f] = self.__dict__[f] - other.__dict__[f]
+
+        return ret
+
+    def negative_fields(self) -> List[str]:
+        """
+        returns list of fields that are negative
+        :return:
+        """
+        ret = list()
+        for f, v in self.__dict__.items():
+            if v < 0:
+                ret.append(f)
+
+        return ret
+
+    def positive_fields(self, fields: List[str]) -> bool:
+        """
+        Return true if indicated fields are positive >0
+        :param fields:
+        :return:
+        """
+        assert fields is not None
+        for f in fields:
+            if self.__dict__[f] <= 0:
+                return False
+        return True
 
     def __repr__(self):
         return self.to_json()
@@ -176,7 +205,7 @@ class Labels(JSONField):
     def set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
-        Throws a RuntimeError if you try to set a non-existent field.
+        Throws a LabelException if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
         """
@@ -188,7 +217,7 @@ class Labels(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of labels, no such field available")
+                raise LabelException(f"Unable to set field {k} of labels, no such field available")
         # to support call chaining
         return self
 
@@ -211,7 +240,7 @@ class ReservationInfo(JSONField):
         """
         Universal setter for all fields (just strip the l_ from the field
         name of the field). Values should be strings or lists of strings.
-        Throws a RuntimeError if you try to set a non-existent field.
+        Throws a ReservationInfoException if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
         """
@@ -223,6 +252,33 @@ class ReservationInfo(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise RuntimeError(f"Unable to set field {k} of reservation info, no such field available")
+                raise ReservationInfoException(f"Unable to set field {k} of reservation info, no such field available")
         # to support call chaining
         return self
+
+
+class CapacityException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Delegation exception: {msg}")
+
+
+class LabelException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Label exception: {msg}")
+
+
+class ReservationInfoException(Exception):
+    """
+    Exception with a pool
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"ReservationInfo exception: {msg}")

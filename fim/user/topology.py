@@ -44,7 +44,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph
 from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
 from ..graph.resources.abc_bqm import ABCBQMPropertyGraph
 from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
-from fim.plugins.broker.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
+from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 
 from .model_element import ElementType
 from .node import Node
@@ -483,7 +483,7 @@ class AdvertizedTopology(Topology):
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType = None,
                  interfaces: List[Interface], layer: SFLayer = None, technology: str = None,
                  **kwargs) -> Link:
-        raise RuntimeError('Cannod add link to advertisement')
+        raise RuntimeError('Cannot add link to advertisement')
 
     def load(self, *, file_name: str = None, graph_string: str = None):
         """
