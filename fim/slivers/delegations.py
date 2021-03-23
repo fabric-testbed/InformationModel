@@ -498,7 +498,7 @@ class Pool:
             raise PoolException(f"Pool {self.pool_id} does not have any resource details")
 
     @staticmethod
-    def ispoolmention(self, d: Dict) -> bool:
+    def ispoolmention(d: Dict) -> bool:
         """
         This method helps distinguish pool mention from capacity or label delegations by
         looking for 'pool' field in a dictionary.
@@ -512,7 +512,7 @@ class Pool:
         return False
 
     @staticmethod
-    def ispooldefinition(self, d: Dict) -> bool:
+    def ispooldefinition(d: Dict) -> bool:
         """
         This method helps distinguish pool definitions from capacity or label delegations
         by looking for 'label_pool' or 'capacity_pool' fields in the dictionary.
