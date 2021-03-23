@@ -24,6 +24,16 @@ class MyPlug1:
         print("Blah")
 
 
+class MyPlugWithParams:
+
+    def __init__(self, actor, para):
+        self.actor = actor
+        self.param = para
+
+    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs):
+        return f'Actor is {self.actor}, param is {self.param}'
+
+
 class TestPluggable(unittest.TestCase):
 
     def testRegistrySingleton(self):
@@ -59,6 +69,35 @@ class TestPluggable(unittest.TestCase):
         ret = c(cbm=4)
 
         assert ret == "Graph is 4 with param"
+
+        r.unregister_pluggable(t=PluggableType.Broker)
+
+    def testRegistrationWithParams(self):
+
+        r = PluggableRegistry()
+
+        class FakeActor:
+            def __init__(self):
+                self.val = 'actor'
+
+            def __str__(self):
+                return str(self.val)
+
+        actor = FakeActor()
+
+        r.register_pluggable(t=PluggableType.Broker, p=MyPlugWithParams, actor=actor, para=6)
+
+        methods = r.get_implemented_methods(t=PluggableType.Broker)
+
+        assert "plug_produce_bqm" in methods
+
+        c = r.get_method_callable(t=PluggableType.Broker, method='plug_produce_bqm')
+
+        assert callable(c) is True
+
+        ret = c(cbm=4)
+
+        assert ret == 'Actor is actor, param is 6'
 
 
 if __name__ == "__main__":

@@ -63,6 +63,13 @@ class ABCPluggable(ABC):
     extensions to support relational persistent storage abstractions for Pluggables
     may be added at a later time.
     """
+    def __init__(self, *, actor):
+        """
+        Take actor pointer into the plugin
+        :param actor:
+        """
+        self.actor = actor
+
     @classmethod
     def get_pluggable_methods(cls, detail: bool=True) -> List:
         """
@@ -112,6 +119,9 @@ class BrokerPluggable(ABCPluggable):
     """
     PLUGGABLE_PRODUCE_BQM = 'plug_produce_bqm'
 
+    def __init__(self, *, actor):
+        super().__init__(actor=actor)
+
     @abstractmethod
     def plug_produce_bqm(self, *, cbm: ABCCBMPropertyGraph, **kwargs) -> ABCBQMPropertyGraph:
         """
@@ -127,13 +137,17 @@ class AMPluggable(ABCPluggable):
     """
     Overridable AM-specific methods for graph/resource manipulations in FIM
     """
-
+    def __init__(self, *, actor):
+        super().__init__(actor=actor)
 
 class OrchestratorPluggable(ABCPluggable):
     """
     Overridable Controller-specific methods for graph/resource manipulations in FIM
     """
     PLUGGABLE_PARTITION_SLICE = 'plug_partition_slice'
+
+    def __init__(self, *, actor):
+        super().__init__(actor=actor)
 
     @abstractmethod
     def plug_partition_slice(self, *, slice: ABCPropertyGraph, **kwargs) -> List:
@@ -164,7 +178,7 @@ class PluggableRegistry:
                                             set(BrokerPluggable.get_pluggable_methods(detail=False)))}
 
     class __Pluggable:
-        def __init__(self, t: PluggableType, p):
+        def __init__(self, t: PluggableType, p, **kwargs):
             self.pluggable = p
             # figure out which methods it implements
             pluggable_type, pluggable_methods = PluggableRegistry.PLUGGABLE_MAP[t]
@@ -173,7 +187,7 @@ class PluggableRegistry:
                     len(pluggable_methods.intersection(self.implemented_methods)) == 0:
                 raise RuntimeError(f"Plugin {p} does not implement any of the expected methods: "
                                    f"{pluggable_methods}")
-            self.pluggable_instance = p()
+            self.pluggable_instance = p(**kwargs)
 
         def get_implemented_methods(self):
             return self.implemented_methods
@@ -188,7 +202,7 @@ class PluggableRegistry:
     def __init__(self):
         pass
 
-    def register_pluggable(self, *, t: PluggableType, p):
+    def register_pluggable(self, *, t: PluggableType, p, **kwargs):
         """
         Register a pluggable interface
         :param t:
@@ -196,10 +210,13 @@ class PluggableRegistry:
         :return:
         """
         if PluggableRegistry.instance.get(t, None) is None:
-            PluggableRegistry.instance[t] = PluggableRegistry.__Pluggable(t, p)
+            PluggableRegistry.instance[t] = PluggableRegistry.__Pluggable(t, p, **kwargs)
         else:
             raise RuntimeError(f"Another plugin {PluggableRegistry.instance[t].pluggable} "
                                f"class is already registered for type {t.name}")
+
+    def unregister_pluggable(self, *, t: PluggableType):
+        PluggableRegistry.instance.pop(t, None)
 
     def pluggable_registered(self, *, t: PluggableType) -> bool:
         """
