@@ -56,6 +56,7 @@ def test_basic_neo4j():
 
     n4j_imp.delete_all_graphs()
 
+
 def test_neo4j_asm():
     """
     Test Neo4j ASM implementation
@@ -89,6 +90,7 @@ def test_neo4j_asm():
     assert(tup is None)
 
     n4j_imp.delete_all_graphs()
+
 
 def test_asm_transfer():
     """
@@ -252,19 +254,101 @@ def test_arm_load():
                                                            props=node_props, comps=ci)
     print(list_of_nodes)
     assert len(list_of_nodes) == 0
-    return cbm
+
+    n4j_imp.delete_all_graphs()
+
+def test_network_ad_load():
+
+    n4j_imp = Neo4jGraphImporter(url=neo4j["url"], user=neo4j["user"],
+                                 pswd=neo4j["pass"],
+                                 import_host_dir=neo4j["import_host_dir"],
+                                 import_dir=neo4j["import_dir"])
+    cbm = Neo4jCBMGraph(importer=n4j_imp)
+
+    ad = '../Network-ad.graphml'
+
+    plain_neo4j = n4j_imp.import_graph_from_file_direct(graph_file=ad)
+    print(f"Validating ARM graph {ad}")
+    plain_neo4j.validate_graph()
+
+    site_arm = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
+                                                      importer=n4j_imp))
+    print(f'ARM Graph {site_arm.graph_id}')
+
+    # generate a dict of ADMs from site graph ARM
+    site_adms = site_arm.generate_adms()
+    print('ADMS ' + str(site_adms.keys()))
+
+    # desired ADM is under 'primary'
+    site_adm = site_adms['primary']
+    cbm.merge_adm(adm=site_adm)
+
+    #print('Deleting ADM and ARM graphs')
+    #for adm in site_adms.values():
+    #    adm.delete_graph()
+    #site_arm.delete_graph()
+
+    cbm.validate_graph()
+    print('CBM ID is ' + cbm.graph_id)
+
+    n4j_imp.delete_all_graphs()
+
+
+def test_3_site_load():
+
+    site_ads = ['../RENCI-ad.graphml', '../UKY-ad.graphml', '../LBNL-ad.graphml', '../Network-ad.graphml']
+
+    n4j_imp = Neo4jGraphImporter(url=neo4j["url"], user=neo4j["user"],
+                                 pswd=neo4j["pass"],
+                                 import_host_dir=neo4j["import_host_dir"],
+                                 import_dir=neo4j["import_dir"])
+    cbm = Neo4jCBMGraph(importer=n4j_imp)
+
+    adm_ids = dict()
+
+    for ad in site_ads:
+        plain_neo4j = n4j_imp.import_graph_from_file_direct(graph_file=ad)
+        print(f"Validating ARM graph {ad}")
+        plain_neo4j.validate_graph()
+
+        site_arm = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
+                                                          importer=n4j_imp))
+        # generate a dict of ADMs from site graph ARM
+        site_adms = site_arm.generate_adms()
+        print('ADMS' + str(site_adms.keys()))
+
+        # desired ADM is under 'primary'
+        site_adm = site_adms['primary']
+        cbm.merge_adm(adm=site_adm)
+
+        print('Deleting ADM and ARM graphs')
+        for adm in site_adms.values():
+            adm_ids[ad] = adm.graph_id
+            adm.delete_graph()
+        site_arm.delete_graph()
+
+    cbm.validate_graph()
+    print('CBM ID is ' + cbm.graph_id)
+
+    cbm.unmerge_adm(graph_id=adm_ids['../Network-ad.graphml'])
 
 
 if __name__ == "__main__":
 
-    print("Running basic tests")
-    test_basic_neo4j()
+    # print("Running basic tests")
+    # test_basic_neo4j()
 
-    print("Running Neo4j ASM tests")
-    test_neo4j_asm()
+    # print("Running Neo4j ASM tests")
+    # test_neo4j_asm()
 
-    print("Running ASM transfer tests")
-    test_asm_transfer()
+    # print("Running ASM transfer tests")
+    # test_asm_transfer()
 
-    print("Testing loading ARM and BQM")
-    cbm = test_arm_load()
+    # print("Testing loading ARM and BQM")
+    # test_arm_load()
+
+    print('Testing Network AM')
+    test_network_ad_load()
+
+    print("Testing 3-site ARM load to CBM")
+    test_3_site_load()

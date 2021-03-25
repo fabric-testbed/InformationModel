@@ -103,6 +103,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         :param adm:
         :return:
         """
+        print(f'ADM GraphID is {adm.graph_id}')
         assert adm is not None
         assert adm.graph_exists()
 
@@ -193,6 +194,21 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                     # update
                     self.update_node_property(node_id=node, prop_name=self.PROP_ADM_GRAPH_IDS,
                                               prop_val=json.dumps(adm_graph_ids))
+            # also unmerge delegations
+            for del_type in [self.PROP_CAPACITY_DELEGATIONS, self.PROP_LABEL_DELEGATIONS]:
+                delegations = self.get_node_json_property_as_object(node_id=node,
+                                                                    prop_name=del_type)
+                if delegations is None:
+                    continue
+                if not isinstance(delegations, dict):
+                    raise PropertyGraphQueryException(node_id=node, graph_id=self.graph_id,
+                                                      msg=f"When unmerging graph {graph_id}, encountered wrongly"
+                                                          f"formatted {del_type} field")
+                if graph_id in delegations.keys():
+                    delegations.pop(graph_id)
+                    self.update_node_property(node_id=node, prop_name=del_type,
+                                              prop_val=json.dumps(delegations))
+
         # remove the merged nodes
         for node in delete_nodes:
             self.delete_node(node_id=node)

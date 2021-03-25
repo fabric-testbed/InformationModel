@@ -447,6 +447,7 @@ class SubstrateTopology(Topology):
                                                        delegation_id=delegation_id)
                 if delegation is not None:
                     delegations[t].add_delegation(delegation)
+                # components
                 for c in n.components.values():
                     delegation = self.__copy_to_delegation(e=c, atype=t,
                                                            delegation_id=delegation_id)
@@ -457,6 +458,18 @@ class SubstrateTopology(Topology):
                                                                delegation_id=delegation_id)
                         if delegation is not None:
                             delegations[t].add_delegation(delegation)
+                # switchfabrics (for eg switches)
+                for sf in n.switch_fabrics.values():
+                    delegation = self.__copy_to_delegation(e=sf, atype=t,
+                                                           delegation_id=delegation_id)
+                    if delegation is not None:
+                        delegations[t].add_delegation(delegation)
+                    for i in sf.interfaces.values():
+                        delegation = self.__copy_to_delegation(e=i, atype=t,
+                                                               delegation_id=delegation_id)
+                        if delegation is not None:
+                            delegations[t].add_delegation(delegation)
+
             self.as_adm().annotate_delegations_and_pools(dels=delegations[t],
                                                          pools=pool_dict[t])
 
