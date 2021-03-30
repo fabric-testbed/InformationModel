@@ -36,7 +36,11 @@ from fim.slivers.switch_fabric import SFLayer
 
 
 class Link(ModelElement):
-
+    """
+    A link object in a topology. In addition to public methods the following calls
+    return various dictionaries or lists:
+    link.interface_list - a list of interfaces attached to this link
+    """
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
                  interfaces: List[Interface] = None,

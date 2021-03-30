@@ -43,7 +43,11 @@ from ..slivers.switch_fabric import SFLayer
 
 class CompositeNode(Node):
     """
-    A composite node of the topology
+    A composite node of the topology. In addition to public methods the following calls
+    return various dictionaries or lists:
+    node.components - a dictionary of components
+    node.interfaces - a dictionary of all interfaces
+    node.interface_list - a list of all interfaces
     """
 
     def __init__(self, *, name: str, node_id: str, topo: Any):
