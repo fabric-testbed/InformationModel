@@ -1382,15 +1382,15 @@ class AdTest(unittest.TestCase):
                                    capacities=port_caps)
 
         # add 3 links
-        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.Wave, layer=f.Layer.L2,
+        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
                                 interfaces=[renc_uky, uky_renc],
                                 node_id=renc_uky.node_id + '-Wave')
 
-        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
                                 interfaces=[uky_lbnl, lbnl_uky],
                                 node_id=uky_lbnl.node_id + '-Wave')
 
-        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
                                 interfaces=[renc_lbnl, lbnl_renc],
                                 node_id=renc_lbnl.node_id + '-Wave')
 

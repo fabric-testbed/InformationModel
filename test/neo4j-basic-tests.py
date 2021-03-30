@@ -330,7 +330,19 @@ def test_3_site_load():
     cbm.validate_graph()
     print('CBM ID is ' + cbm.graph_id)
 
-    cbm.unmerge_adm(graph_id=adm_ids['../Network-ad.graphml'])
+    print('Finding intersite links')
+    links = cbm.get_intersite_links()
+    print(links)
+    assert(len(links) == 3)
+    ls = set()
+    for l in links:
+        ls.add(l[1])
+    assert('node_id-00-00-00-00-00-11-Wave' in ls and
+           'node_id-10-00-00-00-00-11-Wave' in ls and
+           'node_id-00-00-00-00-00-10-Wave' in ls)
+    print('Done')
+
+    #cbm.unmerge_adm(graph_id=adm_ids['../Network-ad.graphml'])
 
 
 if __name__ == "__main__":
