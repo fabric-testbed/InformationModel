@@ -31,6 +31,7 @@ import enum
 import uuid
 import networkx as nx
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 from fim.view_only_dict import ViewOnlyDict
 
@@ -64,9 +65,8 @@ class TopologyDetail(enum.Enum):
 
 class Topology(ABC):
     """
-    Define and manipulate a topology over its life cycle. Default constructor and load
-    functions create NetworkX-based graphs. If you want to operate on top of a Neo4j
-    graph, use the cast() method.
+    Base class to define and manipulate a topology over its life cycle.
+    Default constructor and load functions create NetworkX-based ASM graphs.
     """
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
 
@@ -273,7 +273,7 @@ class Topology(ABC):
         Use pyplot to draw the topology of specified level of detail.
         :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
         :param interactive: use interactive pyplot mode (defaults to False)
-        :param topo_detail: level of detail to use in drawing, defaults to OnlyNodes
+        :param topo_detail: level of detail to use in drawing, defaults to Derived
         :param layout: use one of available layout algorithms in NetworkX (defaults to spring_layout)
         :return:
         """
@@ -340,30 +340,37 @@ class Topology(ABC):
         and their interfaces
         :return:
         """
-        ret = ""
+        lines = list()
         for n in self.nodes.values():
-            ret = ret + n.name + "[" + str(n.get_property("type")) + "]: " + str(n.get_property("capacities")) + "\n"
+            lines.append(n.name + "[" + str(n.get_property("type")) + "]: " + str(n.get_property("capacities")))
             for i in n.direct_interfaces.values():
-                ret = ret + "\t\t" + ": " + str(i) + "\n"
+                lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                             str(i.get_property("capacities")) + " " +
+                             str(i.get_property("labels")))
             for c in n.components.values():
-                ret = ret + "\t" + c.name + ": " + " " + \
-                      str(c.get_property("type")) + " " + \
-                      c.get_property("model") + "\n"
+                lines.append("\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
+                             c.get_property("model"))
+                print("Interfaces:")
                 for i in c.interfaces.values():
-                    ret = ret + "\t\t" + i.name + ": " + \
-                          str(i.get_property("type")) + " " + \
-                          str(i.get_property("capacities")) + "\n"
+                    lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                 str(i.get_property("capacities")))
+        lines.append("Links:")
         for l in self.links.values():
             interface_names = [iff.name for iff in l.interface_list]
-            ret = ret + l.name + "[" + \
-                  str(l.get_property("type")) + "]: " + \
-                  str(interface_names) + "\n"
-        return ret
+            lines.append("\t" + l.name + "[" + str(l.get_property("type")) + "]: " +
+                         str(interface_names))
+
+        return "\n".join(lines)
 
 
 class ExperimentTopology(Topology):
     """
-    Define an user topology model
+    Define an user topology model, inheriting behavior from Topology class.
+    In addition to publicly visible methods the following calls can be made:
+    topology.nodes - a read-only dictionary of nodes in the topology
+    topology.links - a read-only dictionary of links in the topology
+    topology.interface_list - a read-only list of all interfaces of all nodes
+    If you want to operate on top of a Neo4j graph, use the cast() method.
     """
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
         super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
@@ -382,7 +389,11 @@ class ExperimentTopology(Topology):
 
 class SubstrateTopology(Topology):
     """
-    Define an substrate topology model.
+    Define an substrate topology model, inheriting behavior from Topology class.
+    In addition to publicly visible methods the following calls can be made:
+    topology.nodes - a read-only dictionary of nodes in the topology
+    topology.links - a read-only dictionary of links in the topology
+    topology.interface_list - a read-only list of all interfaces of all nodes
     """
 
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
@@ -477,8 +488,10 @@ class SubstrateTopology(Topology):
 class AdvertizedTopology(Topology):
     """
     Topology object to operate on BQM (Query) models returned from e.g.
-    listResources etc. Does not inherit from Topology as it is a much
-    simpler interface for view only access.
+    listResources etc.
+    In addition to publicly visible methods the following calls can be made:
+    topology.sites - a read-only dictionary of nodes in the topology
+    topology.links - a read-only dictionary of links in the topology
     """
 
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
@@ -547,7 +560,12 @@ class AdvertizedTopology(Topology):
         return ViewOnlyDict(ret)
 
     def __list_links(self) -> ViewOnlyDict:
-        raise RuntimeError('Not implemented')
+        link_id_list = self.graph_model.get_all_network_links()
+        ret = dict()
+        for nid in link_id_list:
+            n = self.__get_link_by_id(nid)
+            ret[n.name] = n
+        return ViewOnlyDict(ret)
 
     def __getattr__(self, item):
         if item == 'sites':
@@ -557,11 +575,13 @@ class AdvertizedTopology(Topology):
         raise RuntimeError(f'Attribute {item} not available')
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
+             topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
         """
         Use pyplot to draw the topology of the advertisement.
         :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
         :param interactive: use interactive pyplot mode (defaults to False)
+        :param topo_detail: level of topology detail (defaults to Derived)
         :param layout: use one of available layout algorithms in NetworkX (defaults to spring_layout)
         :return:
         """
@@ -572,32 +592,65 @@ class AdvertizedTopology(Topology):
             plt.ion()
         plt.clf()
 
-        # collect all network nodes and links, draw edges between them
-        network_sites = self.graph_model.get_all_composite_nodes()
-        links = self.graph_model.get_all_network_links()
+        if topo_detail == TopologyDetail.Derived:
+            # unlike derived for slices, here we don't even draw
+            # links as objects because they are all point-to-point
 
-        derived_graph = nx.Graph()
-        for n in network_sites:
-            _, props = self.graph_model.get_node_properties(node_id=n)
-            derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
-        for l in links:
-            _, props = self.graph_model.get_node_properties(node_id=l)
-            derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+            # collect all network nodes and links, draw edges between them
+            network_sites = self.graph_model.get_all_composite_nodes()
+            links = self.graph_model.get_all_network_links()
 
-        for n in self.sites.values():
-            node_ints = n.interfaces.values()
-            for nint in node_ints:
-                for l in self.links.values():
-                    # this works because of custom ModelElement.__eq__()
-                    if nint in l.interface_list:
-                        derived_graph.add_edge(n.name, l.name)
+            derived_graph = nx.Graph()
+            for n in network_sites:
+                _, props = self.graph_model.get_node_properties(node_id=n)
+                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
 
-        pos = layout(derived_graph)
-        nx.draw_networkx(derived_graph, pos=pos)
-        if not interactive:
-            plt.show()
-        if file_name is not None:
-            plt.savefig(file_name)
+            # build two-element lists of which nodes should be connected by edges
+            # indexed by link name
+            graph_edges = defaultdict(list)
+            for n in self.sites.values():
+                node_ints = n.interfaces.values()
+                for nint in node_ints:
+                    for l in self.links.values():
+                        # this works because of custom ModelElement.__eq__()
+                        if nint in l.interface_list:
+                            graph_edges[l.name].append(n.name)
+                            #derived_graph.add_edge(n.name, l.name)
+
+            edge_labels = dict()
+            for k, v in graph_edges.items():
+                derived_graph.add_edge(v[0], v[1])
+                edge_labels[(v[0], v[1])] = k
+
+            pos = layout(derived_graph)
+            nx.draw_networkx(derived_graph, pos=pos)
+            nx.draw_networkx_edge_labels(derived_graph, edge_labels=edge_labels, pos=pos)
+
+            if not interactive:
+                plt.show()
+            if file_name is not None:
+                plt.savefig(file_name)
+        elif topo_detail == TopologyDetail.InfoModel:
+            # create dictionaries of names for nodes and labels for edges
+            g = self.graph_model.storage.extract_graph(self.graph_model.graph_id)
+            if g is None:
+                return
+            node_labels = dict()
+            for l in g.nodes:
+                node_labels[l] = g.nodes[l][ABCPropertyGraph.PROP_NAME] + \
+                                 '[' + g.nodes[l][ABCPropertyGraph.PROP_TYPE] + ']'
+            edge_labels = dict()
+            for e in g.edges:
+                edge_labels[e] = g.edges[e][ABCPropertyGraph.PROP_CLASS]
+            # run the layout
+            pos = layout(g)
+            # draw
+            nx.draw_networkx(g, labels=node_labels, pos=pos)
+            nx.draw_networkx_edge_labels(g, edge_labels=edge_labels, pos=pos)
+            if not interactive:
+                plt.show()
+            if file_name is not None:
+                plt.savefig(file_name)
 
     def __str__(self):
         """
@@ -605,15 +658,20 @@ class AdvertizedTopology(Topology):
         and their interfaces
         :return:
         """
-        ret = ""
+        lines = list()
         for n in self.sites.values():
-            ret = ret + n.name + ": " + str(n.get_property("capacities")) + "\n"
-            for i in n.interfaces.values():
-                ret = ret + "\t" + ": " + str(i) + "\n"
+            lines.append(n.name + ": " + str(n.get_property("capacities")))
+            lines.append("\tComponents:")
             for c in n.components.values():
-                ret = ret + "\t" + c.name + ": " + " " + str(c.get_property("type")) + " " + \
-                      c.get_property("model") + " " + \
-                      str(c.get_property("capacities")) + "\n"
-        #for l in self.links.values():
-        #    ret = ret + l.name + ":" + str(l) + "\n"
-        return ret
+                lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
+                             c.get_property("model") + " " + str(c.get_property("capacities")))
+            lines.append("\tSite Interfaces:")
+            for i in n.interfaces.values():
+                lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                             str(i.get_property("capacities")))
+        lines.append("Links:")
+        for l in self.links.values():
+            interface_names = [iff.name for iff in l.interface_list]
+            lines.append("\t" + l.name + "[" + str(l.get_property("type")) + "]: " +
+                         str(interface_names))
+        return "\n".join(lines)
