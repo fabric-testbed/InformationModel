@@ -27,7 +27,7 @@
 Abstract definition of ASM (Abstract Slice Model) functionality
 """
 
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from abc import ABCMeta, abstractmethod
 
 import json
@@ -36,8 +36,6 @@ from fim.slivers.network_node import NodeSliver
 from fim.slivers.attached_components import ComponentSliver
 from fim.slivers.switch_fabric import SwitchFabricSliver
 from fim.slivers.interface_info import InterfaceSliver
-from fim.slivers.capacities_labels import Capacities, Labels
-from fim.slivers.delegations import Delegation
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 
@@ -153,16 +151,6 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                           msg=f"Unable to find node with name {node_name} "
                                               f"class {label} as child of {parent_node_id}")
-
-    def get_all_link_interfaces(self, link_id: str) -> List[str]:
-        assert link_id is not None
-        # check this is a link
-        labels, parent_props = self.get_node_properties(node_id=link_id)
-        if ABCPropertyGraph.CLASS_Link not in labels:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=link_id,
-                                              msg="Node type is not Link")
-        return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
-                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
 
     def get_all_network_node_components(self, parent_node_id: str) -> List[str]:
         """

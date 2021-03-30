@@ -829,6 +829,16 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             cs.switch_fabric_info = sfi
         return cs
 
+    def get_all_link_interfaces(self, link_id: str) -> List[str]:
+        assert link_id is not None
+        # check this is a link
+        labels, parent_props = self.get_node_properties(node_id=link_id)
+        if ABCPropertyGraph.CLASS_Link not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=link_id,
+                                              msg="Node type is not Link")
+        return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
 
 class ABCGraphImporter(ABC):
     @abstractmethod

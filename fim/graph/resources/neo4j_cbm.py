@@ -29,7 +29,7 @@ Neo4j implementation of CBM (Combined Broker Model) functionality.
 import uuid
 import json
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from collections import defaultdict
 
@@ -301,6 +301,20 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         if val is None:
             return list()
         return val.data()['candidate_ids']
+
+    def get_intersite_links(self) -> List[Tuple[str, str, str]]:
+        # does a lexicographic comparison of Site properties to ensure only unique links are returned
+        query = 'match p= (n:NetworkNode {Type:"Switch", GraphID: $graphId}) -[:has]- (:SwitchFabric) ' \
+                '-[:connects]- (cp1:ConnectionPoint) -[:connects]- (l:Link) ' \
+                '-[:connects]- (cp2:ConnectionPoint) -[:connects]- (:SwitchFabric) ' \
+                '-[:has]- (m:NetworkNode {Type:"Switch", GraphID: $graphId}) where n.Site > m.Site ' \
+                'return n.NodeID as source, l.NodeID as link, m.NodeID as sink, n.Site as source_site, ' \
+                'm.Site as sink_site, cp1.NodeID as source_cp, cp2.NodeID as sink_cp'
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).values()
+        if val is None:
+            return list()
+        return val
 
 
 class Neo4jCBMFactory:
