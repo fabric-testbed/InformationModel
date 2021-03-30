@@ -170,14 +170,13 @@ class Capacities(JSONField):
                 return False
         return True
 
-    def __repr__(self):
-        return self.to_json()
-
     def __str__(self):
         d = self.__dict__.copy()
         for k in self.__dict__:
             if d[k] is None or d[k] == 0:
                 d.pop(k)
+        if len(d) == 0:
+            return ''
         ret = "{ "
         for i, v in d.items():
             ret = ret + i + ": " + str(v) + self.UNITS[i] + " "
@@ -225,6 +224,18 @@ class Labels(JSONField):
         assert isinstance(other, Labels)
         # FIXME: does ADD mean finding a union of label sets per type?
         raise RuntimeError("Not Implemented")
+
+    def __str__(self):
+        d = self.__dict__.copy()
+        for k in self.__dict__:
+            if d[k] is None:
+                d.pop(k)
+        if len(d) == 0:
+            return ''
+        ret = "{ "
+        for i, v in d.items():
+            ret = ret + i + ": " + str(v) + " "
+        return ret + "}"
 
 
 class ReservationInfo(JSONField):
