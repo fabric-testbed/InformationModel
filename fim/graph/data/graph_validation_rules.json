@@ -28,7 +28,7 @@
     "msg": "All SwitchFabrics must be of type SwitchFabric"
   },
   {
-    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"DAC\", \"Wave\", \"Patch\"])",
+    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"DAC\", \"Wave\", \"Patch\", \"L2Path\"])",
     "msg": "All Links must be of type DAC, Patch or Wave"
   },
   {

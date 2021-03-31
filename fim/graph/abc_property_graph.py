@@ -373,7 +373,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                     # if property is not there, just return
                     continue
             # try loading it as JSON. Exception may be thrown
-            if props[prop_name] is not None and props[prop_name] != "None":
+            if props[prop_name] is not None and len(props[prop_name]) > 0 and props[prop_name] != "None":
                 try:
                     json.loads(props[prop_name])
                 except json.decoder.JSONDecodeError:
@@ -828,6 +828,16 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                 sfi.add_switch_fabric(sfsl)
             cs.switch_fabric_info = sfi
         return cs
+
+    def get_all_link_interfaces(self, link_id: str) -> List[str]:
+        assert link_id is not None
+        # check this is a link
+        labels, parent_props = self.get_node_properties(node_id=link_id)
+        if ABCPropertyGraph.CLASS_Link not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=link_id,
+                                              msg="Node type is not Link")
+        return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
 
 
 class ABCGraphImporter(ABC):

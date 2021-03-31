@@ -26,24 +26,20 @@
 
 from typing import Dict, Any, List, Tuple
 
-import uuid
-
 from fim.view_only_dict import ViewOnlyDict
-from .model_element import ElementType
 from .node import Node
-from .component import Component, ComponentType
-from .switch_fabric import SwitchFabric
 from .interface import Interface
 
-from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
-
-from ..slivers.network_node import NodeSliver
-from ..slivers.switch_fabric import SFLayer
+from ..graph.abc_property_graph import ABCPropertyGraph
 
 
 class CompositeNode(Node):
     """
-    A composite node of the topology
+    A composite node of the topology. In addition to public methods the following calls
+    return various dictionaries or lists:
+    node.components - a dictionary of components
+    node.interfaces - a dictionary of all interfaces
+    node.interface_list - a list of all interfaces
     """
 
     def __init__(self, *, name: str, node_id: str, topo: Any):

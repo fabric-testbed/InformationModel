@@ -121,7 +121,19 @@ Run pytest
 $ pytest [-s] test
 ```
 
-Some require Neo4j docker running to support tests of Neo4j-implemented models.
+This will produce substrate ARM models and save them into file in project root folder.
+
+To further test, do
+```
+$ cd test
+$ python neo4j-basic-tests.py
+```
+
+This runs a variety of tests among them processing the ARM models to ADM models and merging them
+into a CBM model, which is left in Neo4j. This allows to run further tests on top of a realistic
+CBM.
+
+These tests require Neo4j docker running to support tests of Neo4j-implemented models. 
 
 ## Rules for creating new graphs (Obsoleted Section)
 

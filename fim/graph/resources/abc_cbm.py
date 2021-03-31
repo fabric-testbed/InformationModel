@@ -27,7 +27,7 @@
 Abstract definition of CBM (Combined Broker Model) functionality.
 """
 from abc import ABCMeta, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import uuid
 
@@ -103,7 +103,8 @@ class ABCCBMPropertyGraph(ABCPropertyGraph):
         """
 
     @abstractmethod
-    def get_matching_nodes_with_components(self, *, label: str, props: Dict, comps: AttachedComponentsInfo = None) -> List[str]:
+    def get_matching_nodes_with_components(self, *, label: str, props: Dict,
+                                           comps: AttachedComponentsInfo = None) -> List[str]:
         """
         Return a list of Node IDs of network nodes of this class with these properties
         that have at least as many components of types and models as specified in comps.
@@ -111,5 +112,14 @@ class ABCCBMPropertyGraph(ABCPropertyGraph):
         the one that is not omitted. Comps can be None in which case only a match
         on properties is performed.
         :param comps:
+        :return:
+        """
+
+    @abstractmethod
+    def get_intersite_links(self) -> List[Tuple]:
+        """
+        Get a list of unique intersite links, and return a list of tuples
+        (Source NodeID, Link NodeID, Sink NodeID, Source Site, Sink Site,
+        Source CP NodeID, Sink CP NodeID).
         :return:
         """

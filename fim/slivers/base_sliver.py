@@ -185,8 +185,8 @@ class BaseSliver(ABC):
         print_vals = dict()
         for p in print_set:
             pval = self.get_property(p)
-            if pval is not None:
-                print_vals[p] = pval
+            if pval is not None and len(str(pval)) != 0:
+                print_vals[p] = str(pval)
         return str(print_vals)
 
     def __str__(self):

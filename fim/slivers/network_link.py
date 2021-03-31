@@ -34,6 +34,7 @@ class LinkType(enum.Enum):
     DAC = enum.auto()
     Wave = enum.auto()
     Patch = enum.auto()
+    L2Path = enum.auto()
 
     def __repr__(self):
         return self.name

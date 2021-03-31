@@ -43,7 +43,16 @@ from ..slivers.switch_fabric import SFLayer
 
 class Node(ModelElement):
     """
-    A basic node of the topology
+    A basic node of any topology. In addition to public methods the following calls
+    return various dictionaries or lists:
+    node.components - returns a dictionary of components by name
+    node.interfaces - returns a dictionary of interfaces by name
+    interface_list - returns a list of interfaces
+    direct_interfaces - returns a dictionary of direct interfaces, i.e. those
+    not attached to components (mostly relevant to switches, not servers
+    or VMs)
+    switch_fabrics - returns a dictionary of switch fabrics (mostly relevant
+    to switches, not servers or VMs)
     """
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,

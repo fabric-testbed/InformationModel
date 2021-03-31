@@ -39,7 +39,12 @@ from ..slivers.component_catalog import ComponentCatalog
 
 class Component(ModelElement):
     """
-    A component, like a GPU, a NIC, an FPGA or an NVMe drive
+    A component, like a GPU, a NIC, an FPGA or an NVMe drive of a node in a model.
+    In addition to public methods the following calls
+    return various dictionaries or lists:
+    component.interfaces - a dictionary of interfaces
+    component.interface_list - a list of interfaces
+    component.switch_fabrics - a dictionary of switch fabrics
     """
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
