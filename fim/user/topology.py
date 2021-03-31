@@ -43,9 +43,9 @@ from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
-from ..graph.resources.abc_bqm import ABCBQMPropertyGraph
 from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
+from fim.slivers.capacities_labels import Capacities, CapacityTuple
 
 from .model_element import ElementType
 from .node import Node
@@ -660,15 +660,21 @@ class AdvertizedTopology(Topology):
         """
         lines = list()
         for n in self.sites.values():
-            lines.append(n.name + ": " + str(n.get_property("capacities")))
+            ncp = CapacityTuple(total=n.get_property("capacities"),
+                                allocated=n.get_property("capacity_allocations"))
+            lines.append(n.name + ": " + str(ncp))
             lines.append("\tComponents:")
             for c in n.components.values():
+                ccp = CapacityTuple(total=c.get_property("capacities"),
+                                    allocated=c.get_property("capacity_allocations"))
                 lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
-                             c.get_property("model") + " " + str(c.get_property("capacities")))
+                             c.get_property("model") + " " + str(ccp))
             lines.append("\tSite Interfaces:")
             for i in n.interfaces.values():
+                icp = CapacityTuple(total=i.get_property("capacities"),
+                                    allocated=i.get_property("capacity_allocations"))
                 lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                             str(i.get_property("capacities")))
+                             str(icp))
         lines.append("Links:")
         for l in self.links.values():
             interface_names = [iff.name for iff in l.interface_list]

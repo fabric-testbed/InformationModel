@@ -373,7 +373,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                     # if property is not there, just return
                     continue
             # try loading it as JSON. Exception may be thrown
-            if props[prop_name] is not None and props[prop_name] != "None":
+            if props[prop_name] is not None and len(props[prop_name]) > 0 and props[prop_name] != "None":
                 try:
                     json.loads(props[prop_name])
                 except json.decoder.JSONDecodeError:

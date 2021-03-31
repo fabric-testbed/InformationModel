@@ -179,8 +179,36 @@ class Capacities(JSONField):
             return ''
         ret = "{ "
         for i, v in d.items():
-            ret = ret + i + ": " + str(v) + self.UNITS[i] + " "
+            ret = ret + i + ": " + str(v) + self.UNITS[i] + ", "
         return ret + "}"
+
+
+class CapacityTuple:
+    """
+    This class takes two capacities objects (what is the total
+    available and what is free) and helps print them.
+    """
+    def __init__(self, *, total: Capacities, allocated: Capacities):
+        assert total is not None
+        if allocated is None:
+            allocated = Capacities()
+        self.available = total
+        self.free = total - allocated
+
+    def __str__(self):
+        d2 = self.available.__dict__.copy()
+        d1 = self.free.__dict__.copy()
+
+        for k in self.free.__dict__:
+            if d1[k] == 0 and d2[k] == 0:
+                d1.pop(k)
+                d2.pop(k)
+        if len(d1) == 0:
+            return ''
+        ret = '{ '
+        for k in d1:
+            ret = ret + k + ": " + str(d1[k]) + "/" + str(d2[k]) + Capacities.UNITS[k] + ", "
+        return ret + '}'
 
 
 class Labels(JSONField):
@@ -234,7 +262,7 @@ class Labels(JSONField):
             return ''
         ret = "{ "
         for i, v in d.items():
-            ret = ret + i + ": " + str(v) + " "
+            ret = ret + i + ": " + str(v) + ", "
         return ret + "}"
 
 
