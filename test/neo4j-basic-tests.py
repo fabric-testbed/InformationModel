@@ -348,16 +348,16 @@ def test_3_site_load():
 if __name__ == "__main__":
 
     # print("Running basic tests")
-    # test_basic_neo4j()
+    test_basic_neo4j()
 
     # print("Running Neo4j ASM tests")
-    # test_neo4j_asm()
+    test_neo4j_asm()
 
     # print("Running ASM transfer tests")
-    # test_asm_transfer()
+    test_asm_transfer()
 
     # print("Testing loading ARM and BQM")
-    # test_arm_load()
+    test_arm_load()
 
     print('Testing Network AM')
     test_network_ad_load()
