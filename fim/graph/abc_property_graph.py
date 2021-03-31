@@ -516,6 +516,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
         if sliver.labels is not None:
             prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
+        if sliver.label_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
         if sliver.capacity_delegations is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
                 Delegation.from_sliver_field_to_json(sliver.capacity_delegations)
@@ -548,6 +552,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
         if sliver.labels is not None:
             prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
+        if sliver.label_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
         if sliver.capacity_delegations is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
                 Delegation.from_sliver_field_to_json(sliver.capacity_delegations)
@@ -582,6 +590,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
         if sliver.labels is not None:
             prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
+        if sliver.capacity_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
+        if sliver.label_allocations is not None:
+            prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
         if sliver.capacity_delegations is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
                 Delegation.from_sliver_field_to_json(sliver.capacity_delegations)
@@ -674,6 +686,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
                           label_delegations=Delegation.from_json_to_sliver_field(
                               d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
+                          capacity_allocations=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                                                            None)),
+                          label_allocations=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                     None)),
                           details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
                           node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
                           d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None
@@ -697,6 +713,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
                           label_delegations=Delegation.from_json_to_sliver_field(
                               d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
+                          capacity_allocations=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                                                            None)),
+                          label_allocations=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                     None)),
                           layer=sf.layer_from_str(d.get(ABCPropertyGraph.PROP_LAYER, None)),
                           details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
                           node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
@@ -721,6 +741,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
                            label_delegations=Delegation.from_json_to_sliver_field(
                                d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
+                           capacity_allocations=Capacities().from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                                                             None)),
+                           label_allocations=Labels().from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                      None)),
                            details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
                            node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
                            d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None
