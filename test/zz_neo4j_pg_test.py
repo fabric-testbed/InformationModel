@@ -16,7 +16,7 @@ class Neo4jTests(unittest.TestCase):
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "/Users/ibaldin/workspace-fabric/InfoModelTests/neo4j/imports/",
+             "import_host_dir": "neo4j/imports/",
              "import_dir": "/imports"}
 
     def setUp(self) -> None:
