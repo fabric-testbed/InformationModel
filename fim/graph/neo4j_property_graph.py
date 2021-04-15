@@ -574,6 +574,8 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
 class Neo4jGraphImporter(ABCGraphImporter):
 
+    index_initialized = False
+
     def __init__(self, *, url: str, user: str, pswd: str, import_host_dir: str, import_dir: str, logger=None):
         """
         URL of Neo4j instance, credentials and directory
@@ -599,6 +601,28 @@ class Neo4jGraphImporter(ABCGraphImporter):
             self.log = logging.getLogger(__name__)
         else:
             self.log = logger
+        self._add_indexes()
+
+    def _add_indexes(self):
+        """
+        Add required indexes in idempotent manner
+        :return:
+        """
+        if Neo4jGraphImporter.index_initialized:
+            return
+        Neo4jGraphImporter.index_initialized = True
+        index_file = os.path.join(os.path.dirname(__file__), 'data', 'neo4j_indexes.json')
+        f = open(index_file)
+        index_dict = json.load(f)
+        f.close()
+        self.log.info('Adding Neo4j indexes')
+        for index_name, index_cmd in index_dict.items():
+            with self.driver.session() as session:
+                try:
+                    session.run(index_cmd)
+                except:
+                    # ignore exceptions
+                    pass
 
     def _prep_graph(self, graph: str, graph_id: str = None) -> Tuple[str, str, str]:
         """
