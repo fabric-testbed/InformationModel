@@ -1,0 +1,6 @@
+{
+  "graphid": "CREATE INDEX graphid FOR (n:GraphNode) ON (n.GraphID)",
+  "graphid_nodeid": "CREATE INDEX graphid_nodeid FOR (n:GraphNode) ON (n.GraphID, n.NodeID)",
+  "graphid_node_id_type": "CREATE INDEX graphid_nodeid_type FOR (n:GraphNode) ON (n.GraphID, n.NodeID, n.Type)",
+  "graphid_type": "CREATE INDEX graphid_type FOR (n:GraphNode) ON (n.GraphID, n.Type)"
+}
