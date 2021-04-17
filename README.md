@@ -54,6 +54,10 @@ Control Framework, and generally are not exposed to end-users.
 
 ## Structure of the code
 
+This figure reflects the overall structure of the code:
+
+[Code structure](figs/fim-structure.png)
+
 Follow this link into [fim/README.md](fim/README.md) to explore.
 
 ## Development environment
