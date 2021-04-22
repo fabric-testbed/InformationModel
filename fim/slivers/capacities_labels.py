@@ -100,7 +100,7 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
-    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'G'}
+    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps'}
 
     def __init__(self):
         self.cpu = 0
@@ -179,7 +179,7 @@ class Capacities(JSONField):
             return ''
         ret = "{ "
         for i, v in d.items():
-            ret = ret + i + ": " + str(v) + self.UNITS[i] + ", "
+            ret = ret + i + ": " + f'{v:,} ' + self.UNITS[i] + ", "
         return ret + "}"
 
 
@@ -207,7 +207,7 @@ class CapacityTuple:
             return ''
         ret = '{ '
         for k in d1:
-            ret = ret + k + ": " + str(d1[k]) + "/" + str(d2[k]) + Capacities.UNITS[k] + ", "
+            ret = ret + k + ": " + f'{d1[k]:,}' + "/" + f'{d2[k]:,} ' + Capacities.UNITS[k] + ", "
         return ret + '}'
 
 
