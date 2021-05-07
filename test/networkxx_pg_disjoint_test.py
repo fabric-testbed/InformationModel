@@ -2,9 +2,10 @@ import unittest
 from typing import Dict
 
 import uuid
+import json
 
 import fim.graph.networkx_property_graph_disjoint as nx_graph
-from fim.graph.abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants
+from fim.graph.abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants, GraphFormat
 
 
 class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
@@ -277,3 +278,15 @@ class NetworkXPropertyGraphDisjointTests(unittest.TestCase):
         self.assertTrue((new_favs.get('Worker1'), None) is not None)
         self.assertTrue((new_favs.get('GPU1'), None) is not None)
         self.assertEqual(new_favs['Worker1'], favs['Worker1'])
+
+    def test_json_serialize(self):
+        graph_string = self.g.serialize_graph(format=GraphFormat.JSON_NODELINK)
+        json_object = json.loads(graph_string)
+        assert(json_object["directed"] is False)
+        assert(len(json_object["nodes"]) == 17)
+
+    def test_cytoscape_serialize(self):
+        graph_string = self.g.serialize_graph(format=GraphFormat.CYTOSCAPE)
+        json_object = json.loads(graph_string)
+        assert(json_object["directed"] is False)
+        assert(len(json_object["elements"]["nodes"]) == 17)

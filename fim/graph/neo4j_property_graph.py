@@ -39,7 +39,7 @@ import networkx as nx
 from neo4j import GraphDatabase
 
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
-    PropertyGraphQueryException, ABCGraphImporter
+    PropertyGraphQueryException, ABCGraphImporter, GraphFormat
 
 # to deal with intermittent APOC problems on MAC
 APOC_RETRY_COUNT = 10
@@ -322,11 +322,14 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                                                   node_b=node_b, kind=kind,
                                                   msg="Unable to set properties on a link")
 
-    def serialize_graph(self) -> str:
+    def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
         """
         Serialize a given graph into GraphML string or return None if graph not found
         :return:
         """
+        if format != GraphFormat.GRAPHML:
+            PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
+                                        msg=f"Unsupported export graph format {format.name}")
         inner_query = f'match(n:GraphNode {{GraphID: "{self.graph_id}"}}) optional match(n) -[r]- (m) return n, r, m'
         # run inner query to check the graph has anything in it
         with self.driver.session() as session:
