@@ -29,6 +29,7 @@ Abstract definition of ARM (Aggregate Resource Model) functionality
 from typing import Dict
 from abc import abstractmethod
 from typing import List
+from collections import defaultdict
 from recordclass import recordclass
 import json
 import uuid
@@ -48,6 +49,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
                                                     ABCPropertyGraph.FIELD_CAPACITY_POOL, Capacity)}
 
     DEFAULT_DELEGATION = "default"
+    # FIXME: see if dataclasses.dataclass decorator is a better choice here instead of recordclass
     LabelsAndProperties = recordclass('LabelsAndProperties', ['labels', 'properties'])
     DelegationInfo = recordclass('DelegationInfo', ['graph_id',
                                                     'graph',
@@ -328,6 +330,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
                             for del_id in unique_delegation_ids}
 
         node_ids_to_delegations = {node_id: list() for node_id in self.node_ids}
+        # FIXME: Test this: node_ids_to_delegations = defaultdict(list)
         for del_id in unique_delegation_ids:
             # build up lists of node ids that definitely belong to each delegation
             # as a union of all .for_ fields on pools and on all delegations
