@@ -32,7 +32,7 @@ import uuid
 from .attached_components import ComponentSliver, ComponentType
 from .interface_info import InterfaceInfo, InterfaceSliver, InterfaceType
 from .switch_fabric import SwitchFabricSliver, SwitchFabricInfo, SFLayer, SFType
-from .capacities_labels import Capacities
+from .capacities_labels import Capacities, Labels
 
 
 class ComponentCatalog:
@@ -54,7 +54,8 @@ class ComponentCatalog:
 
     def generate_component(self, *, name: str, ctype: ComponentType, model: str,
                            switch_fabric_node_id: str = None,
-                           interface_node_ids: List[str] = None) -> ComponentSliver:
+                           interface_node_ids: List[str] = None,
+                           interface_labels: List[Labels]) -> ComponentSliver:
         # FIXME: need to pass labels (PCI and MAC) for substrate ads so they can be
         # FIXME: propagated to ConnectionPoints/interfaces as part of creation
         """
@@ -67,7 +68,8 @@ class ComponentCatalog:
         :param ctype: type of the component
         :param model:
         :param switch_fabric_node_id: if specified and if component has a switch fabric, put that there
-        :param interface_node_ids: list of node ids for expected interfacaes if component has any
+        :param interface_node_ids: list of node ids for expected interfaces if component has any
+        :param interface_labels: mac addresses and PCI ids for each interface, if available
         :return:
         """
         assert name is not None
