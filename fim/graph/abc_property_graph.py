@@ -33,6 +33,7 @@ import uuid
 import networkx as nx
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Set, Tuple
+from enum import Enum
 
 import logging
 
@@ -45,6 +46,14 @@ from fim.slivers.network_node import NodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.switch_fabric import SwitchFabricSliver, SwitchFabricInfo
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
+
+
+class GraphFormat(Enum):
+    # default, works in Neo4j and NetworkX
+    GRAPHML = 1
+    # JSON formats are specific to NetworkX
+    JSON_NODELINK = 2
+    CYTOSCAPE = 3
 
 
 class ABCPropertyGraph(ABCPropertyGraphConstants):
@@ -231,9 +240,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
 
     @abstractmethod
-    def serialize_graph(self) -> str:
+    def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
         """
         Serialize a given graph into a string
+        :param format: indicate format (defaults to GraphML)
         :return:
         """
 
