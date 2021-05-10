@@ -36,7 +36,7 @@ import networkx as nx
 import networkx_query as nxq
 
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
-    PropertyGraphQueryException, ABCGraphImporter
+    PropertyGraphQueryException, ABCGraphImporter, GraphFormat
 from .networkx_mixin import NetworkXMixin
 
 
@@ -342,7 +342,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         self.storage.add_graph(new_graph_id, new_graph)
         return NetworkXPropertyGraph(graph_id=new_graph_id, importer=self.importer, logger=self.log)
 
-    def serialize_graph(self) -> str:
+    def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
         """
         Serialize a given graph into GraphML string or return None
         if graph is not found
@@ -351,7 +351,17 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         graph = self.storage.extract_graph(self.graph_id)
         graph_string = None
         if graph is not None:
-            graph_string = '\n'.join(nx.generate_graphml(graph))
+            if format == GraphFormat.GRAPHML:
+                graph_string = '\n'.join(nx.generate_graphml(graph))
+            elif format == GraphFormat.JSON_NODELINK:
+                json_object = nx.readwrite.node_link_data(graph)
+                graph_string = json.dumps(json_object)
+            elif format == GraphFormat.CYTOSCAPE:
+                json_object = nx.readwrite.cytoscape_data(graph)
+                graph_string = json.dumps(json_object)
+            else:
+                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
+                                                  msg=f"Unsupported export graph format {format.name}")
         return graph_string
 
     def graph_exists(self) -> bool:
