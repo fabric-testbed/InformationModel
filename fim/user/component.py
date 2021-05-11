@@ -33,6 +33,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph
 from .model_element import ModelElement, ElementType
 from .interface import Interface
 from .switch_fabric import SwitchFabric, SFLayer
+from ..slivers.capacities_labels import Labels
 from ..slivers.attached_components import ComponentSliver, ComponentType
 from ..slivers.component_catalog import ComponentCatalog
 
@@ -83,12 +84,33 @@ class Component(ModelElement):
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
                     (switch_fabric_node_id is None or interface_node_ids is None):
                 raise RuntimeError('For substrate topologies and components with network interfaces '
-                                   'static switch_fabric node id and interface node ids must be specified')
+                                   'static switch_fabric node id, interface node ids '
+                                   'must be specified')
             super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
+            # if labels are set on component, propagate down to the ports/interfaces - passing them
+            # to catalog ensures the order of ids and labels is same
+            # Note we don't know ahead of time if a component has ports.
+            interface_labels = None
+            if kwargs.get('labels', None) is not None:
+                # split the lists of BDF and MAC label fields into individual label assignments
+                all_labels = kwargs['labels']
+                if all_labels.bdf is not None and all_labels.mac is not None:
+                    interface_labels = list()
+                    # if bdf/macs are lists
+                    if isinstance(all_labels.bdf, list):
+                        for lab_tuple in zip(all_labels.bdf, all_labels.mac):
+                            port_labels = Labels().set_fields(bdf=lab_tuple[0], mac=lab_tuple[1])
+                            interface_labels.append(port_labels)
+                    else:
+                        # if a single value
+                        port_labels = Labels().set_fields(bdf=all_labels.bdf, mac=all_labels.mac)
+                        interface_labels.append(port_labels)
+
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   switch_fabric_node_id=switch_fabric_node_id,
-                                                  interface_node_ids=interface_node_ids)
+                                                  interface_node_ids=interface_node_ids,
+                                                  interface_labels=interface_labels)
             comp_sliver.node_id = node_id
             comp_sliver.set_properties(**kwargs)
 
