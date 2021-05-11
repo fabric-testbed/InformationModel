@@ -548,6 +548,10 @@ class AdTest(unittest.TestCase):
                                                                      mac='0C:42:A1:EA:C7:60'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
+        # test that labels propagated to the port
+        ilabs = gpuw_shnic.interface_list[0].get_property('labels')
+        assert(ilabs.bdf == '0000:a1:00.0')
+        assert(ilabs.mac == '0C:42:A1:EA:C7:60')
 
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
@@ -583,6 +587,13 @@ class AdTest(unittest.TestCase):
                                      labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
                                                                   mac=['0C:42:A1:EA:C7:50', '0C:42:A1:EA:C7:51']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
+
+        ilabs = fnw_nic1.interface_list[0].get_property('labels')
+        assert(ilabs.bdf == '0000:41:00.0')
+        assert(ilabs.mac == '0C:42:A1:EA:C7:50')
+        ilabs = fnw_nic1.interface_list[1].get_property('labels')
+        assert (ilabs.bdf == '0000:41:00.1')
+        assert (ilabs.mac == '0C:42:A1:EA:C7:51')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
