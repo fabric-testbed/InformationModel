@@ -52,7 +52,7 @@ class Component(ModelElement):
                  etype: ElementType = ElementType.EXISTING, model: str = None,
                  ctype: ComponentType = None, parent_node_id: str = None,
                  switch_fabric_node_id: str = None, interface_node_ids: List[str] = None,
-                 **kwargs):
+                 interface_labels: List[Labels] = None, **kwargs):
         """
         Don't call this yourself, use Node.add_component(). Instantiates components based on
         catalog resource file.
@@ -65,6 +65,7 @@ class Component(ModelElement):
         :param parent_node_id: node_id of the parent Node (for new components)
         :param switch_fabric_node_id: node id of switch fabric if one needs to be added (for substrate models only)
         :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
+        :param interface_labels: a list of Labels structure to associate with each interface
         """
 
         assert name is not None
@@ -82,30 +83,12 @@ class Component(ModelElement):
                 raise RuntimeError("Model and component type must be specified for new components")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
-                    (switch_fabric_node_id is None or interface_node_ids is None):
+                    (switch_fabric_node_id is None or interface_node_ids is None or interface_labels is None):
                 raise RuntimeError('For substrate topologies and components with network interfaces '
-                                   'static switch_fabric node id, interface node ids '
+                                   'static switch_fabric node id, interface node ids and interface labels'
                                    'must be specified')
             super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
-            # if labels are set on component, propagate down to the ports/interfaces - passing them
-            # to catalog ensures the order of ids and labels is same
-            # Note we don't know ahead of time if a component has ports.
-            interface_labels = None
-            if kwargs.get('labels', None) is not None:
-                # split the lists of BDF and MAC label fields into individual label assignments
-                all_labels = kwargs['labels']
-                if all_labels.bdf is not None and all_labels.mac is not None:
-                    interface_labels = list()
-                    # if bdf/macs are lists
-                    if isinstance(all_labels.bdf, list):
-                        for lab_tuple in zip(all_labels.bdf, all_labels.mac):
-                            port_labels = Labels().set_fields(bdf=lab_tuple[0], mac=lab_tuple[1])
-                            interface_labels.append(port_labels)
-                    else:
-                        # if a single value
-                        port_labels = Labels().set_fields(bdf=all_labels.bdf, mac=all_labels.mac)
-                        interface_labels.append(port_labels)
 
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   switch_fabric_node_id=switch_fabric_node_id,

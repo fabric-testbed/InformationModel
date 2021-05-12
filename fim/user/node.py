@@ -145,7 +145,7 @@ class Node(ModelElement):
 
     def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
                       model: str,  switch_fabric_node_id: str=None, interface_node_ids=None,
-                      **kwargs) -> Component:
+                      interface_labels=None, **kwargs) -> Component:
         """
         Add a component of specified type, model and name to this node. When working with substrate
         topologies you must specify the switch_fabric_node_id and provide a list of interface node ids.
@@ -156,6 +156,7 @@ class Node(ModelElement):
         :param name:
         :param switch_fabric_node_id: switch fabric identifier for substrate models
         :param interface_node_ids: interface identifiers for substrate models
+        :param interface_labels: list of labels for interfaces in substrate models
         :param kwargs: additional properties of the component
         :return:
         """
@@ -166,7 +167,7 @@ class Node(ModelElement):
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
                       ctype=ctype, model=model, switch_fabric_node_id=switch_fabric_node_id,
-                      interface_node_ids=interface_node_ids,
+                      interface_node_ids=interface_node_ids, interface_labels=interface_labels,
                       parent_node_id=self.node_id, **kwargs)
         return c
 

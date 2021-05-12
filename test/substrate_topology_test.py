@@ -157,9 +157,10 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('04:3F:72:B7:14:EC')],
+                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:14:EC',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                     mac='04:3F:72:B7:14:EC'),
+                                        labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -167,9 +168,10 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:B4')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:B4',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:18:B4'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -177,9 +179,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:16:14')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:16:14',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:16:14'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -192,10 +195,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:74'),
                                                          mac_to_node_id('04:3F:72:B7:15:75')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:74',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:75',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['04:3F:72:B7:15:74', '04:3F:72:B7:15:75']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -203,10 +210,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:5C'),
                                                          mac_to_node_id('04:3F:72:B7:19:5D')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:5C',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:19:5D',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['04:3F:72:B7:19:5C', '04:3F:72:B7:19:5D']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -214,10 +225,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:D4'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:D5')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:D4',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:D5',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:D4', '0C:42:A1:BE:8F:D5']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -225,10 +240,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:E8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:E9')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:E8',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:E9',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:E8', '0C:42:A1:BE:8F:E9']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
@@ -543,23 +562,25 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:60')],
+                                        interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:60',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0',
-                                                                     mac='0C:42:A1:EA:C7:60'),
+                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
         # test that labels propagated to the port
         ilabs = gpuw_shnic.interface_list[0].get_property('labels')
-        assert(ilabs.bdf == '0000:a1:00.0')
+        assert(ilabs.vlan_range == '1-4096')
         assert(ilabs.mac == '0C:42:A1:EA:C7:60')
 
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:E8')],
+                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:E8',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='0C:42:A1:EA:C7:E8'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -567,9 +588,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:1C')],
+                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:1C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='0C:42:A1:78:F8:1C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -582,17 +604,21 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:50'),
                                                          mac_to_node_id('0C:42:A1:EA:C7:51')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:50',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:EA:C7:51',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:EA:C7:50', '0C:42:A1:EA:C7:51']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         ilabs = fnw_nic1.interface_list[0].get_property('labels')
-        assert(ilabs.bdf == '0000:41:00.0')
+        assert(ilabs.vlan_range == '1-4096')
         assert(ilabs.mac == '0C:42:A1:EA:C7:50')
         ilabs = fnw_nic1.interface_list[1].get_property('labels')
-        assert (ilabs.bdf == '0000:41:00.1')
+        assert (ilabs.vlan_range == '1-4096')
         assert (ilabs.mac == '0C:42:A1:EA:C7:51')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -600,10 +626,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:04'),
                                                          mac_to_node_id('0C:42:A1:78:F8:05')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:04',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:78:F8:05',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:78:F8:04', '0C:42:A1:78:F8:05']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -611,10 +641,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:F8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:F9')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:F8',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:F9',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['00C:42:A1:BE:8F:F8', '0C:42:A1:BE:8F:F9']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -622,10 +656,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:DC'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:DD')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:DC',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:DD',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:DC', '0C:42:A1:BE:8F:DD']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
@@ -940,9 +978,10 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:8C')],
+                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:8C',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0',
-                                                                     mac='04:3F:72:B7:19:8C'),
+                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -950,9 +989,10 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:8C')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:8C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:15:8C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -960,9 +1000,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:7C')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:7C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:15:7C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -975,10 +1016,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:6C'),
                                                          mac_to_node_id('04:3F:72:B7:15:6D')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:6C',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:6D',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['04:3F:72:B7:15:6C', '04:3F:72:B7:15:6D']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -986,10 +1031,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:AC'),
                                                          mac_to_node_id('04:3F:72:B7:18:AD')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:AC',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:18:AD',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['04:3F:72:B7:18:AC', '04:3F:72:B7:18:AD']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -997,10 +1046,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:12'),
                                                          mac_to_node_id('0C:42:A1:91:75:13')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:12',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:13',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:91:75:12', '0C:42:A1:91:75:13']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -1008,10 +1061,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:0E'),
                                                          mac_to_node_id('0C:42:A1:91:75:0F')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:0E',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:0F',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:91:75:0E', '0C:42:A1:91:75:0F']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
