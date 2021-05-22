@@ -79,8 +79,6 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         for delegation_prop_name in [self.PROP_LABEL_DELEGATIONS, self.PROP_CAPACITY_DELEGATIONS]:
             # one or both of properties can have data, however only CBM or ADM
             # can have information about delegations - only one aggregate can speak for a resource
-            # NOTE: for simplicity we operate on a dictionary object directly without
-            # turning it into a Delegations
             if cbm_node_props.get(delegation_prop_name, None) is None:
                 cbm_delegations = None
             else:
