@@ -41,3 +41,16 @@ class Neo4jARMGraph(ABCARMPropertyGraph, Neo4jPropertyGraph):
         :param graph:
         """
         super().__init__(graph=graph, logger=logger)
+
+
+class Neo4jARMFactory:
+    """
+    Help convert graphs between formats so long as they are rooted in Neo4jPropertyGraph
+    """
+    @staticmethod
+    def create(graph: Neo4jPropertyGraph) -> Neo4jARMGraph:
+        assert graph is not None
+        assert isinstance(graph.importer, Neo4jGraphImporter)
+
+        return Neo4jARMGraph(graph=graph,
+                             logger=graph.log)

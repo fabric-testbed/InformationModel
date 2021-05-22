@@ -568,6 +568,15 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                         graphId1=other_graph.graph_id,
                         nodeId=node_id).single()
 
+    def get_stitch_nodes(self) -> List[str]:
+        query = f"MATCH (n:GraphNode {{GraphID: $graphId, StitchNode: 'true'}}) RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+            if val is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg="Unable to find stitch nodes")
+            return val.data()['nodeids']
+
 
 class Neo4jGraphImporter(ABCGraphImporter):
 

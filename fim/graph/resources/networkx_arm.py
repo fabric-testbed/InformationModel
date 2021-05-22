@@ -30,32 +30,27 @@ NetworkX implementation of ADM (Aggregate Delegation Model) functionality.
 import uuid
 
 from ..networkx_property_graph import NetworkXPropertyGraph, NetworkXGraphImporter
-from .abc_adm import ABCADMPropertyGraph
+from .abc_arm import ABCARMPropertyGraph
 
 
-class NetworkXADMGraph(ABCADMPropertyGraph, NetworkXPropertyGraph):
+class NetworkXARMGraph(ABCARMPropertyGraph, NetworkXPropertyGraph):
 
-    def __init__(self, *, graph_id: str = None, importer: NetworkXGraphImporter, logger=None):
+    def __init__(self, *, graph: NetworkXPropertyGraph, logger=None):
         """
-        Initialize CBM either from existing ID or generate new graph id
-        :param graph_id:
-        :param importer:
+        Initialize NetworkX ARM - supply an implementation of a graph
+        :param graph:
         """
-        if graph_id is None:
-            graph_id = str(uuid.uuid4())
-
-        super().__init__(graph_id=graph_id, importer=importer, logger=logger)
+        super().__init__(graph=graph, logger=logger)
 
 
-class NetworkXADMFactory:
+class NetworkXARMFactory:
     """
     Help convert graphs between formats so long as they are rooted in NetworkXPropertyGraph
     """
     @staticmethod
-    def create(graph: NetworkXPropertyGraph) -> NetworkXADMGraph:
+    def create(graph: NetworkXPropertyGraph) -> NetworkXARMGraph:
         assert graph is not None
         assert isinstance(graph.importer, NetworkXGraphImporter)
 
-        return NetworkXADMGraph(graph_id=graph.graph_id,
-                                importer=graph.importer,
+        return NetworkXARMGraph(graph=graph,
                                 logger=graph.log)

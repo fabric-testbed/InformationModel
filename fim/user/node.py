@@ -171,12 +171,13 @@ class Node(ModelElement):
                       parent_node_id=self.node_id, **kwargs)
         return c
 
-    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer):
+    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer, **kwargs):
         """
         Add a switch fabric to node (mostly needed in substrate topologies)
         :param name:
         :param node_id:
         :param layer:
+        :param kwargs:
         :return:
         """
         assert name is not None
@@ -184,7 +185,7 @@ class Node(ModelElement):
         if name in self.__list_switch_fabrics().keys():
             raise RuntimeError('SwitchFabric names must be unique within node.')
         sf = SwitchFabric(name=name, node_id=node_id, layer=layer, parent_node_id=self.node_id,
-                          etype=ElementType.NEW, topo=self.topo)
+                          etype=ElementType.NEW, topo=self.topo, **kwargs)
         return sf
 
     def remove_component(self, name: str) -> None:
