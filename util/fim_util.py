@@ -52,6 +52,7 @@ import argparse
 import sys
 import yaml
 import logging
+import traceback
 
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.graph.neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter, PropertyGraphImportException
@@ -60,18 +61,6 @@ from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.pluggable import PluggableRegistry
 
 FIM_CONFIG_YAML = "fim_config.yaml"
-
-
-class MyPlug:
-    """
-    Fake pluggable BQM broker class for FIM testing
-    """
-    def __init__(self):
-        print("Creating MyPlug")
-
-    def plug_produce_bqm(self, *, cbm: ABCPropertyGraph, **kwargs) -> ABCPropertyGraph:
-        print(f"Producing CBM as BQM {kwargs}")
-        return cbm
 
 
 def load_file(*, filename, graph_id, neo4j_config):
@@ -162,89 +151,6 @@ def save_graph(*, outfile, graph_id, neo4j_config):
         f.write(graph_string)
 
 
-def test_graph(*, graph_ids, neo4j_config):
-    """
-    crutch for running test functions quickly
-    :param graph_id:
-    :param neo4j_config:
-    :return:
-    """
-    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
-                                              pswd=neo4j_config["pass"],
-                                              import_host_dir=neo4j_config["import_host_dir"],
-                                              import_dir=neo4j_config["import_dir"])
-
-    r = PluggableRegistry()
-    #r.register_pluggable(t=PluggableType.Broker, p=MyPlug)
-
-    cbm = Neo4jCBMGraph(importer=neo4j_graph_importer)
-    print(f"CBM graph ID is {cbm.graph_id}")
-
-    net_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_ids[0], importer=neo4j_graph_importer))
-    #for node_id in net_graph.list_all_node_ids():
-    #    print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL))
-    #    print(net_graph.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY))
-
-    net_adms = net_graph.generate_adms()
-    print(f"Delegation graph(s) for net AM {net_adms}")
-    net_adm = net_adms['del1']
-    print("Merging Net ADM")
-    cbm.merge_adm(adm=net_adm)
-    for graph in net_adms.values():
-        graph.delete_graph()
-
-    arm_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_ids[1], importer=neo4j_graph_importer))
-    am_adms = arm_graph.generate_adms()
-    print(f"Delegation graph(s) for site AM {am_adms}")
-    # use del1
-    am_adm = am_adms['del1']
-    to_unmerge = am_adm.graph_id
-    print("Merging AM ADM")
-    cbm.merge_adm(adm=am_adm)
-
-    # unmerge then merge again
-    print('Unmerging ' + to_unmerge)
-    cbm.unmerge_adm(graph_id=to_unmerge)
-
-    print("Merging AM ADM again")
-    cbm.merge_adm(adm=am_adm)
-
-    snapshot = cbm.snapshot()
-
-    cbm.unmerge_adm(graph_id=to_unmerge)
-
-    cbm.rollback(graph_id=snapshot)
-
-    for graph in am_adms.values():
-        graph.delete_graph()
-
-    arm_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_ids[2], importer=neo4j_graph_importer))
-    am_adms = arm_graph.generate_adms()
-    print(f"Delegation graph(s) for site AM {am_adms}")
-    # use del1
-    am_adm = am_adms['del1']
-    print("Merging AM ADM")
-    cbm.merge_adm(adm=am_adm)
-    for graph in am_adms.values():
-        graph.delete_graph()
-
-    arm_graph = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=graph_ids[3], importer=neo4j_graph_importer))
-    am_adms = arm_graph.generate_adms()
-    print(f"Delegation graph(s) for site AM {am_adms}")
-    # use del1
-    am_adm = am_adms['del1']
-    print("Merging AM ADM")
-    cbm.merge_adm(adm=am_adm)
-    for graph in am_adms.values():
-        graph.delete_graph()
-
-    #for node_id in cbm.list_all_node_ids():
-    #    print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.LABEL, adm_id=am_adm.graph_id))
-    #    print(cbm.get_delegations(node_id=node_id, delegation_type=DelegationType.CAPACITY, adm_id=am_adm.graph_id))
-
-    cbm.get_bqm(some=5)
-
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -258,8 +164,6 @@ if __name__ == "__main__":
     operations.add_argument("-e", "--enumerate", action="store_true",
                             help="enumerate all nodes in a graph in specified file"
                                  " assigning them unique GUIDs and save (requires -f and -o)")
-    operations.add_argument("-t", "--test", action="store_true",
-                            help="invoke test action (-g)")
     operations.add_argument("-s", "--save", action="store_true",
                             help="save a specific graph into a file (requires -o and -g)")
     parser.add_argument("-c", "--config", action="store", default=FIM_CONFIG_YAML,
@@ -305,6 +209,7 @@ if __name__ == "__main__":
                 sys.exit(-1)
         except Exception as e:
             print(f"Unable to load file {args.file} to Neo4j due to {e.args}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
             sys.exit(-1)
     elif args.wipe:
         # wipe one graph or whole database
@@ -333,15 +238,5 @@ if __name__ == "__main__":
 
         print(f"Saving graph {graph} into file {outfile}")
         save_graph(outfile=outfile, graph_id=graph, neo4j_config=yaml_config["neo4j"])
-    elif args.test:
-        # some test action
-        graph = args.graph
-        print(f"Running test command on {graph}")
-        #test_graph(graph_id=graph, neo4j_config=yaml_config["neo4j"])
-        test_graph(graph_ids=["936bbc55-b3c0-43b7-aee5-fbfbdeffd513",
-                              "0394b803-e0ec-41c4-b7e7-4769c9d9873b",
-                              "24f6ce3f-5860-4dcb-bf88-acc77a663f8f",
-                              "e8f66ca9-90d3-4b0f-8f55-2c734a2b60ab"],
-                   neo4j_config=yaml_config["neo4j"])
     else:
         print("Please specify one of -h, -l, -e or -w", file=sys.stderr)
