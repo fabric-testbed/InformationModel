@@ -88,9 +88,11 @@ class ModelElement(ABC):
 
     def __repr__(self):
         labels, node_props = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        # filter out some properties we don't need
         node_props.pop(ABCPropertyGraph.GRAPH_ID)
         if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
             node_props.pop(ABCPropertyGraph.NODE_ID)
+            node_props.pop(ABCPropertyGraph.PROP_STITCH_NODE)
         ret = str(labels) + str(node_props)
         return ret
 

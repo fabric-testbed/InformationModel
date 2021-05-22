@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List, Dict, Tuple, Any
 import enum
 
@@ -42,8 +42,8 @@ from ..slivers.switch_fabric import SFLayer
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.abc_property_graph import ABCPropertyGraph
-from ..graph.resources.networkx_adm import NetworkXADMGraph, NetworkXGraphImporter
-from ..slivers.delegations import Delegation, ARMDelegations, ARMPools, DelegationType
+from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
+from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 from fim.slivers.capacities_labels import Capacities, CapacityTuple
 
@@ -399,45 +399,48 @@ class SubstrateTopology(Topology):
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
         super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
 
-    def as_adm(self):
+    def as_arm(self):
         """
-        Return model as ADM graph built on top of internal model. Model is not cloned or copied,
-        rather recast into ADM, so any changes to the model propagate back to the topology.
+        Return model as ARM graph built on top of internal model. Model is not cloned or copied,
+        rather recast into ARM, so any changes to the model propagate back to the topology.
         :return:
         """
-        return NetworkXADMGraph(graph_id=self.graph_model.graph_id,
-                                importer=self.graph_model.importer,
+        return NetworkXARMGraph(graph=self.graph_model,
                                 logger=self.graph_model.log)
 
     @staticmethod
-    def __copy_to_delegation(e: ModelElement, atype: DelegationType,
-                             delegation_id: str) -> Delegation or None:
+    def __copy_to_delegations(e: ModelElement, atype: DelegationType,
+                              delegation_id: str) -> Delegations or None:
         """
-        From a model element (node, components, switch_fabric, interface), copy
-        capacities or labels to delegation and return delegation)
+        From a model element (node, component, switch_fabric, interface), copy
+        capacities or labels to a Delegations and return Delegations or none if
+        no capacities or labels specified. Return None if element is a stitch node.
         :param e:
         :return:
         """
         assert e is not None
         assert delegation_id is not None
-        ret = Delegation(atype=atype, defined_on=e.node_id, delegation_id=delegation_id)
+        if e.get_property("stitch_node"):
+            return None
         if atype == DelegationType.CAPACITY:
             caps_or_labels = e.get_property(pname='capacities')
-            if caps_or_labels is not None:
-                ret.set_details_from_capacities(caps_or_labels)
-                return ret
         else:
             caps_or_labels = e.get_property(pname='labels')
-            if caps_or_labels is not None:
-                ret.set_details_from_labels(caps_or_labels)
-                return ret
+        if caps_or_labels is not None:
+            d = Delegation(atype=atype, delegation_id=delegation_id, aformat=DelegationFormat.SinglePool)
+            d.set_details(caps_or_labels)
+            # encapsulate in Delegations - this is a single delegation case, no others will be added
+            ret = Delegations(atype=atype)
+            ret.add_delegations(d)
+            return ret
         return None
 
-    def single_delegation(self, *, delegation_id: str, label_pools: ARMPools, capacity_pools: ARMPools):
+    def single_delegation(self, *, delegation_id: str, label_pools: Pools, capacity_pools: Pools):
         """
         For simple cases when there is one delegation that delegates everything. Be sure to have
         capacities and labels specified on individual elements where needed - they get copied
-        into delegations. Pools must be specified externally.
+        into delegations. Pools must be specified externally. There is no way to specify on
+        the same node a single element delegation and a pool definition or reference.
         :param delegation_id:
         :param label_pools:
         :param capacity_pools:
@@ -446,42 +449,42 @@ class SubstrateTopology(Topology):
         assert label_pools.pool_type == DelegationType.LABEL
         assert capacity_pools.pool_type == DelegationType.CAPACITY
 
-        delegations = {DelegationType.CAPACITY: ARMDelegations(DelegationType.CAPACITY),
-                       DelegationType.LABEL: ARMDelegations(DelegationType.LABEL)}
+        delegations_dicts = {DelegationType.CAPACITY: dict(),
+                             DelegationType.LABEL: dict()}
         pool_dict = {DelegationType.CAPACITY: capacity_pools,
                      DelegationType.LABEL: label_pools}
         for t in DelegationType:
             for n in self.nodes.values():
-                # delegate every node and its component by copying their capacities and labels
-                # if present
-                delegation = self.__copy_to_delegation(e=n, atype=t,
-                                                       delegation_id=delegation_id)
-                if delegation is not None:
-                    delegations[t].add_delegation(delegation)
+                # delegate every NetworkNode and its component by copying their capacities and labels
+                # if present. Each delegations object is intended for one node.
+                delegations = self.__copy_to_delegations(e=n, atype=t,
+                                                         delegation_id=delegation_id)
+                if delegations is not None:
+                    delegations_dicts[t][n.node_id] = delegations
                 # components
                 for c in n.components.values():
-                    delegation = self.__copy_to_delegation(e=c, atype=t,
-                                                           delegation_id=delegation_id)
-                    if delegation is not None:
-                        delegations[t].add_delegation(delegation)
+                    delegations = self.__copy_to_delegations(e=c, atype=t,
+                                                             delegation_id=delegation_id)
+                    if delegations is not None:
+                        delegations_dicts[t][c.node_id] = delegations
                     for i in c.interfaces.values():
-                        delegation = self.__copy_to_delegation(e=i, atype=t,
-                                                               delegation_id=delegation_id)
-                        if delegation is not None:
-                            delegations[t].add_delegation(delegation)
+                        delegations = self.__copy_to_delegations(e=i, atype=t,
+                                                                 delegation_id=delegation_id)
+                        if delegations is not None:
+                            delegations_dicts[t][i.node_id] = delegations
                 # switchfabrics (for eg switches)
                 for sf in n.switch_fabrics.values():
-                    delegation = self.__copy_to_delegation(e=sf, atype=t,
-                                                           delegation_id=delegation_id)
-                    if delegation is not None:
-                        delegations[t].add_delegation(delegation)
+                    delegations = self.__copy_to_delegations(e=sf, atype=t,
+                                                             delegation_id=delegation_id)
+                    if delegations is not None:
+                        delegations_dicts[t][sf.node_id] = delegations
                     for i in sf.interfaces.values():
-                        delegation = self.__copy_to_delegation(e=i, atype=t,
-                                                               delegation_id=delegation_id)
-                        if delegation is not None:
-                            delegations[t].add_delegation(delegation)
+                        delegations = self.__copy_to_delegations(e=i, atype=t,
+                                                                 delegation_id=delegation_id)
+                        if delegations is not None:
+                            delegations_dicts[t][i.node_id] = delegations
 
-            self.as_adm().annotate_delegations_and_pools(dels=delegations[t],
+            self.as_arm().annotate_delegations_and_pools(dels=delegations_dicts[t],
                                                          pools=pool_dict[t])
 
 
