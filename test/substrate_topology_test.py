@@ -42,71 +42,74 @@ class AdTest(unittest.TestCase):
         gpuw = self.topo.add_node(name='renc-w1',
                                   model=worker_model, site=site,
                                   node_id='HX6VQ53',
-                                  ntype=f.NodeType.Server, capacities=gpu_worker_cap)
+                                  ntype=f.NodeType.Server,
+                                  capacities=gpu_worker_cap)
+
         fnw = self.topo.add_node(name='renc-w2',
                                  model=worker_model, site=site,
                                  node_id='HX7LQ53',
-                                 ntype=f.NodeType.Server, capacities=network_worker_cap)
+                                 ntype=f.NodeType.Server,
+                                 capacities=network_worker_cap)
         snw = self.topo.add_node(name='renc-w3',
                                  model=worker_model, site=site,
                                  node_id='HX7KQ53',
-                                 ntype=f.NodeType.Server, capacities=network_worker_cap)
+                                 ntype=f.NodeType.Server,
+                                 capacities=network_worker_cap)
 
         #
         # Disks
         #
 
+        nvme_cap = f.Capacities().set_fields(unit=1, disk=1000)
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ016004CC1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                       capacities=nvme_cap,
                                        labels=f.Labels().set_fields(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ0160047K1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                       capacities=nvme_cap,
                                        labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301TU1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='000:21:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
+        fn_nvme2 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ016004CK1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
+        fn_nvme3 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016002P61P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:23:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
+        fn_nvme4 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004CL1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:24:00.0'))
-
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301V81P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:21:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
+        sn_nvme2 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160047L1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
+        sn_nvme3 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016004CJ1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:23:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
+        sn_nvme4 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004C91P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:24:00.0'))
 
         #
@@ -114,37 +117,38 @@ class AdTest(unittest.TestCase):
         # consistent string
         #
 
+        unit_cap = f.Capacities().set_fields(unit=1)
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
+                                      capacities=unit_cap,
                                       labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
+                                      capacities=unit_cap,
                                       labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         #
@@ -268,10 +272,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
@@ -364,15 +365,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -388,24 +389,25 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
-        self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+        # pools are blank - all delegations for interfaces are in the network ad
+        self.topo.single_delegation(delegation_id=delegation1,
+                                    label_pools=pools,
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": '
+                                                                              '"shared_pool", "labels": '
+                                                                              '{"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                             '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='RENCI-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -684,10 +686,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
@@ -780,15 +779,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -804,24 +803,22 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
         self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": "shared_pool", '
+                                                                              '"labels": {"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                              '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='UKY-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -1089,10 +1086,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
@@ -1185,15 +1179,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -1209,24 +1203,23 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
         self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": "shared_pool", '
+                                                                              '"labels": '
+                                                                              '{"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                              '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='LBNL-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -1253,9 +1246,9 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2450R1BL',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf', stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1268,42 +1261,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards UKY and LBNL
         renc_uky = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1320,9 +1313,10 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2451R0XZ',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf',
+                                         stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1335,42 +1329,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards RENC and LBNL
         uky_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1388,9 +1382,9 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2450R1AR',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf', stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1403,42 +1397,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards UKY and RENC
         lbnl_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1464,7 +1458,7 @@ class AdTest(unittest.TestCase):
 
         delegation1 = 'primary'
         self.topo.single_delegation(delegation_id=delegation1,
-                                    label_pools=f.ARMPools(atype=f.DelegationType.LABEL),
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    label_pools=f.Pools(atype=f.DelegationType.LABEL),
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         self.topo.serialize(file_name='Network-ad.graphml')
