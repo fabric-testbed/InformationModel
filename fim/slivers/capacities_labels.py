@@ -60,7 +60,6 @@ class JSONField(ABC):
     def from_json(cls, json_string: str):
         """
         Set fields from json string and returns a new object
-        :param json_field:
         :param json_string:
         :return: object
         """
