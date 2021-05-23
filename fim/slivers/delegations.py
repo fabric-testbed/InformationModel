@@ -30,7 +30,7 @@ applies to and can be set/queried for that information.
 """
 
 from enum import Enum
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 import json
 
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
@@ -165,6 +165,17 @@ class Delegations:
         """
         assert delegation_id is not None
         return self.delegations.get(delegation_id, None)
+
+    def get_sole_delegation(self) -> Tuple[str, Delegation]:
+        """
+        Checks that delegations object has just one delegation and returns
+        a tuple of delegation id and delegation object. Useful primarily on CBMs.
+        :return:
+        """
+        if len(self.delegations) != 1:
+            raise DelegationException(msg=f"Expected to find only one delegation in Delegations object {self}")
+        for k, v in self.delegations.items():
+            return k, v
 
     def get_delegations_as_list(self) -> List[Delegation]:
         """
