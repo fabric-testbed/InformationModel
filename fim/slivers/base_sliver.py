@@ -90,14 +90,14 @@ class BaseSliver(ABC):
         assert(cdel is None or isinstance(cdel, Delegations))
         self.capacity_delegations = cdel
 
-    def get_capacity_delegations(self) -> List or Dict:
+    def get_capacity_delegations(self) -> Delegations:
         return self.capacity_delegations
 
     def set_label_delegations(self, ldel: Delegations):
         assert(ldel is None or isinstance(ldel, Delegations))
         self.label_delegations = ldel
 
-    def get_label_delegations(self) -> List or Dict:
+    def get_label_delegations(self) -> Delegations:
         return self.label_delegations
 
     def set_label_allocations(self, lab: Labels) -> None:
