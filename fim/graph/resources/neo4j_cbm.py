@@ -37,8 +37,9 @@ from ..abc_property_graph import ABCPropertyGraph, ABCPropertyGraphConstants, Pr
 from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
 from .abc_cbm import ABCCBMPropertyGraph
 from .neo4j_adm import Neo4jADMGraph
-from fim.slivers.delegations import DelegationType
-from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
+from fim.slivers.capacities_labels import StructuralInfo, StructuralInfoException
+from fim.slivers.delegations import DelegationType, Delegations
+from fim.slivers.attached_components import AttachedComponentsInfo
 
 from ...pluggable import PluggableRegistry, BrokerPluggable, PluggableType
 
@@ -47,7 +48,6 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
     """
     Neo4j implementation of CBM
     """
-    PROP_ADM_GRAPH_IDS = "ADMGraphIDs"
     BQM_MERGED_FIELDS = ['LabelDelegations', 'CapacityDelegations']
     DELEGATION_TYPE_TO_PROP_NAME = {DelegationType.LABEL: ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
                                     DelegationType.CAPACITY: ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS
@@ -70,29 +70,41 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         on common nodes) from corresponding ADM node.
         Must be invoked before ADM is merged into CBM.
         :param node_id:
-        :param adm_id:
+        :param adm:
         :return:
         """
         _, cbm_node_props = self.get_node_properties(node_id=node_id)
         _, adm_node_props = adm.get_node_properties(node_id=node_id)
         props_modified = False
         for delegation_prop_name in [self.PROP_LABEL_DELEGATIONS, self.PROP_CAPACITY_DELEGATIONS]:
-            # one or both of properties can have data
-            if cbm_node_props.get(delegation_prop_name, None) is None or \
-                    cbm_node_props[delegation_prop_name] == self.NEO4j_NONE:
-                cbm_delegation_dict = dict()
+            # one or both of properties can have data, however only CBM or ADM
+            # can have information about delegations - only one aggregate can speak for a resource
+            if cbm_node_props.get(delegation_prop_name, None) is None:
+                cbm_delegations = None
             else:
-                cbm_delegation_dict = json.loads(cbm_node_props[delegation_prop_name])
+                cbm_delegations = Delegations.from_json(json_str=cbm_node_props[delegation_prop_name],
+                                                        atype=DelegationType.LABEL if
+                                                        delegation_prop_name == self.PROP_LABEL_DELEGATIONS else
+                                                        DelegationType.CAPACITY)
 
-            if adm_node_props.get(delegation_prop_name, None) is None or \
-                    adm_node_props[delegation_prop_name] == self.NEO4j_NONE:
+            if adm_node_props.get(delegation_prop_name, None) is None:
+                adm_delegations = None
+            else:
+                adm_delegations = Delegations.from_json(json_str=adm_node_props[delegation_prop_name],
+                                                        atype=DelegationType.LABEL if
+                                                        delegation_prop_name == self.PROP_LABEL_DELEGATIONS else
+                                                        DelegationType.CAPACITY)
+
+            if adm_delegations is None and cbm_delegations is None:
                 continue
+            if adm_delegations is not None and cbm_delegations is not None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                                  msg=f'This node contains delegations from both CBM and ADM graph,'
+                                                      f'which is not allowed.')
             props_modified = True
-            # turn delegation into Python object by merging two dictionaries
-            adm_delegation = json.loads(adm_node_props[delegation_prop_name])
-            cbm_delegation_dict.update(adm_delegation)
-            new_delegation_json = json.dumps(cbm_delegation_dict)
-            cbm_node_props[delegation_prop_name] = new_delegation_json
+            # take the non-None dictionary and write back
+            new_delegations = cbm_delegations if cbm_delegations is not None else adm_delegations
+            cbm_node_props[delegation_prop_name] = new_delegations.to_json()
         if props_modified:
             # write back
             self.update_node_properties(node_id=node_id, props=cbm_node_props)
@@ -103,7 +115,6 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         :param adm:
         :return:
         """
-        print(f'ADM GraphID is {adm.graph_id}')
         assert adm is not None
         assert adm.graph_exists()
 
@@ -121,9 +132,10 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         # but be sure to use original ADM graph ID when rewriting
         temp_adm_graph.rewrite_delegations(real_adm_id=adm.graph_id)
 
-        # update the ADMGraphIDs property to a single member list on all CBM nodes
-        temp_adm_graph.update_nodes_property(prop_name=self.PROP_ADM_GRAPH_IDS,
-                                             prop_val=json.dumps([adm.graph_id]))
+        # update the structural info adm_graph_ids field to a single member list on all CBM nodes
+        si = StructuralInfo().set_fields(adm_graph_ids=[adm.graph_id])
+        temp_adm_graph.update_nodes_property(prop_name=self.PROP_STRUCTURAL_INFO,
+                                             prop_val=si.to_json())
 
         # if CBM is empty, just force ADM into it
         if not self.graph_exists():
@@ -143,11 +155,12 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         # Labels: use CBM - may have information from reservations already
         # Capacities: use CBM - may have information from reservations already - should be same
         # in both graphs initially
-        # LabelDelegations: use CBM, edit/add from ADM
-        # CapacityDelegations: use CBM, edit/add from ADM
+        # LabelDelegations: delegations can be provided only by one graph - either CBM or ADM
+        # CapacityDelegations: delegations can be provided only by one graph - either CBM or ADM
         for node_id in common_node_ids:
-            # update Label and Capacity delegation (now they are dictionaries, not lists)
-            # prior to merge
+            # update Label and Capacity delegation prior to merge
+            # when nodes are merged, these properties are kept, ADM properties
+            # are discarded
             self._update_node_delegations(node_id=node_id, adm=temp_adm_graph)
 
             # default behavior - keep CBM node properties, discard
@@ -157,10 +170,10 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
             # add delegation graph id to ADMGraphIDs property on common (merged) nodes
             _, cbm_node_props = self.get_node_properties(node_id=node_id)
-            adm_list = json.loads(cbm_node_props[self.PROP_ADM_GRAPH_IDS])
-            adm_list.append(adm.graph_id)
-            self.update_node_property(node_id=node_id, prop_name=self.PROP_ADM_GRAPH_IDS,
-                                      prop_val=json.dumps(adm_list))
+            si = StructuralInfo.from_json(cbm_node_props[self.PROP_STRUCTURAL_INFO])
+            si.adm_graph_ids.append(adm.graph_id)
+            self.update_node_property(node_id=node_id, prop_name=self.PROP_STRUCTURAL_INFO,
+                                      prop_val=si.to_json())
 
         # rewrite GraphID on the remaining nodes of
         # temporary ADM graph (after that it ceases to exist)
@@ -175,39 +188,47 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         # to remove.
         delete_nodes = list()
         for node in self.list_all_node_ids():
-            adm_graph_ids = self.get_node_json_property_as_object(node_id=node,
-                                                                  prop_name=self.PROP_ADM_GRAPH_IDS)
-            if adm_graph_ids is None:
+            _, adm_node_props = self.get_node_properties(node_id=node)
+            si = StructuralInfo.from_json(adm_node_props[self.PROP_STRUCTURAL_INFO])
+
+            if si.adm_graph_ids is None:
                 self.log.warn(f'When unmerging ADMs encountered node {node} '
-                              f'without {self.PROP_ADM_GRAPH_IDS} property')
+                              f'without adm_graph_ids field in property {adm_node_props[self.PROP_STRUCTURAL_INFO]}')
                 continue
-            if not isinstance(adm_graph_ids, list):
+            if not isinstance(si.adm_graph_ids, list):
                 raise PropertyGraphQueryException(node_id=node, graph_id=self.graph_id,
                                                   msg=f"When unmerging graph {graph_id}, encountered wrongly"
-                                                      f"formatted {self.PROP_ADM_GRAPH_IDS} field")
-            if graph_id in adm_graph_ids:
+                                                      f"formatted {self.PROP_STRUCTURAL_INFO} field "
+                                                      f"{adm_node_props[self.PROP_STRUCTURAL_INFO]}")
+            if graph_id in si.adm_graph_ids:
                 # update the ADM Graph IDs field
-                adm_graph_ids.remove(graph_id)
-                if len(adm_graph_ids) == 0:
+                si.adm_graph_ids.remove(graph_id)
+                if len(si.adm_graph_ids) == 0:
                     delete_nodes.append(node)
                 else:
                     # update
-                    self.update_node_property(node_id=node, prop_name=self.PROP_ADM_GRAPH_IDS,
-                                              prop_val=json.dumps(adm_graph_ids))
+                    self.update_node_property(node_id=node, prop_name=self.PROP_STRUCTURAL_INFO,
+                                              prop_val=si.to_json())
             # also unmerge delegations
-            for del_type in [self.PROP_CAPACITY_DELEGATIONS, self.PROP_LABEL_DELEGATIONS]:
-                delegations = self.get_node_json_property_as_object(node_id=node,
-                                                                    prop_name=del_type)
+            for del_prop in [self.PROP_CAPACITY_DELEGATIONS, self.PROP_LABEL_DELEGATIONS]:
+                if del_prop not in adm_node_props.keys():
+                    continue
+                delegations = Delegations.from_json(json_str=adm_node_props[del_prop],
+                                                    atype=DelegationType.LABEL if
+                                                    del_prop == self.PROP_LABEL_DELEGATIONS
+                                                    else DelegationType.CAPACITY)
                 if delegations is None:
                     continue
-                if not isinstance(delegations, dict):
-                    raise PropertyGraphQueryException(node_id=node, graph_id=self.graph_id,
-                                                      msg=f"When unmerging graph {graph_id}, encountered wrongly"
-                                                          f"formatted {del_type} field")
-                if graph_id in delegations.keys():
-                    delegations.pop(graph_id)
-                    self.update_node_property(node_id=node, prop_name=del_type,
-                                              prop_val=json.dumps(delegations))
+                if graph_id in delegations.get_delegation_ids():
+                    delegations.remove_by_id(graph_id)
+                    if len(delegations.get_delegation_ids()) != 0:
+                        raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node,
+                                                          msg=f'This node had more than one delegation, remaining:'
+                                                              f'{delegations}')
+                    # under normal circumstances we should erase the delegation after unmerge if
+                    # it belonged to the graph being removed
+                    self.update_node_property(node_id=node, prop_name=del_prop,
+                                              prop_val='')
 
         # remove the merged nodes
         for node in delete_nodes:

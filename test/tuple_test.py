@@ -1,7 +1,9 @@
 import unittest
 
 from fim.graph.typed_tuples import Label, Capacity, Location
-from fim.slivers.delegations import Pool, ARMPools, DelegationType
+from fim.slivers.capacities_labels import Capacities, Labels
+from fim.slivers.delegations import Pool, Pools, DelegationType
+
 
 class TupleTests(unittest.TestCase):
 
@@ -51,15 +53,14 @@ class TupleTests(unittest.TestCase):
         p.set_defined_on(node_id="node1")
         p.set_defined_for(node_id_list=["node4"])
         p.add_defined_for(node_ids=["node2", "node3", "node1"])
-        p.set_pool_details(pool_dict={"blah": "blahblah"})
+        p.set_pool_details(caporlab=Capacities().set_fields(cpu=2, ram=1024))
 
-        pp = ARMPools(atype=DelegationType.LABEL)
+        pp = Pools(atype=DelegationType.LABEL)
         pp.add_pool(pool=p)
         pp.build_index_by_delegation_id()
         p1l = pp.get_pools_by_delegation_id(delegation_id="del1")
         p2 = pp.get_pool_by_id(pool_id="pool1")
         assert p2 in p1l
-
 
 if __name__ == "__main__":
     unittest.main()

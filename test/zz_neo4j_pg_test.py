@@ -6,7 +6,7 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter, Neo4jPropertyGrap
 from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
-from fim.slivers.delegations import Delegation, DelegationFormat
+from fim.slivers.delegations import Delegation
 
 from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
 
@@ -167,21 +167,7 @@ class Neo4jTests(unittest.TestCase):
         list_of_nodes = cbm.get_matching_nodes_with_components(
             label=ABCPropertyGraphConstants.CLASS_NetworkNode,
             props={'Name': 'renc-w3'})
-        _, props = cbm.get_node_properties(node_id=list_of_nodes[0])
-        assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
-               DelegationFormat.CBMDelegation
-        print(f'Delegation in CBM: {props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]}')
-        delegation_info = Delegation.from_json_to_sliver_field(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS])
-        print(f'Delegation as object {delegation_info}')
-        for k, d in delegation_info.items():
-            print(f'Delegation value type is {d.__class__}')
 
-        _, props = site_arm.get_node_properties(node_id=list_of_nodes[0])
-        assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
-               DelegationFormat.ARMDelegation
-        _, props = site_adms['primary'].get_node_properties(node_id=list_of_nodes[0])
-        assert Delegation.get_delegation_format(props[ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS]) == \
-               DelegationFormat.ADMDelegation
 
         print('Deleting ADM and ARM graphs')
         for adm in site_adms.values():
@@ -280,17 +266,20 @@ class Neo4jTests(unittest.TestCase):
         cbm = Neo4jCBMGraph(importer=self.n4j_imp)
 
         adm_ids = dict()
+        site_arms = dict()
 
         for ad in site_ads:
             plain_neo4j = self.n4j_imp.import_graph_from_file_direct(graph_file=ad)
-            print(f"Validating ARM graph {ad}")
+            print(f"Validating ARM graph {ad} with id {plain_neo4j.graph_id}")
             plain_neo4j.validate_graph()
 
-            site_arm = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
-                                                              importer=self.n4j_imp))
+            site_arms[ad] = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
+                                                                   importer=self.n4j_imp))
             # generate a dict of ADMs from site graph ARM
-            site_adms = site_arm.generate_adms()
-            print('ADMS' + str(site_adms.keys()))
+            site_adms = site_arms[ad].generate_adms()
+            print('ADMS ' + str(site_adms.keys()))
+            for adm_id in site_adms.keys():
+                print(f'  ADM id {site_adms[adm_id].graph_id}')
 
             # desired ADM is under 'primary'
             site_adm = site_adms['primary']
@@ -300,7 +289,7 @@ class Neo4jTests(unittest.TestCase):
             for adm in site_adms.values():
                 adm_ids[ad] = adm.graph_id
                 adm.delete_graph()
-            site_arm.delete_graph()
+            #site_arms[ad].delete_graph()
 
         cbm.validate_graph()
         print('CBM ID is ' + cbm.graph_id)
@@ -317,5 +306,24 @@ class Neo4jTests(unittest.TestCase):
                'node_id-00-00-00-00-00-10-Wave' in ls)
         print('Done')
 
+
+        ad = 'Network-ad.graphml'
+        print(f"Unmerging graph {adm_ids[ad]}")
+        cbm.unmerge_adm(graph_id=adm_ids[ad])
+        print(f"Merging back")
+        site_adms = site_arms[ad].generate_adms()
+        site_adm = site_adms['primary']
+        cbm.merge_adm(adm=site_adm)
+
+        ad = 'RENCI-ad.graphml'
+        print(f"Unmerging graph {adm_ids[ad]}")
+        cbm.unmerge_adm(graph_id=adm_ids[ad])
+        print(f"Merging back")
+        site_adms = site_arms[ad].generate_adms()
+        site_adm = site_adms['primary']
+        cbm.merge_adm(adm=site_adm)
+
         self.n4j_imp.delete_all_graphs()
-        #cbm.unmerge_adm(graph_id=adm_ids['../Network-ad.graphml'])
+
+
+

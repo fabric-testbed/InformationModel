@@ -571,8 +571,19 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                         graphId1=other_graph.graph_id,
                         nodeId=node_id).single()
 
+    def get_stitch_nodes(self) -> List[str]:
+        query = f"MATCH (n:GraphNode {{GraphID: $graphId, StitchNode: 'true'}}) RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+            if val is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg="Unable to find stitch nodes")
+            return val.data()['nodeids']
+
 
 class Neo4jGraphImporter(ABCGraphImporter):
+
+    index_initialized = False
 
     def __init__(self, *, url: str, user: str, pswd: str, import_host_dir: str, import_dir: str, logger=None):
         """
@@ -599,6 +610,28 @@ class Neo4jGraphImporter(ABCGraphImporter):
             self.log = logging.getLogger(__name__)
         else:
             self.log = logger
+        self._add_indexes()
+
+    def _add_indexes(self):
+        """
+        Add required indexes in idempotent manner
+        :return:
+        """
+        if Neo4jGraphImporter.index_initialized:
+            return
+        Neo4jGraphImporter.index_initialized = True
+        index_file = os.path.join(os.path.dirname(__file__), 'data', 'neo4j_indexes.json')
+        f = open(index_file)
+        index_dict = json.load(f)
+        f.close()
+        self.log.info('Adding Neo4j indexes')
+        for index_name, index_cmd in index_dict.items():
+            with self.driver.session() as session:
+                try:
+                    session.run(index_cmd)
+                except:
+                    # ignore exceptions
+                    pass
 
     def _prep_graph(self, graph: str, graph_id: str = None) -> Tuple[str, str, str]:
         """

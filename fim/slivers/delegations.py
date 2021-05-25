@@ -43,219 +43,121 @@ class DelegationType(Enum):
 
 
 class DelegationFormat(Enum):
-    """
-    Delegations properties on graph nodes have different interpretation
-    depending on which model graph they are in.
-    """
-    ARMDelegation = 1 # List of dictionaries with delegation and pool identifiers
-    ADMDelegation = 2 # List of dictionaries without delegation id but with pool id
-    CBMDelegation = 3 # Dictionary keyed by ADM graph id with value matching ADMDelegation format
+    PoolDefinition = 1
+    PoolReference = 2
+    SinglePool = 3
 
 
 class Delegation:
-    """Label and capacity delegation. Only on individual resources.
-    Pools are used to define delegations across multiple resources.
     """
-    def __init__(self, atype: DelegationType, defined_on: str, delegation_id: str):
+    Single label and capacity delegation (pool definition or reference).
+    Encodes a single entry in a dictionary describing multiple delegations.
+    This object by itself is not JSON serializable, for that look at Delegations object.
+    """
+    def __init__(self, *, atype: DelegationType, delegation_id: str,
+                 aformat: DelegationFormat = DelegationFormat.SinglePool,
+                 pool_id: str = None):
         """
-        Define a delegation of resources on a given node
+        Define a delegation of resources on a given node (for a given pool - either
+        as definition or reference)
         :param atype:
-        :param defined_on:
         :param delegation_id:
+        :param aformat:
+        :param pool_id:
         """
         assert atype is not None
-        assert defined_on is not None
         assert delegation_id is not None
         self.type = atype
-        self.on_ = defined_on
+        self.format = aformat
         self.delegation_id = delegation_id
         self.delegation_details = None
+        self.pool_id = pool_id
+        if aformat != DelegationFormat.SinglePool:
+            assert pool_id is not None
 
-    def get_defined_on(self) -> str:
-        return self.on_
+    def get_delegation_type(self) -> DelegationType:
+        return self.type
 
-    def set_details(self, dele_dict: Dict) -> None:
+    def get_pool_name(self) -> str:
+        return self.pool_id
+
+    def get_format(self) -> DelegationFormat:
+        return self.format
+
+    def get_delegation_id(self) -> str:
+        return self.delegation_id
+
+    def set_details(self, caporlab) -> None:
         """
-        set details of the delegation dictionary, removing the delegation
-        identifier field from dictionary
-        :param dele_dict:
+        set details of the delegation dictionary from either a Labels or Capacities
+        object
+        :param caporlab: either Labels or Capacities
         :return:
         """
-        assert dele_dict is not None
-        # pop the delegation field
-        if dele_dict.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
-            dele_dict.pop(ABCPropertyGraphConstants.FIELD_DELEGATION, None)
-        self.delegation_details = dele_dict
+        assert caporlab is not None
+        assert (isinstance(caporlab, Labels) or isinstance(caporlab, Capacities))
+        if self.format == DelegationFormat.PoolReference:
+            raise DelegationException(msg=f'Trying to add Labels or Capacities object to PoolReference delegation')
+        if (isinstance(caporlab, Labels) and self.type == DelegationType.CAPACITY) or \
+            (isinstance(caporlab, Capacities) and self.type == DelegationType.LABEL):
+            raise DelegationException(msg=f'Trying to add Capacities to a LABEL type delegation or vice versa')
+        self.delegation_details = caporlab
 
-    def set_details_from_labels(self, l: Labels) -> None:
+    def get_details(self) -> Labels or Capacities:
         """
-        Set details from a Labels object
-        :param l:
-        :return:
-        """
-        assert l is not None
-        assert self.type is not DelegationType.CAPACITY
-        self.delegation_details = l.to_dict()
-
-    def set_details_from_capacities(self, c: Capacities) -> None:
-        """
-        Set details from a Capacities object
-        :param c:
-        :return:
-        """
-        assert c is not None
-        assert self.type is not DelegationType.LABEL
-        self.delegation_details = c.to_dict()
-
-    def get_details(self) -> Dict or None:
-        """
-        get delegation details as a dictionary (minus the delegation id)
+        get delegation details as either Labels or Capacities object
         :return:
         """
         if self.delegation_details is None:
             return None
-        return self.delegation_details.copy()
+        return self.delegation_details
 
-    def get_full_details(self) -> Dict or None:
+    def get_details_as_dict(self) -> Dict[str, str] or None:
         """
-        Get delegation details as a dictionary, including the delegation id
+        get details of labels/capacities as a dictionary
         :return:
         """
-        ret = self.get_details()
-        if ret is None:
+        if self.delegation_details is None:
             return None
-        ret[ABCPropertyGraphConstants.FIELD_DELEGATION] = self.delegation_id
-        return ret
-
-    def get_details_as_capacities(self) -> Capacities:
-        """
-        Get delegation details as a Capacities object
-        :return:
-        """
-        assert self.type is DelegationType.CAPACITY
-        c = Capacities()
-        if self.delegation_details is not None:
-            c.set_fields(**self.delegation_details)
-        return c
-
-    def get_details_as_labels(self) -> Labels:
-        """
-        Get delegation details as Labels object
-        :return:
-        """
-        assert self.type is DelegationType.LABEL
-        l = Labels()
-        if self.delegation_details is not None:
-            l.set_fields(**self.delegation_details)
-        return l
-
-    def to_json(self) -> str or None:
-        """
-        Convert to a JSON representation adding back delegation id
-        :return:
-        """
-        ret_dict = self.get_full_details()
-        if ret_dict is None:
-            return None
-        return json.dumps(ret_dict, skipkeys=True, sort_keys=True)
+        return self.delegation_details.to_dict()
 
     def __repr__(self) -> str:
         return f"{self.type} delegation delegated to {self.delegation_id}: " \
-               f"{self.on_} with {self.delegation_details} "
-
-    @staticmethod
-    def from_json_to_sliver_field(j: str or None) -> List[Dict] or Dict[str, List] or None:
-        """
-        Take JSON and produce an object for sliver field that is
-        one of the accepted DelegationFormats. Return None if corresponding
-        property in graph node is empty. Throw a DelegationException if format
-        is not what is expected.
-        :param j:
-        :return:
-        """
-        if j is None or j == ABCPropertyGraphConstants.NEO4j_NONE:
-            return None
-        sliver_field = json.loads(j)
-        if isinstance(sliver_field, list):
-            # either ARM or ADM
-            for e in sliver_field:
-                if not isinstance(e, dict):
-                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
-            return sliver_field
-        elif isinstance(sliver_field, dict):
-            # CBM
-            for k, v in sliver_field.items():
-                if not isinstance(v, list):
-                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
-            return sliver_field
-        raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
-
-    @staticmethod
-    def from_sliver_field_to_json(l: List[Dict] or None) -> str or None:
-        """
-        Produce a JSON expression sliver field encoding the delegation or None
-        :param l:
-        :return:
-        """
-        if l is None:
-            return None
-        return json.dumps(l)
-
-    @staticmethod
-    def get_delegation_format(j: str or None) -> DelegationFormat or None:
-        """
-        Determine the format of the encoded delegation - ARM, ADM or CBM
-        or None if string doesn't specify a delegation.
-        Throw exception if not what is expected.
-        :param j:
-        :return:
-        """
-        if j is None or j == ABCPropertyGraphConstants.NEO4j_NONE:
-            return None
-        sliver_field = json.loads(j)
-        if isinstance(sliver_field, list):
-            # either ARM or ADM
-            # ARM delegation have 'delegation' field present, ADM don't,
-            # but they both are lists of dicts
-            for e in sliver_field:
-                if not isinstance(e, dict):
-                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
-                if e.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
-                    return DelegationFormat.ARMDelegation
-            return DelegationFormat.ADMDelegation
-        elif isinstance(sliver_field, dict):
-            # CBM is a dict of lists of dicts, one for each ADM for that node.
-            # only stitch nodes have two entries, everyone else has one for corresponding
-            # ADM graph
-            for k, v in sliver_field.items():
-                if not isinstance(v, list):
-                    raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
-            return DelegationFormat.CBMDelegation
-        raise DelegationException(msg=f'Unknown object in delegation property {sliver_field}')
+               f"format {self.format} for pool {self.pool_id} with {self.delegation_details} "
 
 
-class ARMDelegations:
+class Delegations:
     """
-    Multiple delegations references by delegation id within an ARM
+    Multiple delegations referenced by delegation id within them on a single
+    model element. Serializable to and from JSON so used in models and slivers.
+    Delegation id can be graph id or a unique string (depending on whether this
+    is on CBM, or ADM/ARM)
     """
-    def __init__(self, atype: DelegationType):
+    def __init__(self, *, atype: DelegationType):
+
         self.type = atype
-        self.delegations = {}
+        self.delegations = dict()
 
-    def add_delegation(self, delegation: Delegation) -> None:
+    def add_delegations(self, *args) -> None:
         """
-        Append a well-formed delegation to the list of delegations matching
-        this id
-        :param delegation:
+        Include well-formed Delegation objects into the dictionary.
+        Delegation types must match the type of this container object.
+        :param args: sequence of Delegation objects
         :return:
         """
-        assert delegation.delegation_id is not None
-        if self.delegations.get(delegation.delegation_id, None) is None:
-            self.delegations[delegation.delegation_id] = []
+        for delegation in args:
+            assert delegation.delegation_id is not None
+            assert delegation.get_delegation_type() == self.type
 
-        self.delegations[delegation.delegation_id].append(delegation)
+            if self.delegations.get(delegation.delegation_id, None) is not None:
+                raise DelegationException(msg=f'Delegation with id {delegation.delegation_id} is already present')
+            if self.type != delegation.get_delegation_type():
+                raise DelegationException(msg=f'Delegation with id {delegation.delegation_id} type '
+                                              f'{delegation.get_delegation_type()} does not match delegations '
+                                              f'type {self.type}')
+            self.delegations[delegation.delegation_id] = delegation
 
-    def get_by_delegation_id(self, delegation_id: str) -> List[Delegation]:
+    def get_by_delegation_id(self, delegation_id: str) -> Delegation:
         """
         retrieve a list of delegations by their id or None
         :param delegation_id:
@@ -264,6 +166,24 @@ class ARMDelegations:
         assert delegation_id is not None
         return self.delegations.get(delegation_id, None)
 
+    def get_sole_delegation(self) -> Tuple[str, Delegation]:
+        """
+        Checks that delegations object has just one delegation and returns
+        a tuple of delegation id and delegation object. Useful primarily on CBMs.
+        :return:
+        """
+        if len(self.delegations) != 1:
+            raise DelegationException(msg=f"Expected to find only one delegation in Delegations object {self}")
+        for k, v in self.delegations.items():
+            return k, v
+
+    def get_delegations_as_list(self) -> List[Delegation]:
+        """
+        Return individual delegation objects as a list
+        :return:
+        """
+        return list(self.delegations.values())
+
     def get_delegation_ids(self) -> Set:
         """
         get a set of all delegation ids
@@ -271,28 +191,119 @@ class ARMDelegations:
         """
         return set(self.delegations.keys())
 
-    def get_node_ids(self, delegation_id: str) -> Set:
+    def remove_by_id(self, delegation_id: str) -> None:
         """
-        return a set of nodes ids for a given delegation id
+        Remove a delegation with this id from container
         :param delegation_id:
         :return:
         """
         assert delegation_id is not None
-        ret = set()
         if delegation_id not in self.delegations.keys():
-            return ret
-        for delegation in self.delegations[delegation_id]:
-            ret.add(delegation.on_)
-        return ret
+            return
+        self.delegations.pop(delegation_id)
+
+    def return_delegations_for_id(self, delegation_id: str):
+        """
+        Return a delegations object limited to this delegation id or None.
+        :param delegation_id:
+        :return:
+        """
+        if delegation_id not in self.delegations.keys():
+            return None
+        ds = Delegations(atype=self.type)
+        ds.add_delegations(self.delegations[delegation_id])
+        return ds
+
+    def to_json(self) -> str:
+        """
+        convert object to JSON. Example objects:
+        { "del1": {
+            "pool_name": "_",
+            "capacities": { <capacities dictionary> } }
+        or
+        { "del1": {
+            "pool_name": "pool1",
+            "labels": { <labels dictionary> } }
+        or
+        { "del1": {
+            "pool": "pool1" }
+        :return:
+        """
+        json_dict = {}
+        for k, v in self.delegations.items():
+            inner_dict = {}
+            if v.get_format() == DelegationFormat.SinglePool:
+                assert v.get_details_as_dict() is not None
+                inner_dict[ABCPropertyGraphConstants.FIELD_POOL_ID] = ABCPropertyGraphConstants.SINGLE_POOL_NAME
+                if self.type == DelegationType.CAPACITY:
+                    inner_dict[ABCPropertyGraphConstants.FIELD_CAPACITIES] = v.get_details_as_dict()
+                else:
+                    inner_dict[ABCPropertyGraphConstants.FIELD_LABELS] = v.get_details_as_dict()
+            elif v.get_format() == DelegationFormat.PoolDefinition:
+                assert v.get_pool_name() is not None
+                assert v.get_details_as_dict() is not None
+                inner_dict[ABCPropertyGraphConstants.FIELD_POOL_ID] = v.get_pool_name()
+                if self.type == DelegationType.CAPACITY:
+                    inner_dict[ABCPropertyGraphConstants.FIELD_CAPACITIES] = v.get_details_as_dict()
+                else:
+                    inner_dict[ABCPropertyGraphConstants.FIELD_LABELS] = v.get_details_as_dict()
+            elif v.get_format() == DelegationFormat.PoolReference:
+                assert v.get_pool_name() is not None
+                inner_dict[ABCPropertyGraphConstants.FIELD_POOL] = v.get_pool_name()
+            json_dict[k] = inner_dict
+
+        return json.dumps(json_dict)
+
+    @classmethod
+    def from_json(cls, *, json_str: str, atype: DelegationType):
+        """
+        convert from a JSON representation producing a Delegations object. Returns None
+        if json_str is None
+        :param json_str:
+        :param atype: one of DelegationType
+        :return:
+        """
+        if json_str is None or len(json_str) == 0 or json_str == ABCPropertyGraphConstants.NEO4j_NONE:
+            return None
+        ds = Delegations(atype=atype)
+        json_dict = json.loads(json_str)
+        for k, v in json_dict.items():
+            if ABCPropertyGraphConstants.FIELD_POOL_ID in v.keys():
+                # single element pool or pool definition
+                if v[ABCPropertyGraphConstants.FIELD_POOL_ID] == ABCPropertyGraphConstants.SINGLE_POOL_NAME:
+                    format = DelegationFormat.SinglePool
+                    pool_id = None
+                else:
+                    format = DelegationFormat.PoolDefinition
+                    pool_id = v[ABCPropertyGraphConstants.FIELD_POOL_ID]
+                if atype == DelegationType.CAPACITY:
+                    caporlabdict = v[ABCPropertyGraphConstants.FIELD_CAPACITIES]
+                    caporlab = Capacities().set_fields(**caporlabdict)
+                else:
+                    caporlabdict = v[ABCPropertyGraphConstants.FIELD_LABELS]
+                    caporlab = Labels().set_fields(**caporlabdict)
+            elif ABCPropertyGraphConstants.FIELD_POOL in v.keys():
+                # pool reference
+                format = DelegationFormat.PoolReference
+                pool_id = v[ABCPropertyGraphConstants.FIELD_POOL]
+                caporlab = None
+            else:
+                raise DelegationException(msg='Invalid dictionary format when parsing delegation from JSON')
+            d = Delegation(atype=atype, delegation_id=k, aformat=format, pool_id=pool_id)
+            if caporlab is not None:
+                d.set_details(caporlab)
+            ds.add_delegations(d)
+        return ds
 
     def __repr__(self):
-        return f"{self.delegations}"
+        return f"{self.type} consisting of {self.delegations}"
 
 
 class Pool:
     """
     Label and capacity pools. Each pool knows which node defined it and which nodes it
-    applies to and can be set/queried for that information.
+    applies to and can be set/queried for that information. These structures help
+    transform ARM into ADM, but themselves don't serialize.
     """
     def __init__(self, *, atype: DelegationType, pool_id: str, delegation_id: str = None,
                  defined_on: str = None, defined_for: List[str] = None):
@@ -311,9 +322,11 @@ class Pool:
         self.on_ = defined_on
         self.delegation_id = delegation_id
         if defined_for is None:
-            self.for_ = []
+            self.for_ = set()
         else:
-            self.for_ = defined_for
+            self.for_ = set(defined_for)
+        if defined_on in self.for_:
+            self.for_.remove(defined_on)
         self.pool_id = pool_id
         self.pool_details = None
 
@@ -335,7 +348,7 @@ class Pool:
         assert node_id_list is not None
         assert len(node_id_list) != 0
 
-        self.for_ = node_id_list
+        self.for_ = set(node_id_list)
 
     def add_defined_for(self, node_ids: str or List) -> None:
         """
@@ -346,105 +359,25 @@ class Pool:
         """
         assert node_ids is not None
         if isinstance(node_ids, str):
-            self.for_.append(node_ids)
+            self.for_.add(node_ids)
         elif isinstance(node_ids, list):
-            self.for_.extend(node_ids)
+            self.for_.update(node_ids)
 
-    def set_pool_details(self, pool_dict: Dict) ->None:
+    def set_pool_details(self, caporlab: Capacities or Labels) ->None:
         """
-        set details of the pool dictionary, removing delegation
-        identifier field from dictionary
-        :param pool_dict:
+        set details of the pool to a Capacities or Labels object
+        :param caporlab:
         :return:
         """
-        assert pool_dict is not None
-        if pool_dict.get(ABCPropertyGraphConstants.FIELD_DELEGATION, None) is not None:
-            pool_dict.pop(ABCPropertyGraphConstants.FIELD_DELEGATION, None)
-        if pool_dict.get(ABCPropertyGraphConstants.FIELD_LABEL_POOL, None) is not None:
-            pool_dict.pop(ABCPropertyGraphConstants.FIELD_LABEL_POOL)
-        if pool_dict.get(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL, None) is not None:
-            pool_dict.pop(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL)
-        self.pool_details = pool_dict
+        assert (isinstance(caporlab, Labels) or isinstance(caporlab, Capacities))
+        self.pool_details = caporlab
 
-    def set_pool_details_from_labels(self, l: Labels) -> None:
+    def get_pool_details(self) -> Capacities or Labels:
         """
-        Set details from a Labels object
-        :param l:
+        Return label or capacity pool details as Capacities or Labels object
         :return:
         """
-        assert l is not None
-        assert self.type is not DelegationType.CAPACITY
-        self.pool_details = l.to_dict()
-
-    def set_pool_details_from_capacities(self, c: Capacities) -> None:
-        """
-        Set details from a Capacities object
-        :param c:
-        :return:
-        """
-        assert c is not None
-        assert self.type is not DelegationType.LABEL
-        self.pool_details = c.to_dict()
-
-    def get_pool_details(self) -> Dict or None:
-        """
-        Return label or capacity pool details as a dictionary
-        along with pool identifier.
-        :return:
-        """
-        # don't forget to add pool id back
-        if self.pool_details is None:
-            return None
-        ret = self.pool_details.copy()
-        if self.type == DelegationType.CAPACITY:
-            ret[ABCPropertyGraphConstants.FIELD_CAPACITY_POOL] = self.pool_id
-        else:
-            ret[ABCPropertyGraphConstants.FIELD_LABEL_POOL] = self.pool_id
-        return ret
-
-    def get_full_pool_details(self) -> Dict or None:
-        """
-        Return label or capacity pool details as a dictionary
-        with pool identifier and delegation identifier
-        :return:
-        """
-        ret = self.get_pool_details()
-        if ret is None:
-            return None
-        ret[ABCPropertyGraphConstants.FIELD_DELEGATION] = self.delegation_id
-        return ret
-
-    def get_pool_details_as_capacities(self) -> Capacities:
-        """
-        Get delegation details as a Capacities object
-        :return:
-        """
-        assert self.type is DelegationType.CAPACITY
-        c = Capacities()
-        if self.pool_details is not None:
-            c.set_fields(**self.pool_details)
-        return c
-
-    def get_pool_details_as_labels(self) -> Labels:
-        """
-        Get delegation details as Labels object
-        :return:
-        """
-        assert self.type is DelegationType.LABEL
-        l = Labels()
-        if self.pool_details is not None:
-            l.set_fields(**self.pool_details)
-        return l
-
-    def to_json(self) -> str or None:
-        """
-        Add back pool and delegation details and return JSON string
-        :return:
-        """
-        ret_dict = self.get_full_pool_details()
-        if ret_dict is None:
-            return None
-        return json.dumps(ret_dict, skipkeys=True, sort_keys=True)
+        return self.pool_details
 
     def set_delegation_id(self, *, delegation_id: str) -> None:
         assert delegation_id is not None
@@ -469,7 +402,7 @@ class Pool:
     def get_defined_on(self) -> str:
         return self.on_
 
-    def get_defined_for(self) -> List[str]:
+    def get_defined_for(self) -> Set[str]:
         return self.for_
 
     def get_pool_id(self) -> str:
@@ -492,48 +425,17 @@ class Pool:
             raise PoolException(f"Pool {self.pool_id} is not defined on any node")
         if self.get_defined_for() is None or len(self.get_defined_for()) == 0:
             raise PoolException(f"Pool {self.pool_id} is not mentioned on any nodes")
-        if self.get_defined_on() not in self.get_defined_for():
-            raise PoolException(f"Pool {self.pool_id} is not mentioned on the node where it is defined")
         if self.get_pool_details() is None:
             raise PoolException(f"Pool {self.pool_id} does not have any resource details")
-
-    @staticmethod
-    def ispoolmention(d: Dict) -> bool:
-        """
-        This method helps distinguish pool mention from capacity or label delegations by
-        looking for 'pool' field in a dictionary.
-        :param self:
-        :param d:
-        :return:
-        """
-        assert d is not None
-        if d.get(ABCPropertyGraphConstants.FIELD_POOL, None) is not None:
-            return True
-        return False
-
-    @staticmethod
-    def ispooldefinition(d: Dict) -> bool:
-        """
-        This method helps distinguish pool definitions from capacity or label delegations
-        by looking for 'label_pool' or 'capacity_pool' fields in the dictionary.
-        :param self:
-        :param d:
-        :return:
-        """
-        assert d is not None
-        if d.get(ABCPropertyGraphConstants.FIELD_CAPACITY_POOL, None) is not None or \
-                d.get(ABCPropertyGraphConstants.FIELD_LABEL_POOL, None) is not None:
-            return True
-        return False
 
     def __repr__(self) -> str:
         return f"{self.type} pool {self.pool_id} delegated to {self.delegation_id}: " \
                f"{self.on_}=> {self.for_} with {self.pool_details} "
 
 
-class ARMPools:
+class Pools:
     """
-    Map between node ids, pools and delegations
+    Define/extract multiple pools for a given ARM, ADM or CBM model
     """
     def __init__(self, atype: DelegationType):
         self.pool_by_id = {}
@@ -576,7 +478,7 @@ class ARMPools:
 
     def get_pools_by_delegation_id(self, delegation_id: str) -> List[Pool]:
         """
-        return a list of Pool(s) for a delegation. raises PoolException if the index based on
+        return a list of Pool(s) for a delegation. Raises PoolException if the index based on
         delegation ids have not been built yet
         :param delegation_id:
         :return:
@@ -594,7 +496,72 @@ class ARMPools:
         """
         assert pool is not None
         assert pool.get_pool_id() is not None
+        if pool.get_pool_type() != self.pool_type:
+            raise PoolException(msg=f'Pool type {pool.get_pool_type()} does not match Pools '
+                                    f'container type {self.pool_type}')
         self.pool_by_id[pool.get_pool_id()] = pool
+
+    def incorporate_delegation(self, *, node_id: str, deleg: Delegations):
+        """
+        Take a Delegations object (e.g. extracted from a model element) and
+        add its information to construct pools. Ignores single element pools.
+        Node id is the id of the node where it was found.
+        :param node_id:
+        :param deleg:
+        :return:
+        """
+        assert node_id is not None
+        assert deleg is not None
+        if deleg.type != self.pool_type:
+            raise PoolException(msg=f'Delegation type {deleg.type} does not match '
+                                    f'Pools container type {self.pool_type}')
+        # ignore single element pools in delegations
+        for k, d in deleg.delegations.items():
+            if d.get_format() == DelegationFormat.SinglePool:
+                continue
+            p = self.get_pool_by_id(pool_id=d.get_pool_name())
+            if d.get_format() == DelegationFormat.PoolDefinition:
+                if p.get_defined_on() is not None:
+                    raise PoolException(msg=f'Pool {d.get_pool_name} has already been defined')
+                p.set_defined_on(node_id)
+                p.set_pool_details(d.get_details())
+                p.set_delegation_id(delegation_id=d.get_delegation_id())
+            else:
+                # PoolReference
+                p.add_defined_for(node_id)
+                p.set_delegation_id(delegation_id=d.get_delegation_id())
+
+    def generate_delegations_by_node_id(self) -> Dict[str, Delegations]:
+        """
+        Produce a dictionary of delegations objects indexed
+        by node id they pertain to (to support serialization onto the model).
+        :return:
+        """
+        ret = dict()
+        if self.pools_by_delegation is None:
+            return ret
+        for delegation_id, pool_list in self.pools_by_delegation.items():
+            for pool in pool_list:
+                # pool definition
+                pd = Delegation(atype=self.pool_type, delegation_id=delegation_id,
+                                aformat=DelegationFormat.PoolDefinition, pool_id=pool.get_pool_id())
+                pd.set_details(pool.get_pool_details())
+                node = pool.get_defined_on()
+                ds = ret.get(node, None)
+                if ds is None:
+                    ret[node] = Delegations(atype=self.pool_type)
+                    ds = ret[node]
+                ds.add_delegations(pd)
+                # pool references
+                for node in pool.get_defined_for():
+                    pr = Delegation(atype=self.pool_type, delegation_id=delegation_id,
+                                    aformat=DelegationFormat.PoolReference, pool_id=pool.get_pool_id())
+                    ds = ret.get(node, None)
+                    if ds is None:
+                        ret[node] = Delegations(atype=self.pool_type)
+                        ds = ret[node]
+                    ds.add_delegations(pr)
+        return ret
 
     def get_delegation_ids(self) -> Set:
         """

@@ -24,33 +24,33 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 """
-Implementation of ARM (Aggregate Resource Model) functionality
+NetworkX implementation of ADM (Aggregate Delegation Model) functionality.
 """
-from ..neo4j_property_graph import Neo4jPropertyGraph, Neo4jGraphImporter
+
+import uuid
+
+from ..networkx_property_graph import NetworkXPropertyGraph, NetworkXGraphImporter
 from .abc_arm import ABCARMPropertyGraph
 
 
-class Neo4jARMGraph(ABCARMPropertyGraph, Neo4jPropertyGraph):
-    """
-    Implementation of ARM management
-    """
+class NetworkXARMGraph(ABCARMPropertyGraph, NetworkXPropertyGraph):
 
-    def __init__(self, *, graph: Neo4jPropertyGraph, logger=None):
+    def __init__(self, *, graph: NetworkXPropertyGraph, logger=None):
         """
-        Initialize Neo4j ARM - supply an implementation of a graph
+        Initialize NetworkX ARM - supply an implementation of a graph
         :param graph:
         """
         super().__init__(graph=graph, logger=logger)
 
 
-class Neo4jARMFactory:
+class NetworkXARMFactory:
     """
-    Help convert graphs between formats so long as they are rooted in Neo4jPropertyGraph
+    Help convert graphs between formats so long as they are rooted in NetworkXPropertyGraph
     """
     @staticmethod
-    def create(graph: Neo4jPropertyGraph) -> Neo4jARMGraph:
+    def create(graph: NetworkXPropertyGraph) -> NetworkXARMGraph:
         assert graph is not None
-        assert isinstance(graph.importer, Neo4jGraphImporter)
+        assert isinstance(graph.importer, NetworkXGraphImporter)
 
-        return Neo4jARMGraph(graph=graph,
-                             logger=graph.log)
+        return NetworkXARMGraph(graph=graph,
+                                logger=graph.log)

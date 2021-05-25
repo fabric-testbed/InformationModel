@@ -617,6 +617,19 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
                     new_props[k] = node_props[k]
         self.storage.get_graph(self.graph_id).nodes[real_node].update(new_props)
 
+    def get_stitch_nodes(self) -> List[str]:
+        my_graph = self.storage.get_graph(self.graph_id)
+        graph_nodes = list(nxq.search_nodes(my_graph,
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_STITCH_NODE, 'true']}
+                                            ]
+                                            }))
+        ret = list()
+        for n in graph_nodes:
+            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
+        return ret
+
 
 class NetworkXGraphStorage:
     """

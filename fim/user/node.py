@@ -144,8 +144,8 @@ class Node(ModelElement):
         return tuple(NodeSliver.list_properties())
 
     def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
-                      model: str,  switch_fabric_node_id: str = None, interface_node_ids=None,
-                      **kwargs) -> Component:
+                      model: str,  switch_fabric_node_id: str=None, interface_node_ids=None,
+                      interface_labels=None, **kwargs) -> Component:
         """
         Add a component of specified type, model and name to this node. When working with substrate
         topologies you must specify the switch_fabric_node_id and provide a list of interface node ids.
@@ -154,8 +154,9 @@ class Node(ModelElement):
         :param ctype:
         :param model:
         :param name:
-        :param switch_fabric_node_id:
-        :param interface_node_ids:
+        :param switch_fabric_node_id: switch fabric identifier for substrate models
+        :param interface_node_ids: interface identifiers for substrate models
+        :param interface_labels: list of labels for interfaces in substrate models
         :param kwargs: additional properties of the component
         :return:
         """
@@ -166,15 +167,17 @@ class Node(ModelElement):
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
                       ctype=ctype, model=model, switch_fabric_node_id=switch_fabric_node_id,
-                      interface_node_ids=interface_node_ids, parent_node_id=self.node_id, **kwargs)
+                      interface_node_ids=interface_node_ids, interface_labels=interface_labels,
+                      parent_node_id=self.node_id, **kwargs)
         return c
 
-    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer):
+    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer, **kwargs):
         """
         Add a switch fabric to node (mostly needed in substrate topologies)
         :param name:
         :param node_id:
         :param layer:
+        :param kwargs:
         :return:
         """
         assert name is not None
@@ -182,7 +185,7 @@ class Node(ModelElement):
         if name in self.__list_switch_fabrics().keys():
             raise RuntimeError('SwitchFabric names must be unique within node.')
         sf = SwitchFabric(name=name, node_id=node_id, layer=layer, parent_node_id=self.node_id,
-                          etype=ElementType.NEW, topo=self.topo)
+                          etype=ElementType.NEW, topo=self.topo, **kwargs)
         return sf
 
     def remove_component(self, name: str) -> None:

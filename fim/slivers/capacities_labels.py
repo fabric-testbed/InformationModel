@@ -56,18 +56,19 @@ class JSONField(ABC):
             return ''
         return json.dumps(d, skipkeys=True, sort_keys=True)
 
-    def from_json(self, json_string: str):
+    @classmethod
+    def from_json(cls, json_string: str):
         """
-        Set fields from json string (if string is none or empty,
-        nothing happens)
+        Set fields from json string and returns a new object
         :param json_string:
-        :return: self for call chaining
+        :return: object
         """
         if json_string is None or len(json_string) == 0 or json_string == ABCPropertyGraphConstants.NEO4j_NONE:
-            return self
+            return None
         d = json.loads(json_string)
-        self.set_fields(**d)
-        return self
+        ret = cls()
+        ret.set_fields(**d)
+        return ret
 
     def to_dict(self) -> Dict[str, str] or None:
         """
@@ -100,7 +101,7 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
-    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'G'}
+    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps'}
 
     def __init__(self):
         self.cpu = 0
@@ -179,7 +180,7 @@ class Capacities(JSONField):
             return ''
         ret = "{ "
         for i, v in d.items():
-            ret = ret + i + ": " + str(v) + self.UNITS[i] + ", "
+            ret = ret + i + ": " + f'{v:,} ' + self.UNITS[i] + ", "
         return ret + "}"
 
 
@@ -207,7 +208,7 @@ class CapacityTuple:
             return ''
         ret = '{ '
         for k in d1:
-            ret = ret + k + ": " + str(d1[k]) + "/" + str(d2[k]) + Capacities.UNITS[k] + ", "
+            ret = ret + k + ": " + f'{d1[k]:,}' + "/" + f'{d2[k]:,} ' + Capacities.UNITS[k] + ", "
         return ret + '}'
 
 
@@ -228,6 +229,7 @@ class Labels(JSONField):
         self.vlan_range = None
         self.instance = None
         self.instance_parent = None
+        self.local_name = None
 
     def set_fields(self, **kwargs):
         """
@@ -277,8 +279,7 @@ class ReservationInfo(JSONField):
 
     def set_fields(self, **kwargs):
         """
-        Universal setter for all fields (just strip the l_ from the field
-        name of the field). Values should be strings or lists of strings.
+        Universal setter for all fields. Values should be strings or lists of strings.
         Throws a ReservationInfoException if you try to set a non-existent field.
         :param kwargs:
         :return: self to support call chaining
@@ -296,9 +297,39 @@ class ReservationInfo(JSONField):
         return self
 
 
+class StructuralInfo(JSONField):
+    """
+    Structural info on the for sliver objects (things like - is it a stitching node,
+    what is parent graph or subgraph)
+    """
+    def __init__(self):
+        self.sub_graph_id = None
+        self.parent_graph_id = None
+        self.adm_graph_ids = None
+
+    def set_fields(self, **kwargs):
+        """
+        Universal setter for all fields. Values are strings or boolean.
+        Throws a
+        :param kwargs:
+        :return:
+        """
+        for k, v in kwargs.items():
+            assert v is not None  # could be strings or lists of strings
+            assert isinstance(v, str) or isinstance(v, list)
+            try:
+                # will toss an exception if field is not defined
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
+            except AttributeError:
+                raise StructuralInfoException(f"Unable to set field {k} of structural info, no such field available")
+        # to support call chaining
+        return self
+
+
 class CapacityException(Exception):
     """
-    Exception with a pool
+    Exception with a capacity
     """
     def __init__(self, msg: str):
         assert msg is not None
@@ -307,7 +338,7 @@ class CapacityException(Exception):
 
 class LabelException(Exception):
     """
-    Exception with a pool
+    Exception with a label
     """
     def __init__(self, msg: str):
         assert msg is not None
@@ -316,8 +347,18 @@ class LabelException(Exception):
 
 class ReservationInfoException(Exception):
     """
-    Exception with a pool
+    Exception with a reservation info
     """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"ReservationInfo exception: {msg}")
+
+
+class StructuralInfoException(Exception):
+    """
+    Exception with a structural info
+    """
+
     def __init__(self, msg: str):
         assert msg is not None
         super().__init__(f"ReservationInfo exception: {msg}")

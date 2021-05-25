@@ -32,7 +32,7 @@ import uuid
 from .attached_components import ComponentSliver, ComponentType
 from .interface_info import InterfaceInfo, InterfaceSliver, InterfaceType
 from .switch_fabric import SwitchFabricSliver, SwitchFabricInfo, SFLayer, SFType
-from .capacities_labels import Capacities
+from .capacities_labels import Capacities, Labels
 
 
 class ComponentCatalog:
@@ -54,9 +54,8 @@ class ComponentCatalog:
 
     def generate_component(self, *, name: str, ctype: ComponentType, model: str,
                            switch_fabric_node_id: str = None,
-                           interface_node_ids: List[str] = None) -> ComponentSliver:
-        # FIXME: need to pass labels (PCI and MAC) for substrate ads so they can be
-        # FIXME: propagated to ConnectionPoints/interfaces as part of creation
+                           interface_node_ids: List[str] = None,
+                           interface_labels: List[Labels] = None) -> ComponentSliver:
         """
         Generate a component sliver with this name and model and properties, and interfaces as needed
         based on the catalog description. Interfaces if present are named
@@ -67,7 +66,8 @@ class ComponentCatalog:
         :param ctype: type of the component
         :param model:
         :param switch_fabric_node_id: if specified and if component has a switch fabric, put that there
-        :param interface_node_ids: list of node ids for expected interfacaes if component has any
+        :param interface_node_ids: list of node ids for expected interfaces if component has any
+        :param interface_labels: list of labels for expected interfaces if component has any
         :return:
         """
         assert name is not None
@@ -89,9 +89,14 @@ class ComponentCatalog:
         cs.set_details(component_dict['Details'])
         if 'Interfaces' in component_dict.keys():
             interfaces_dict = component_dict['Interfaces']
-            if interface_node_ids is not None and len(interface_node_ids) != len(interfaces_dict.keys()):
-                raise RuntimeError("The number of interface IDs provided is insufficient for this component "
-                                   f"(need {len(interfaces_dict.keys())} instead of {len(interface_node_ids)}")
+            if interface_node_ids is not None:
+                if len(interface_node_ids) != len(interfaces_dict.keys()):
+                    raise RuntimeError("The number of interface IDs provided is insufficient for this component "
+                                       f"(need {len(interfaces_dict.keys())} instead of {len(interface_node_ids)}")
+                if len(interface_labels) != len(interfaces_dict.keys()):
+                    raise RuntimeError("The number of PCI labels and MAC addresses provided is insufficient for this"
+                                       f" component (need {len(interfaces_dict.keys())} instead of "
+                                       f"{len(interface_labels)}")
             iinfo = InterfaceInfo()
             id_index = 0
             for interface_name in interfaces_dict.keys():
@@ -102,6 +107,8 @@ class ComponentCatalog:
                     isliver.node_id = interface_node_ids[id_index]
                 else:
                     isliver.node_id = str(uuid.uuid4())
+                if interface_labels is not None:
+                    isliver.set_labels(interface_labels[id_index])
                 id_index = id_index + 1
                 cap = Capacities()
                 # set port speed

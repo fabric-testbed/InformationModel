@@ -32,4 +32,4 @@ TopologyDetail = topo.TopologyDetail
 Delegation = dlg.Delegation
 DelegationType = dlg.DelegationType
 Pool = dlg.Pool
-ARMPools = dlg.ARMPools
+Pools = dlg.Pools

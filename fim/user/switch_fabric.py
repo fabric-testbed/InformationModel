@@ -40,7 +40,8 @@ class SwitchFabric(ModelElement):
     """
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
-                 layer: SFLayer = SFLayer.L2, parent_node_id: str = None):
+                 layer: SFLayer = SFLayer.L2, parent_node_id: str = None,
+                 **kwargs):
         """
         Create a new switch fabric. Don't call this yourself, call Node.add_switch_fabric().
         NodeID is mandatory in substrate models.
@@ -50,6 +51,7 @@ class SwitchFabric(ModelElement):
         :param layer: layer of the switch fabric (defaults to L2)
         :param parent_node_id: id of parent node for new nodes
         :param etype:
+        :param kwargs:
         """
         assert name is not None
         assert topo is not None
@@ -72,6 +74,7 @@ class SwitchFabric(ModelElement):
             sfsliver.set_name(name)
             sfsliver.set_type(SFType.SwitchFabric)
             sfsliver.set_layer(layer)
+            sfsliver.set_properties(**kwargs)
             self.topo.graph_model.add_switch_fabric_sliver(parent_node_id=parent_node_id, switch_fabric=sfsliver)
         else:
             assert node_id is not None

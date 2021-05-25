@@ -33,6 +33,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph
 from .model_element import ModelElement, ElementType
 from .interface import Interface
 from .switch_fabric import SwitchFabric, SFLayer
+from ..slivers.capacities_labels import Labels
 from ..slivers.attached_components import ComponentSliver, ComponentType
 from ..slivers.component_catalog import ComponentCatalog
 
@@ -51,7 +52,7 @@ class Component(ModelElement):
                  etype: ElementType = ElementType.EXISTING, model: str = None,
                  ctype: ComponentType = None, parent_node_id: str = None,
                  switch_fabric_node_id: str = None, interface_node_ids: List[str] = None,
-                 **kwargs):
+                 interface_labels: List[Labels] = None, **kwargs):
         """
         Don't call this yourself, use Node.add_component(). Instantiates components based on
         catalog resource file.
@@ -64,6 +65,7 @@ class Component(ModelElement):
         :param parent_node_id: node_id of the parent Node (for new components)
         :param switch_fabric_node_id: node id of switch fabric if one needs to be added (for substrate models only)
         :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
+        :param interface_labels: a list of Labels structure to associate with each interface
         """
 
         assert name is not None
@@ -81,14 +83,17 @@ class Component(ModelElement):
                 raise RuntimeError("Model and component type must be specified for new components")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
-                    (switch_fabric_node_id is None or interface_node_ids is None):
+                    (switch_fabric_node_id is None or interface_node_ids is None or interface_labels is None):
                 raise RuntimeError('For substrate topologies and components with network interfaces '
-                                   'static switch_fabric node id and interface node ids must be specified')
+                                   'static switch_fabric node id, interface node ids and interface labels'
+                                   'must be specified')
             super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
+
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   switch_fabric_node_id=switch_fabric_node_id,
-                                                  interface_node_ids=interface_node_ids)
+                                                  interface_node_ids=interface_node_ids,
+                                                  interface_labels=interface_labels)
             comp_sliver.node_id = node_id
             comp_sliver.set_properties(**kwargs)
 

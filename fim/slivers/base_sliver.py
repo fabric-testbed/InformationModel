@@ -29,8 +29,8 @@ Base class for all sliver types
 from typing import Any, Tuple, List, Dict
 from abc import ABC, abstractmethod
 
-from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo
-from fim.slivers.delegations import Delegation
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo
+from fim.slivers.delegations import Delegations
 
 
 class BaseSliver(ABC):
@@ -48,9 +48,11 @@ class BaseSliver(ABC):
         self.capacity_allocations = None
         self.label_allocations = None
         self.reservation_info = None
+        self.structural_info = None
         self.node_id = None
         self.details = None
         self.node_map = None
+        self.stitch_node = False
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -71,46 +73,60 @@ class BaseSliver(ABC):
         return self.resource_model
 
     def set_capacities(self, cap: Capacities) -> None:
+        assert(cap is None or isinstance(cap, Capacities))
         self.capacities = cap
 
     def get_capacities(self) -> Capacities:
         return self.capacities
 
     def set_labels(self, lab: Labels) -> None:
+        assert(lab is None or isinstance(lab, Labels))
         self.labels = lab
 
     def get_labels(self) -> Labels:
         return self.labels
 
-    def set_capacity_delegations(self, cdel):
+    def set_capacity_delegations(self, cdel: Delegations):
+        assert(cdel is None or isinstance(cdel, Delegations))
         self.capacity_delegations = cdel
 
-    def get_capacity_delegations(self) -> List or Dict:
+    def get_capacity_delegations(self) -> Delegations:
         return self.capacity_delegations
 
-    def set_label_delegations(self, ldel):
+    def set_label_delegations(self, ldel: Delegations):
+        assert(ldel is None or isinstance(ldel, Delegations))
         self.label_delegations = ldel
 
-    def get_label_delegations(self) -> List or Dict:
+    def get_label_delegations(self) -> Delegations:
         return self.label_delegations
 
     def set_label_allocations(self, lab: Labels) -> None:
+        assert(lab is None or isinstance(lab, Labels))
         self.label_allocations = lab
 
     def get_label_allocations(self) -> Labels:
         return self.label_allocations
 
     def set_capacity_allocations(self, cap: Capacities) -> None:
+        assert(cap is None or isinstance(cap, Capacities))
         self.capacity_allocations = cap
 
     def get_capacity_allocations(self) -> Capacities:
         return self.capacity_allocations
 
     def set_reservation_info(self, ri: ReservationInfo) -> None:
+        assert(ri is None or isinstance(ri, ReservationInfo))
         self.reservation_info = ri
 
     def get_reservation_info(self) -> ReservationInfo:
         return self.reservation_info
+
+    def set_structural_info(self, si: StructuralInfo) -> None:
+        assert (si is None or isinstance(si, StructuralInfo))
+        self.structural_info = si
+
+    def get_structural_info(self) -> StructuralInfo:
+        return self.structural_info
 
     def set_details(self, desc: str) -> None:
         self.details = desc
@@ -123,6 +139,12 @@ class BaseSliver(ABC):
 
     def get_node_map(self) -> Tuple[str, str] or None:
         return tuple(self.node_map) if self.node_map is not None else None
+
+    def set_stitch_node(self, stitch_node: bool) -> None:
+        self.stitch_node = stitch_node
+
+    def get_stitch_node(self) -> bool:
+        return self.stitch_node
 
     def set_properties(self, **kwargs):
         """

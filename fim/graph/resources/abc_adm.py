@@ -31,8 +31,8 @@ import json
 from collections import defaultdict
 
 from abc import ABCMeta, abstractmethod
-from ..abc_property_graph import ABCPropertyGraph
-from ...slivers.delegations import ARMDelegations, ARMPools, DelegationType
+from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
+from ...slivers.delegations import Delegations, Pools, DelegationType
 
 
 class ABCADMPropertyGraph(ABCPropertyGraph):
@@ -64,85 +64,24 @@ class ABCADMPropertyGraph(ABCPropertyGraph):
                         continue
                     props_modified = True
                     # turn delegation into Python object
-                    delegation = json.loads(node_props[delegation_prop_name])
-                    new_delegation = dict()
+                    delegations = Delegations.from_json(json_str=node_props[delegation_prop_name],
+                                                        atype=DelegationType.LABEL if
+                                                        delegation_prop_name == self.PROP_LABEL_DELEGATIONS else
+                                                        DelegationType.CAPACITY)
+                    if len(delegations.get_delegation_ids()) != 1:
+                        raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                                          msg=f'This node contains delegation structure with more'
+                                                              f'than one entry {delegations}')
+                    # replace the one delegation id that should be present here with a graph id
+                    # CAUTION: We directly manipulate the delegations object innards here for efficiency
+                    del_id = list(delegations.get_delegation_ids())[0]
+                    delegation = delegations.get_by_delegation_id(del_id)
                     if real_adm_id is None:
-                        new_delegation[self.graph_id] = delegation
+                        delegation.delegation_id = self.graph_id
                     else:
-                        new_delegation[real_adm_id] = delegation
-                    new_delegation_json = json.dumps(new_delegation)
-                    node_props[delegation_prop_name] = new_delegation_json
+                        delegation.delegation_id = real_adm_id
+                    delegations.delegations[delegation.delegation_id] = delegations.delegations.pop(del_id)
+                    node_props[delegation_prop_name] = delegations.to_json()
             if props_modified:
                 # write back
                 self.update_node_properties(node_id=node_id, props=node_props)
-
-    def annotate_delegations_and_pools(self, *, dels: ARMDelegations, pools: ARMPools):
-        """
-        Take delegations and pools and write them into the graph as appropriate.
-        This assumes that pools.build_index_by_delegation_id() has been run.
-        Pools and delegations are assumed to be of the same type (Capacity or Label).
-        :param dels:
-        :param pools:
-        :return:
-        """
-        assert dels is not None
-        assert pools is not None
-        assert pools.pool_type == dels.type
-
-        delegations_and_pools_per_node = defaultdict(list)
-
-        # delegations are organized in lists by delegation id, each delegation
-        # is a label or capacity specification with delegation id
-        # need to break them up by node to attach to appropriate nodes
-        for k, v in dels.delegations.items():
-            # each entry is a list
-            for d in v:
-                # multiple (capacity or label) delegations can be defined on the same node
-                full_details = d.get_full_details()
-                if full_details is not None:
-                    delegations_and_pools_per_node[d.on_].append(full_details)
-
-        # pools are more complicated than delegations.
-        # A pool definition includes capacities or labels,
-        # a delegation id and a pool id. Pool mentions must be present on all nodes
-        # included in the pool (including the node where pool is defined).
-
-        # we need a place to put pool mentions for now
-        pool_mentions_per_node = defaultdict(list)
-
-        if pools.pools_by_delegation is not None:
-            for k, pool_list in pools.pools_by_delegation.items():
-                # each entry is a list
-                for pool in pool_list:
-                    full_details = pool.get_full_pool_details()
-                    if full_details is not None:
-                        delegations_and_pools_per_node[pool.on_].append(full_details)
-                        node_mentions = set()
-                        node_mentions.update(pool.get_defined_for())
-                        node_mentions.add(pool.on_)
-                        # add self on_ and for_ mentions into pool_mentions_per_node
-                        for for_node in node_mentions:
-                            node_pool_list = pool_mentions_per_node.get(for_node, list())
-                            node_pool_list.append(pool.pool_id)
-                            pool_mentions_per_node[for_node] = node_pool_list
-
-        # update graph from delegations_and_pools and pool_mentions per node
-        # get the combined set of affected node ids
-        affected_nodes = set()
-        affected_nodes.update(delegations_and_pools_per_node.keys())
-        affected_nodes.update(pool_mentions_per_node.keys())
-
-        for node in affected_nodes:
-            node_delegations = list()
-            if delegations_and_pools_per_node.get(node, None) is not None:
-                node_delegations.extend(delegations_and_pools_per_node[node])
-            if pool_mentions_per_node.get(node, None) is not None:
-                for pool_id in pool_mentions_per_node[node]:
-                    node_delegations.append({ABCPropertyGraph.FIELD_POOL: pool_id})
-
-            if dels.type == DelegationType.CAPACITY:
-                self.update_node_property(node_id=node, prop_name=ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS,
-                                          prop_val=json.dumps(node_delegations))
-            else:
-                self.update_node_property(node_id=node, prop_name=ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
-                                          prop_val=json.dumps(node_delegations))

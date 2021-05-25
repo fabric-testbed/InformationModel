@@ -32,10 +32,11 @@ class ABCPropertyGraphConstants(ABC):
     # NetworkX just has python None
     NEO4j_NONE = "None"
 
+    SINGLE_POOL_NAME = "_"
     FIELD_POOL = "pool"
-    FIELD_CAPACITY_POOL = "capacity_pool"
-    FIELD_LABEL_POOL = "label_pool"
-    FIELD_DELEGATION = "delegation"
+    FIELD_POOL_ID = "pool_id"
+    FIELD_CAPACITIES = "capacities"
+    FIELD_LABELS = "labels"
     PROP_CAPACITY_DELEGATIONS = "CapacityDelegations"
     PROP_LABEL_DELEGATIONS = "LabelDelegations"
     PROP_CAPACITIES = "Capacities"
@@ -58,10 +59,12 @@ class ABCPropertyGraphConstants(ABC):
     PROP_DETAILS = 'Details'
     PROP_RESERVATION_INFO = 'ReservationInfo'
     PROP_NODE_MAP = "NodeMap"
+    PROP_STRUCTURAL_INFO = "StructuralInfo"
+    PROP_STITCH_NODE = "StitchNode"
     # these properties get validated to be valid JSON objects whenever someone validates the graph
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
-                           PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO]
+                           PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO, PROP_STRUCTURAL_INFO]
     # these properties cannot be unset
     NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS]
 

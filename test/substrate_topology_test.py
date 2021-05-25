@@ -42,71 +42,74 @@ class AdTest(unittest.TestCase):
         gpuw = self.topo.add_node(name='renc-w1',
                                   model=worker_model, site=site,
                                   node_id='HX6VQ53',
-                                  ntype=f.NodeType.Server, capacities=gpu_worker_cap)
+                                  ntype=f.NodeType.Server,
+                                  capacities=gpu_worker_cap)
+
         fnw = self.topo.add_node(name='renc-w2',
                                  model=worker_model, site=site,
                                  node_id='HX7LQ53',
-                                 ntype=f.NodeType.Server, capacities=network_worker_cap)
+                                 ntype=f.NodeType.Server,
+                                 capacities=network_worker_cap)
         snw = self.topo.add_node(name='renc-w3',
                                  model=worker_model, site=site,
                                  node_id='HX7KQ53',
-                                 ntype=f.NodeType.Server, capacities=network_worker_cap)
+                                 ntype=f.NodeType.Server,
+                                 capacities=network_worker_cap)
 
         #
         # Disks
         #
 
+        nvme_cap = f.Capacities().set_fields(unit=1, disk=1000)
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ016004CC1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                       capacities=nvme_cap,
                                        labels=f.Labels().set_fields(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ0160047K1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                       capacities=nvme_cap,
                                        labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301TU1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='000:21:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
+        fn_nvme2 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ016004CK1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
+        fn_nvme3 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016002P61P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:23:00.0'))
-        fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
+        fn_nvme4 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004CL1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:24:00.0'))
-
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301V81P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:21:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
+        sn_nvme2 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160047L1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:22:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
+        sn_nvme3 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016004CJ1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:23:00.0'))
-        sn_nvme1 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
+        sn_nvme4 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004C91P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
+                                     capacities=nvme_cap,
                                      labels=f.Labels().set_fields(bdf='0000:24:00.0'))
 
         #
@@ -114,37 +117,38 @@ class AdTest(unittest.TestCase):
         # consistent string
         #
 
+        unit_cap = f.Capacities().set_fields(unit=1)
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
+                                      capacities=unit_cap,
                                       labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
+                                      capacities=unit_cap,
                                       labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
+                                    capacities=unit_cap,
                                     labels=f.Labels().set_fields(bdf='0000:81:00.0'))
 
         #
@@ -157,9 +161,10 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('04:3F:72:B7:14:EC')],
+                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:14:EC',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                     mac='04:3F:72:B7:14:EC'),
+                                        labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -167,9 +172,10 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:B4')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:B4',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:18:B4'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -177,9 +183,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:16:14')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:16:14',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:16:14'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -192,10 +199,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:74'),
                                                          mac_to_node_id('04:3F:72:B7:15:75')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:74',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:75',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['04:3F:72:B7:15:74', '04:3F:72:B7:15:75']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -203,10 +214,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:5C'),
                                                          mac_to_node_id('04:3F:72:B7:19:5D')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:5C',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:19:5D',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['04:3F:72:B7:19:5C', '04:3F:72:B7:19:5D']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -214,10 +229,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:D4'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:D5')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:D4',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:D5',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:D4', '0C:42:A1:BE:8F:D5']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -225,10 +244,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:E8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:E9')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:E8',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:E9',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:E8', '0C:42:A1:BE:8F:E9']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
@@ -249,10 +272,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
@@ -345,15 +365,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -369,24 +389,25 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
-        self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+        # pools are blank - all delegations for interfaces are in the network ad
+        self.topo.single_delegation(delegation_id=delegation1,
+                                    label_pools=pools,
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": '
+                                                                              '"shared_pool", "labels": '
+                                                                              '{"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                             '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='RENCI-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -543,19 +564,25 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:60')],
+                                        interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:60',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0',
-                                                                     mac='0C:42:A1:EA:C7:60'),
+                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
+        # test that labels propagated to the port
+        ilabs = gpuw_shnic.interface_list[0].get_property('labels')
+        assert(ilabs.vlan_range == '1-4096')
+        assert(ilabs.mac == '0C:42:A1:EA:C7:60')
 
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:E8')],
+                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:E8',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='0C:42:A1:EA:C7:E8'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -563,9 +590,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:1C')],
+                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:1C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='0C:42:A1:78:F8:1C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -578,21 +606,36 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:50'),
                                                          mac_to_node_id('0C:42:A1:EA:C7:51')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:50',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:EA:C7:51',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:EA:C7:50', '0C:42:A1:EA:C7:51']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
+
+        ilabs = fnw_nic1.interface_list[0].get_property('labels')
+        assert(ilabs.vlan_range == '1-4096')
+        assert(ilabs.mac == '0C:42:A1:EA:C7:50')
+        ilabs = fnw_nic1.interface_list[1].get_property('labels')
+        assert (ilabs.vlan_range == '1-4096')
+        assert (ilabs.mac == '0C:42:A1:EA:C7:51')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:04'),
                                                          mac_to_node_id('0C:42:A1:78:F8:05')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:04',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:78:F8:05',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:78:F8:04', '0C:42:A1:78:F8:05']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -600,10 +643,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:F8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:F9')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:F8',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:F9',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['00C:42:A1:BE:8F:F8', '0C:42:A1:BE:8F:F9']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -611,10 +658,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:DC'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:DD')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:DC',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:DD',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:BE:8F:DC', '0C:42:A1:BE:8F:DD']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
@@ -635,10 +686,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
@@ -731,15 +779,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -755,24 +803,22 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
         self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": "shared_pool", '
+                                                                              '"labels": {"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                              '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='UKY-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -929,9 +975,10 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:8C')],
+                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:8C',
+                                                                                vlan_range='1-4096')],
                                         capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0',
-                                                                     mac='04:3F:72:B7:19:8C'),
+                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -939,9 +986,10 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:8C')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:8C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:15:8C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -949,9 +997,10 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:7C')],
+                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:7C',
+                                                                              vlan_range='1-4096')],
                                       capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0',
-                                                                   mac='04:3F:72:B7:15:7C'),
+                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -964,10 +1013,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:6C'),
                                                          mac_to_node_id('04:3F:72:B7:15:6D')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:6C',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:6D',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['04:3F:72:B7:15:6C', '04:3F:72:B7:15:6D']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -975,10 +1028,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:AC'),
                                                          mac_to_node_id('04:3F:72:B7:18:AD')],
+                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:AC',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='04:3F:72:B7:18:AD',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['04:3F:72:B7:18:AC', '04:3F:72:B7:18:AD']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -986,10 +1043,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:12'),
                                                          mac_to_node_id('0C:42:A1:91:75:13')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:12',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:13',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1'],
-                                                                  mac=['0C:42:A1:91:75:12', '0C:42:A1:91:75:13']),
+                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -997,10 +1058,14 @@ class AdTest(unittest.TestCase):
                                      switch_fabric_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:0E'),
                                                          mac_to_node_id('0C:42:A1:91:75:0F')],
+                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:0E',
+                                                                             vlan_range='1-4096'),
+                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:0F',
+                                                                             vlan_range='1-4096')
+                                                       ],
                                      ctype=f.ComponentType.SmartNIC,
                                      capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1'],
-                                                                  mac=['0C:42:A1:91:75:0E', '0C:42:A1:91:75:0F']),
+                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
@@ -1021,10 +1086,7 @@ class AdTest(unittest.TestCase):
         port_caps1 = f.Capacities()
         port_caps.set_fields(bw=100)
         port_caps1.set_fields(bw=25)
-        # labels should be part of pool delegations, generally not defined on substrate ports
-        # as native labels
-        #port_labs = f.Labels()
-        #port_labs.set_fields(vlan_range='1000-2000')
+
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
@@ -1117,15 +1179,15 @@ class AdTest(unittest.TestCase):
         delegation1 = 'primary'
 
         # define the pools for interfaces on the switch
-        pools = f.ARMPools(atype=f.DelegationType.LABEL)
+        pools = f.Pools(atype=f.DelegationType.LABEL)
         # define two pools - one shared between shared NIC ports and one shared between all dataplane ports
         shared_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='shared_pool', delegation_id=delegation1,
                              defined_on=switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                              defined_for=[switch.interfaces['HundredGigE 0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE 0/0/0/21'].node_id])
-        shared_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='100-200',
-                                                                       ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
+                                                           ipv4_range='192.168.1.1-192.168.10.255'))
 
         pools.add_pool(pool=shared_pool)
 
@@ -1141,24 +1203,23 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE 0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details_from_labels(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
 
         self.topo.single_delegation(delegation_id=delegation1, label_pools=pools,
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/25.2'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"pool": "datanic_pool"}]')
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool": "datanic_pool"}}')
         _, node_props = self.topo.graph_model.get_node_properties(node_id=switch.interfaces['HundredGigE 0/0/0/5'].node_id)
-        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '[{"ipv4_range": '
+        self.assertEqual(node_props[ABCPropertyGraph.PROP_LABEL_DELEGATIONS], '{"primary": {"pool_id": "shared_pool", '
+                                                                              '"labels": '
+                                                                              '{"ipv4_range": '
                                                                               '"192.168.1.1-192.168.10.255", '
-                                                                              '"vlan_range": "100-200", '
-                                                                              '"label_pool": "shared_pool", '
-                                                                              '"delegation": "primary"}, '
-                                                                              '{"pool": "shared_pool"}]')
+                                                                              '"vlan_range": "100-200"}}}')
         self.topo.serialize(file_name='LBNL-ad.graphml')
         # print('\n\nALL NODES')
         # for n in self.topo.nodes.values():
@@ -1185,9 +1246,9 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2450R1BL',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf', stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1200,42 +1261,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards UKY and LBNL
         renc_uky = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1252,9 +1313,10 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2451R0XZ',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf',
+                                         stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1267,42 +1329,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards RENC and LBNL
         uky_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1320,9 +1382,9 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=site + '-data-sw', model=switch_model, site=site,
                                     node_id='FOC2450R1AR',
                                     capacities=f.Capacities().set_fields(unit=1),
-                                    ntype=f.NodeType.Switch)
+                                    ntype=f.NodeType.Switch, stitch_node=True)
         dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+                                         node_id=switch.node_id + '-sf', stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1335,42 +1397,42 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:01'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:02'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:03'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:04'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:05'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:06'),
-                                  capacities=port_caps)
+                                  capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:07'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:08'),
-                                  capacities=port_caps1)
+                                  capacities=port_caps1, stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:09'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:0A'),
-                                   capacities=port_caps1)
+                                   capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards UKY and RENC
         lbnl_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
@@ -1396,7 +1458,7 @@ class AdTest(unittest.TestCase):
 
         delegation1 = 'primary'
         self.topo.single_delegation(delegation_id=delegation1,
-                                    label_pools=f.ARMPools(atype=f.DelegationType.LABEL),
-                                    capacity_pools=f.ARMPools(atype=f.DelegationType.CAPACITY))
+                                    label_pools=f.Pools(atype=f.DelegationType.LABEL),
+                                    capacity_pools=f.Pools(atype=f.DelegationType.CAPACITY))
 
         self.topo.serialize(file_name='Network-ad.graphml')
