@@ -798,6 +798,26 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                        node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
 
+    def get_parent(self, node_id: str, rel: str, parent: str) -> Tuple[str, str]:
+        """
+        Return name and node_id properties of a parent node (connected via 'has' relationship).
+        NetworkNodes and Links have no parents, Components have NetworkNodes, SwitchFabrics have
+        Components or NetworkNodes, ConnectionPoints have SwitchFabrics
+        :param node_id:
+        :param rel: relationship with parent
+        :param parent: parent class
+        :return:
+        """
+        assert node_id is not None
+        assert rel is not None
+        assert parent is not None
+        parent_ids = self.get_first_neighbor(node_id=node_id, rel=rel,
+                                             node_label=parent)
+        if len(parent_ids) != 1:
+            return None, None
+        _, props = self.get_node_properties(node_id=parent_ids[0])
+        return props[ABCPropertyGraph.PROP_NAME], parent_ids[0]
+
     @abstractmethod
     def get_stitch_nodes(self) -> List[str]:
         """

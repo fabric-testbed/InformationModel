@@ -92,7 +92,6 @@ class Node(ModelElement):
             sliver.set_type(ntype)
             sliver.set_site(site)
             sliver.set_properties(**kwargs)
-
             self.topo.graph_model.add_network_node_sliver(sliver=sliver)
         else:
             assert node_id is not None
