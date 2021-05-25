@@ -10,6 +10,7 @@ import fim.slivers.component_catalog as cata
 import fim.slivers.interface_info as iinfo
 import fim.slivers.capacities_labels as caplab
 import fim.slivers.delegations as dlg
+import fim.graph.abc_property_graph as abcpg
 
 # push some definitions up to simplify import management
 
@@ -30,6 +31,8 @@ Link = link.Link
 LinkType = nlink.LinkType
 TopologyDetail = topo.TopologyDetail
 Delegation = dlg.Delegation
+Delegations = dlg.Delegations
 DelegationType = dlg.DelegationType
 Pool = dlg.Pool
 Pools = dlg.Pools
+GraphFormat = abcpg.GraphFormat

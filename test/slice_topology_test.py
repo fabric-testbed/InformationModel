@@ -43,6 +43,12 @@ class SliceTest(unittest.TestCase):
         nic1 = n1.components['nic1']
         nic2 = n2.components['nic2']
 
+        p1 = nic2.interfaces['nic2-p1']
+        p2 = nic2.interfaces['nic2-p2']
+        # check parent code
+        assert(self.topo.get_parent_element(e=gpu1) == n1)
+        assert(self.topo.get_parent_element(e=p1) == self.topo.get_parent_element(e=p2))
+
         # name uniqueness enforcement
         with self.assertRaises(AssertionError) as e:
             self.topo.add_node(name='Node1', site='UKY')

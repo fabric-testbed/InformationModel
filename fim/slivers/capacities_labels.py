@@ -181,7 +181,7 @@ class Capacities(JSONField):
         ret = "{ "
         for i, v in d.items():
             ret = ret + i + ": " + f'{v:,} ' + self.UNITS[i] + ", "
-        return ret + "}"
+        return ret[:-2] + "}"
 
 
 class CapacityTuple:
@@ -209,7 +209,7 @@ class CapacityTuple:
         ret = '{ '
         for k in d1:
             ret = ret + k + ": " + f'{d1[k]:,}' + "/" + f'{d2[k]:,} ' + Capacities.UNITS[k] + ", "
-        return ret + '}'
+        return ret[:-2] + '}'
 
 
 class Labels(JSONField):
@@ -265,7 +265,7 @@ class Labels(JSONField):
         ret = "{ "
         for i, v in d.items():
             ret = ret + i + ": " + str(v) + ", "
-        return ret + "}"
+        return ret[:-2] + "}"
 
 
 class ReservationInfo(JSONField):

@@ -23,7 +23,7 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-from typing import Dict, Any, List
+from typing import Tuple, Any, List
 
 import uuid
 
@@ -145,7 +145,7 @@ class Link(ModelElement):
         self.topo.graph_model.update_node_properties(node_id=self.node_id, props=prop_dict)
 
     @staticmethod
-    def list_properties() -> List[str]:
+    def list_properties() -> Tuple[str]:
         return NetworkLinkSliver.list_properties()
 
     def __list_of_interfaces(self) -> List[Interface] or None:

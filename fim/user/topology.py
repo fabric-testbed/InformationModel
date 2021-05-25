@@ -41,7 +41,7 @@ from ..slivers.network_link import LinkType
 from ..slivers.switch_fabric import SFLayer
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
-from ..graph.abc_property_graph import ABCPropertyGraph
+from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
@@ -49,7 +49,9 @@ from fim.slivers.capacities_labels import Capacities, CapacityTuple
 
 from .model_element import ElementType
 from .node import Node
+from .component import Component
 from .composite_node import CompositeNode
+from .switch_fabric import SwitchFabric
 from .interface import Interface
 from .link import Link
 
@@ -75,6 +77,49 @@ class Topology(ABC):
                                        logger=logger)
         if graph_file is not None or graph_string is not None:
             self.load(file_name=graph_file, graph_string=graph_string)
+
+    def get_parent_element(self, e: ModelElement) -> ModelElement or None:
+        """
+        Instantiate a ModelElement parent of this element or return None
+        :param e:
+        :return:
+        """
+        assert e is not None
+        if isinstance(e, Node) or isinstance(e, Link):
+            # nodes or links don't have parents
+            return None
+        # components have nodes as parents
+        if isinstance(e, Component):
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_HAS,
+                                                             parent=ABCPropertyGraph.CLASS_NetworkNode)
+            if node_id is None:
+                raise RuntimeError(f'Component {e} has no parent')
+            return Node(name=node_name, node_id=node_id, topo=self)
+        # SFs have nodes or components as parents
+        if isinstance(e, SwitchFabric):
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_HAS,
+                                                             parent=ABCPropertyGraph.CLASS_Component)
+            if node_id is not None:
+                return Component(name=node_name, node_id=node_id, topo=self)
+
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_HAS,
+                                                             parent=ABCPropertyGraph.CLASS_NetworkNode)
+            if node_id is not None:
+                return Node(name=node_name, node_id=node_id, topo=self)
+            else:
+                raise RuntimeError(f'SwitchFabric {e} has no parent')
+        # interfaces have SFs as parents
+        if isinstance(e, Interface):
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_CONNECTS,
+                                                             parent=ABCPropertyGraph.CLASS_SwitchFabric)
+            if node_id is None:
+                raise RuntimeError(f'Interface {e} has no parent')
+            return SwitchFabric(name=node_name, node_id=node_id, topo=self)
+        raise RuntimeError(f'Unable to determine parent of element {e}')
 
     def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
                  **kwargs) -> Node:
@@ -235,14 +280,15 @@ class Topology(ABC):
             return self.__list_of_interfaces()
         raise RuntimeError(f'Attribute {item} not available')
 
-    def serialize(self, file_name=None) -> str or None:
+    def serialize(self, file_name: str = None, fmt: GraphFormat = GraphFormat.GRAPHML) -> str or None:
         """
         Serialize to string or to file, depending on whether file_name
         is provided.
         :param file_name:
+        :param fmt: one of GraphFormat possible values
         :return string containing GraphML if file_name is None:
         """
-        graph_string = self.graph_model.serialize_graph()
+        graph_string = self.graph_model.serialize_graph(format=fmt)
         if file_name is None:
             return graph_string
         else:
@@ -334,6 +380,13 @@ class Topology(ABC):
         else:
             raise RuntimeError("This level of detail not yet implemented")
 
+    @staticmethod
+    def __print_caplabs__(caps) -> str:
+        if caps is None:
+            return '{ }'
+        else:
+            return str(caps)
+
     def __str__(self):
         """
         Print topology in tabulated form - network nodes, their components, interfaces, then print links
@@ -342,18 +395,18 @@ class Topology(ABC):
         """
         lines = list()
         for n in self.nodes.values():
-            lines.append(n.name + "[" + str(n.get_property("type")) + "]: " + str(n.get_property("capacities")))
+            lines.append(n.name + "[" + str(n.get_property("type")) + "]:  " +
+                         self.__print_caplabs__(n.get_property("capacities")))
             for i in n.direct_interfaces.values():
                 lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                             str(i.get_property("capacities")) + " " +
-                             str(i.get_property("labels")))
+                             self.__print_caplabs__(i.get_property("capacities")) + " " +
+                             self.__print_caplabs__(i.get_property("labels")))
             for c in n.components.values():
                 lines.append("\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
                              c.get_property("model"))
-                print("Interfaces:")
                 for i in c.interfaces.values():
                     lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                                 str(i.get_property("capacities")))
+                                 self.__print_caplabs__(i.get_property("capacities")))
         lines.append("Links:")
         for l in self.links.values():
             interface_names = [iff.name for iff in l.interface_list]
