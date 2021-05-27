@@ -156,37 +156,58 @@ class AdTest(unittest.TestCase):
         # node id is concatenation of node serial # and unique name
         #
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:14:EC'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:14:ED', '04:3F:72:B7:14:EE', '04:3F:72:B7:14:EF', '04:3F:72:B7:14:F0']
+        vf_vlans = [1001, 1002, 1003, 1004]
         # Usually slot 7, second port not connected
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
-                                        interface_node_ids=[mac_to_node_id('04:3F:72:B7:14:EC')],
-                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:14:EC',
-                                                                                vlan_range='1-4096')],
-                                        capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                        interface_node_ids=[mac_to_node_id(pf_mac)],
+                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                        capacities=f.Capacities().set_fields(unit=4),
+                                        labels=f.Labels().set_fields(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:18:B4'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:18:B5', '04:3F:72:B7:18:B6', '04:3F:72:B7:18:B7', '04:3F:72:B7:18:B8']
+        vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:B4')],
-                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:B4',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:16:14'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:16:15', '04:3F:72:B7:16:16', '04:3F:72:B7:16:17', '04:3F:72:B7:16:18']
+        vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:16:14')],
-                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:16:14',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -559,41 +580,65 @@ class AdTest(unittest.TestCase):
         # node id is concatenation of node serial # and unique name
         #
 
+        pf_id = '0000:a1:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '0C:42:A1:EA:C7:60'
+        vf_ids = ['0000:a1:00.2', '0000:a1:00.3', '0000:a1:00.4', '0000:a1:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['0C:42:A1:EA:C7:61', '0C:42:A1:EA:C7:62', '0C:42:A1:EA:C7:63', '0C:42:A1:EA:C7:64']
+        vf_vlans = [1001, 1002, 1003, 1004]
         # Usually slot 7, second port not connected (Uky in slot 6)
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
-                                        interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:60')],
-                                        interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:60',
-                                                                                vlan_range='1-4096')],
-                                        capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
+                                        # there is one interface and we need one name
+                                        interface_node_ids=[mac_to_node_id(pf_mac)],
+                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                        capacities=f.Capacities().set_fields(unit=4),
+                                        labels=f.Labels().set_fields(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
         # test that labels propagated to the port
         ilabs = gpuw_shnic.interface_list[0].get_property('labels')
-        assert(ilabs.vlan_range == '1-4096')
-        assert(ilabs.mac == '0C:42:A1:EA:C7:60')
+        assert(ilabs.vlan == [1001, 1002, 1003, 1004])
+        assert(ilabs.mac == ['0C:42:A1:EA:C7:61', '0C:42:A1:EA:C7:62', '0C:42:A1:EA:C7:63', '0C:42:A1:EA:C7:64'])
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '0C:42:A1:EA:C7:E8'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['0C:42:A1:EA:C7:E9', '0C:42:A1:EA:C7:EA', '0C:42:A1:EA:C7:EB', '0C:42:A1:EA:C7:EC']
+        vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:E8')],
-                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:E8',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      # there is one interface and we need one name
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '0C:42:A1:78:F8:1C'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['0C:42:A1:78:F8:1D', '0C:42:A1:78:F8:1E', '0C:42:A1:78:F8:1F', '0C:42:A1:78:F8:20']
+        vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:1C')],
-                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:1C',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      # there is one interface and we need one name
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -618,10 +663,10 @@ class AdTest(unittest.TestCase):
 
         ilabs = fnw_nic1.interface_list[0].get_property('labels')
         assert(ilabs.vlan_range == '1-4096')
-        assert(ilabs.mac == '0C:42:A1:EA:C7:50')
+        assert(ilabs.mac == '0C:42:A1:EA:C7:50' or ilabs.mac == '0C:42:A1:EA:C7:51')
         ilabs = fnw_nic1.interface_list[1].get_property('labels')
         assert (ilabs.vlan_range == '1-4096')
-        assert (ilabs.mac == '0C:42:A1:EA:C7:51')
+        assert (ilabs.mac == '0C:42:A1:EA:C7:51' or ilabs.mac == '0C:42:A1:EA:C7:50')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
@@ -971,36 +1016,60 @@ class AdTest(unittest.TestCase):
         #
 
         # Usually slot 7, second port not connected (Slot 6)
+        pf_id = '0000:a1:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:19:8C'
+        vf_ids = ['0000:a1:00.2', '0000:a1:00.3', '0000:a1:00.4', '0000:a1:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:19:8D', '04:3F:72:B7:19:8E', '04:3F:72:B7:19:8F', '04:3F:72:B7:19:8A']
+        vf_vlans = [1001, 1002, 1003, 1004]
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
                                         switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
-                                        interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:8C')],
-                                        interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:8C',
-                                                                                vlan_range='1-4096')],
-                                        capacities=f.Capacities().set_fields(unit=1),
-                                        labels=f.Labels().set_fields(bdf='0000:a1:00.0'),
+                                        # there is one interface and we need one name
+                                        interface_node_ids=[mac_to_node_id(pf_mac)],
+                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                        capacities=f.Capacities().set_fields(unit=4),
+                                        labels=f.Labels().set_fields(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:15:8C'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:15:8D', '04:3F:72:B7:15:8E', '04:3F:72:B7:15:8F', '04:3F:72:B7:15:8A']
+        vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       switch_fabric_node_id=fnw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:8C')],
-                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:8C',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      # there is one interface and we need one name
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
+        pf_mac = '04:3F:72:B7:15:7C'
+        vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
+        # i don't know how VF macs are allocated, this is made-up /ib
+        vf_macs = ['04:3F:72:B7:15:7D', '04:3F:72:B7:15:7E', '04:3F:72:B7:15:7F', '04:3F:72:B7:15:7A']
+        vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       switch_fabric_node_id=snw.node_id + '-shnic-sf',
-                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:7C')],
-                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:7C',
-                                                                              vlan_range='1-4096')],
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:e2:00.0'),
+                                      # there is one interface and we need one name
+                                      interface_node_ids=[mac_to_node_id(pf_mac)],
+                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
+                                                                              mac=vf_macs,
+                                                                              vlan=vf_vlans)],
+                                      capacities=f.Capacities().set_fields(unit=4),
+                                      labels=f.Labels().set_fields(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
