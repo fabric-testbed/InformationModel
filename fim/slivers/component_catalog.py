@@ -111,7 +111,7 @@ class ComponentCatalog:
                     isliver.set_labels(interface_labels[id_index])
                 # if labels are lists, extract the length to make it the number of units
                 lab = isliver.get_labels()
-                units = len(lab.bdf) if lab.bdf is not None else 1
+                units = len(lab.bdf) if lab is not None and lab.bdf is not None else 1
                 id_index = id_index + 1
                 # set port speed and units (inferring from length of bdf array)
                 cap = Capacities().set_fields(unit=units, bw=int(interfaces_dict[interface_name]))
