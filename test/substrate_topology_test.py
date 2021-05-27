@@ -1457,8 +1457,8 @@ class AdTest(unittest.TestCase):
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
-        port_caps.set_fields(bw=100)
-        port_caps1.set_fields(bw=25)
+        port_caps.set_fields(unit=1, bw=100)
+        port_caps1.set_fields(unit=1, bw=25)
         # labels should be part of pool delegations, generally not defined on substrate ports
         # as native labels
         #port_labs = f.Labels()
@@ -1466,51 +1466,87 @@ class AdTest(unittest.TestCase):
         # FIXME: don't have port MAC addresses yet - placeholders
         sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/5',
+                                                               mac='20:00:00:00:00:00'),
+                                  stitch_node=True)
 
         sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:01'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/13',
+                                                               mac='20:00:00:00:00:01'),
+                                  stitch_node=True)
 
         sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:02'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/15',
+                                                               mac='20:00:00:00:00:02'),
+                                  stitch_node=True)
         sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:03'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/9',
+                                                               mac='20:00:00:00:00:03'),
+                                  stitch_node=True)
         sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:04'),
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/17',
+                                                               mac='20:00:00:00:00:04'),
                                   capacities=port_caps, stitch_node=True)
         sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:05'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/19',
+                                                               mac='20:00:00:00:00:05'),
+                                  stitch_node=True)
 
         sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:06'),
-                                  capacities=port_caps, stitch_node=True)
+                                  capacities=port_caps,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/21',
+                                                               mac='20:00:00:00:00:06'),
+                                  stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
         sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:07'),
-                                  capacities=port_caps1, stitch_node=True)
+                                  capacities=port_caps1,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.1',
+                                                               mac='20:00:00:00:00:07'),
+                                  stitch_node=True)
         sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:08'),
-                                  capacities=port_caps1, stitch_node=True)
+                                  capacities=port_caps1,
+                                  labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.2',
+                                                               mac='20:00:00:00:00:08'),
+                                  stitch_node=True)
         sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:09'),
-                                   capacities=port_caps1, stitch_node=True)
+                                   capacities=port_caps1,
+                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.3',
+                                                                mac='20:00:00:00:00:09'),
+                                   stitch_node=True)
         sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:0A'),
-                                   capacities=port_caps1, stitch_node=True)
+                                   capacities=port_caps1,
+                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.4',
+                                                                mac='20:00:00:00:00:0A'),
+                                   stitch_node=True)
 
         # FIXME: fake ports towards UKY and RENC
         lbnl_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
-                                   node_id=mac_to_node_id('20:00:00:00:00:10'),
-                                   capacities=port_caps)
+                                        node_id=mac_to_node_id('20:00:00:00:00:10'),
+                                        labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/26',
+                                                                     mac='20:00:00:00:00:10'),
+                                        capacities=port_caps)
 
         lbnl_uky = dp_sf.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
-                                   node_id=mac_to_node_id('20:00:00:00:00:11'),
-                                   capacities=port_caps)
+                                       node_id=mac_to_node_id('20:00:00:00:00:11'),
+                                       labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/27',
+                                                                    mac='20:00:00:00:00:11'),
+                                       capacities=port_caps)
 
         # add 3 links
         l1 = self.topo.add_link(name='l1', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
