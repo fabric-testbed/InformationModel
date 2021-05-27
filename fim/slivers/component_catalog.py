@@ -109,10 +109,12 @@ class ComponentCatalog:
                     isliver.node_id = str(uuid.uuid4())
                 if interface_labels is not None:
                     isliver.set_labels(interface_labels[id_index])
+                # if labels are lists, extract the length to make it the number of units
+                lab = isliver.get_labels()
+                units = len(lab.bdf) if lab.bdf is not None else 1
                 id_index = id_index + 1
-                cap = Capacities()
-                # set port speed
-                cap.set_fields(bw=int(interfaces_dict[interface_name]))
+                # set port speed and units (inferring from length of bdf array)
+                cap = Capacities().set_fields(unit=units, bw=int(interfaces_dict[interface_name]))
                 isliver.set_capacities(cap=cap)
                 iinfo.add_interface(isliver)
             sf = SwitchFabricSliver()
