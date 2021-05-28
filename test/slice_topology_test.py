@@ -86,10 +86,10 @@ class SliceTest(unittest.TestCase):
         # interfaces and links
         self.assertEqual(len(self.topo.interface_list), 4)
 
-        self.topo.add_link(name='l1', ltype=f.LinkType.Wave, interfaces=self.topo.interface_list)
+        self.topo.add_link(name='l1', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 
         with self.assertRaises(AssertionError) as e:
-            self.topo.add_link(name='l1', ltype=f.LinkType.Wave, interfaces=self.topo.interface_list)
+            self.topo.add_link(name='l1', ltype=f.LinkType.L1Path, interfaces=self.topo.interface_list[0:2])
 
         #print(self.topo)
 
@@ -118,6 +118,42 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.nodes), 0)
         self.assertEqual(len(self.topo.interface_list), 0)
         self.assertEqual(len(self.topo.links), 0)
+
+    def testLinks(self):
+        n1 = self.topo.add_node(name='Node1', site='RENC')
+        n2 = self.topo.add_node(name='Node2', site='UKY', ntype=f.NodeType.Server)
+        n3 = self.topo.add_node(name='Node3', site='RENC', management_ip='123.45.67.98',
+                                image_ref='http://some.image', image_type='image type')
+
+        # component checks
+        n1.add_component(ctype=f.ComponentType.GPU, model='RTX6000', name='gpu1')
+        n1.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
+        n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
+
+        gpu1 = n1.components['gpu1']
+        nic1 = n1.components['nic1']
+        nic2 = n2.components['nic2']
+
+        p1 = nic2.interfaces['nic2-p1']
+        p2 = nic2.interfaces['nic2-p2']
+
+        cap = f.Capacities()
+        cap.set_fields(bw=50, unit=1)
+        nic1.set_properties(capacities=cap)
+        lab = f.Labels()
+        lab.set_fields(ipv4="192.168.1.12")
+        nic1.set_properties(labels=lab)
+
+        self.topo.add_link(name='l1', ltype=f.LinkType.L2STS, interfaces=self.topo.interface_list)
+
+        self.topo.remove_link(name='l1')
+
+        self.topo.add_link(name='l2', ltype=f.LinkType.L2PTP, interfaces=self.topo.interface_list[0:2])
+
+        self.topo.remove_link(name='l2')
+
+        #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 
     def testDeepSliver(self):
         self.topo.add_node(name='n1', site='RENC')
