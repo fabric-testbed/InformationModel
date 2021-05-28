@@ -321,6 +321,22 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
 
+    def get_all_nodes_by_class_and_type(self, *, label: str, ntype: str) -> List[str]:
+        assert label is not None
+        assert ntype is not None
+        my_graph = self.storage.get_graph(self.graph_id)
+        graph_nodes = list(nxq.search_nodes(my_graph,
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]},
+                                                {'eq': [ABCPropertyGraph.PROP_TYPE, ntype]}
+                                            ]
+                                            }))
+        ret = list()
+        for n in graph_nodes:
+            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
+        return ret
+
     def list_all_node_ids(self) -> List[str]:
         """
         List all NodeID properties of nodes in a graph

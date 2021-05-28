@@ -30,6 +30,7 @@ from .interface_info import InterfaceInfo
 
 
 class SFLayer(enum.Enum):
+    L0 = enum.auto()
     L1 = enum.auto()
     L2 = enum.auto()
     L3 = enum.auto()

@@ -121,6 +121,35 @@ class Topology(ABC):
             return SwitchFabric(name=node_name, node_id=node_id, topo=self)
         raise RuntimeError(f'Unable to determine parent of element {e}')
 
+    def get_owner_node(self, e: ModelElement) -> ModelElement or None:
+        """
+        Get an owner Node element for Component, SwitchFabric or Interface. For Link and Node
+        return None
+        :param e:
+        :return:
+        """
+        assert e is not None
+        if isinstance(e, Node) or isinstance(e, Link):
+            # nodes or links don't have parents
+            return None
+        if isinstance(e, Component):
+            return self.get_parent_element(e)
+        if isinstance(e, SwitchFabric):
+            # either it is directly owned by a switch or via a component
+            pe = self.get_parent_element(e)
+            if pe is None:
+                return None
+            if isinstance(pe, Node):
+                return pe
+            else:
+                return self.get_parent_element(pe)
+        if isinstance(e, Interface):
+            # figure out the owner of the parent switch fabric
+            sf = self.get_parent_element(e)
+            if sf is not None:
+                return self.get_owner_node(sf)
+        return RuntimeError(f'Unable to determine owner node of element {e}')
+
     def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
                  **kwargs) -> Node:
         """

@@ -240,6 +240,15 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
 
     @abstractmethod
+    def get_all_nodes_by_class_and_type(self, *, label: str, ntype: str) -> List[str]:
+        """
+        Get a list of nodes of the class and type
+        :param label:
+        :param ntype:
+        :return:
+        """
+
+    @abstractmethod
     def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
         """
         Serialize a given graph into a string

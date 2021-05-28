@@ -40,6 +40,7 @@ Some example scripts that *should* run.
 
 ```python
 import fim.user as fu
+
 t = fu.ExperimentTopology()
 n1 = t.add_node(name='n1', site='RENC')
 t.add_node(name='n2', site='RENC')
@@ -54,7 +55,7 @@ lab.set_fields(ipv4="192.168.1.12")
 nic1.set_properties(capacities=cap, labels=lab)
 nic1.get_property('capacities')
 nic1.unset_property('labels')
-t.add_link(name='l1', interfaces=t.interface_list, ltype=fu.LinkType.Wave)
+t.add_link(name='l1', interfaces=t.interface_list, ltype=fu.LinkType.L1Path)
 t.draw()
 t.serialize('test_slice.graphml')
 print(t)

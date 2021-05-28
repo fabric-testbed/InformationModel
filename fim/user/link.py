@@ -77,13 +77,37 @@ class Link(ModelElement):
             # FIXME isinstance
             if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
                                                               not isinstance(interfaces, list)):
-                raise RuntimeError("When creating new links you must specify the list of interfaces to connect")
-
+                raise RuntimeError("When creating new links you must specify the list of interfaces to connect.")
+            # check the number of instances of this service
+            if NetworkLinkSliver.LinkServiceConstraints[ltype].num_instances != NetworkLinkSliver.NO_LIMIT:
+                links = topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_Link,
+                                                                         ntype=str(ltype))
+                if len(links) + 1 > NetworkLinkSliver.LinkServiceConstraints[ltype].num_instances:
+                    raise RuntimeError(f"Link type {ltype} cannot have {len(links) + 1} instances. "
+                                       f"Limit: {NetworkLinkSliver.LinkServiceConstraints[ltype].num_instances}")
+            # check the number of interfaces
+            if NetworkLinkSliver.LinkServiceConstraints[ltype].num_interfaces != NetworkLinkSliver.NO_LIMIT:
+                if len(interfaces) > NetworkLinkSliver.LinkServiceConstraints[ltype].num_interfaces:
+                    raise RuntimeError(f"Link of type {ltype} cannot have {len(interfaces)} interfaces. "
+                                       f"Limit: {NetworkLinkSliver.LinkServiceConstraints[ltype].num_interfaces}")
             self._interfaces = interfaces
+            # check the number of sites spanned by this service
+            if NetworkLinkSliver.LinkServiceConstraints[ltype].num_sites != NetworkLinkSliver.NO_LIMIT:
+                # trace ownership of each interface and count the sites involved
+                sites = set()
+                for interface in interfaces:
+                    owner = topo.get_owner_node(interface)
+                    sites.add(owner.get_property('site'))
+                if len(sites) > NetworkLinkSliver.LinkServiceConstraints[ltype].num_sites:
+                    raise RuntimeError(f"Link of type {ltype} cannot span {len(sites)} sites. "
+                                       f"Limit: {NetworkLinkSliver.LinkServiceConstraints[ltype].num_sites}.")
             sliver = NetworkLinkSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
             sliver.set_type(ltype)
+            if layer is None:
+                # set based on link type
+                layer = NetworkLinkSliver.LinkServiceConstraints[ltype].layer
             sliver.set_layer(layer)
             sliver.set_technology(technology)
             sliver.set_properties(**kwargs)
