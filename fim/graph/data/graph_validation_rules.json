@@ -32,8 +32,8 @@
     "msg": "All Links must be of type DAC, Patch or Wave"
   },
   {
-    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" with count(n) as vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) as cs return cs = vcs",
-    "msg": "All Components must be owned by a NetworkNode"
+    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"CompositeNode\" with count(n) as vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) as cs return cs = vcs",
+    "msg": "All Components must be owned by a NetworkNode or a CompositeNode"
   },
   {
     "rule": "MATCH (o:GraphNode {GraphID: $graphId}) -[:connects]- (n:Link {GraphID: $graphId}) where o.Class <> \"ConnectionPoint\" return count(o)=0",
