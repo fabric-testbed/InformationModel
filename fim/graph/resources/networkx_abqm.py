@@ -106,7 +106,7 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
                                               msg="Parent node type is not CompositeNode")
         sfs_ifs = self.get_first_and_second_neighbor(node_id=parent_node_id, rel1=ABCPropertyGraphConstants.REL_HAS,
-                                                     node1_label=ABCPropertyGraphConstants.CLASS_SwitchFabric,
+                                                     node1_label=ABCPropertyGraphConstants.CLASS_NetworkService,
                                                      rel2=ABCPropertyGraphConstants.REL_CONNECTS,
                                                      node2_label=ABCPropertyGraphConstants.CLASS_ConnectionPoint)
         ret = list()

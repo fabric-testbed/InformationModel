@@ -28,12 +28,8 @@
     "msg": "All SwitchFabrics must be of type SwitchFabric"
   },
   {
-    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"DAC\", \"Wave\", \"Patch\", \"L2Path\"])",
+    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Wave\", \"Patch\", \"L2Path\"])",
     "msg": "All Links must be of type DAC, Patch or Wave"
-  },
-  {
-    "rule": "MATCH(n:ConnectionPoint {GraphID: $graphId}) -[:connects]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"SwitchFabric\" with count(n) as vcps match(c:ConnectionPoint {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
-    "msg": "All ConnectionPoints must be connected to a SwitchFabric"
   },
   {
     "rule": "MATCH(n:SwitchFabric {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"Component\" with count(n) as vcps match(c:SwitchFabric {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
@@ -46,10 +42,6 @@
   {
     "rule": "MATCH (o:GraphNode {GraphID: $graphId}) -[:connects]- (n:Link {GraphID: $graphId}) where o.Class <> \"ConnectionPoint\" return count(o)=0",
     "msg": "Links can only connect to ConnectionPoints"
-  },
-  {
-    "rule": "MATCH (n:Link {GraphID: $graphId, Type: \"Patch\"}) with collect(size((n)-[:connects]-())) as sizes return all(s in sizes where s = 2)",
-    "msg": "Patch link type can only connect two ConnectionPoints"
   },
   {
     "rule": "MATCH (n:Link {GraphID: $graphId}) WHERE n.Type = \"Patch\" or n.Type=\"L2Path\" or n.Type=\"L1Path\" or n.Type=\"L2PTP\" or n.Type=\"PortMirror\" WITH collect(size((n) -[:connects]- ())) as sizes RETURN any(s in sizes where s=2)",

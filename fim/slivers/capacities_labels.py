@@ -101,7 +101,7 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
-    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps'}
+    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps', 'burst_size': 'Mbits'}
 
     def __init__(self):
         self.cpu = 0
@@ -109,6 +109,7 @@ class Capacities(JSONField):
         self.ram = 0
         self.disk = 0
         self.bw = 0
+        self.burst_size = 0
         self.unit = 0
 
     def set_fields(self, **kwargs):
@@ -227,9 +228,11 @@ class Labels(JSONField):
         self.asn = None
         self.vlan = None
         self.vlan_range = None
+        self.outer_vlan = None
         self.instance = None
         self.instance_parent = None
         self.local_name = None
+        self.local_type = None
 
     def set_fields(self, **kwargs):
         """

@@ -31,10 +31,11 @@ import uuid
 from fim.view_only_dict import ViewOnlyDict
 from ..graph.abc_property_graph import ABCPropertyGraph
 from .model_element import ModelElement, ElementType
+from .network_service import NetworkService, ServiceType
 from .interface import Interface
-from .switch_fabric import SwitchFabric, SFLayer
 from ..slivers.capacities_labels import Labels
 from ..slivers.attached_components import ComponentSliver, ComponentType
+from ..slivers.network_service import NSLayer
 from ..slivers.component_catalog import ComponentCatalog
 
 
@@ -45,13 +46,13 @@ class Component(ModelElement):
     return various dictionaries or lists:
     component.interfaces - a dictionary of interfaces
     component.interface_list - a list of interfaces
-    component.switch_fabrics - a dictionary of switch fabrics
+    component.network_services - a dictionary of network services
     """
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING, model: str = None,
                  ctype: ComponentType = None, parent_node_id: str = None,
-                 switch_fabric_node_id: str = None, interface_node_ids: List[str] = None,
+                 network_service_node_id: str = None, interface_node_ids: List[str] = None,
                  interface_labels: List[Labels] = None, **kwargs):
         """
         Don't call this yourself, use Node.add_component(). Instantiates components based on
@@ -63,7 +64,7 @@ class Component(ModelElement):
         :param model: must be specified if a new component
         :param ctype: component type
         :param parent_node_id: node_id of the parent Node (for new components)
-        :param switch_fabric_node_id: node id of switch fabric if one needs to be added (for substrate models only)
+        :param network_service_node_id: node id of network_service if one needs to be added (for substrate models only)
         :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
         :param interface_labels: a list of Labels structure to associate with each interface
         """
@@ -83,15 +84,15 @@ class Component(ModelElement):
                 raise RuntimeError("Model and component type must be specified for new components")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
-                    (switch_fabric_node_id is None or interface_node_ids is None or interface_labels is None):
+                    (network_service_node_id is None or interface_node_ids is None or interface_labels is None):
                 raise RuntimeError('For substrate topologies and components with network interfaces '
-                                   'static switch_fabric node id, interface node ids and interface labels'
+                                   'static network service node id, interface node ids and interface labels'
                                    'must be specified')
             super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
 
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
-                                                  switch_fabric_node_id=switch_fabric_node_id,
+                                                  ns_node_id=network_service_node_id,
                                                   interface_node_ids=interface_node_ids,
                                                   interface_labels=interface_labels)
             comp_sliver.node_id = node_id
@@ -156,17 +157,17 @@ class Component(ModelElement):
         return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
-    def __get_sf_by_id(self, node_id: str) -> SwitchFabric:
+    def __get_ns_by_id(self, node_id: str) -> NetworkService:
         """
-        Get an switch fabric of a node by its node_id, return SwitchFabric object
+        Get an network service of a node by its node_id, return SwitchFabric object
         :param node_id:
         :return:
         """
         assert node_id is not None
         _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return SwitchFabric(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
-                            topo=self.topo)
+        return NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                              topo=self.topo)
 
     def __list_interfaces(self) -> ViewOnlyDict:
         """
@@ -194,18 +195,18 @@ class Component(ModelElement):
             ret.append(i)
         return tuple(ret)
 
-    def __list_switch_fabrics(self) -> ViewOnlyDict:
+    def __list_network_services(self) -> ViewOnlyDict:
         """
-        List all switch fabric children of a node as a dictionary organized
-        by switch fabric name. Modifying the dictionary will not affect
+        List all network service children of a node as a dictionary organized
+        by network service name. Modifying the dictionary will not affect
         the underlying model, but modifying Components in the dictionary will.
         :return:
         """
-        node_id_list = self.topo.graph_model.get_all_network_node_or_component_sfs(parent_node_id=self.node_id)
+        node_id_list = self.topo.graph_model.get_all_network_node_or_component_nss(parent_node_id=self.node_id)
         # Could consider using frozendict or other immutable idioms
         ret = dict()
         for nid in node_id_list:
-            c = self.__get_sf_by_id(nid)
+            c = self.__get_ns_by_id(nid)
             ret[c.name] = c
         return ViewOnlyDict(ret)
 
@@ -222,8 +223,8 @@ class Component(ModelElement):
             return self.__list_interfaces()
         if item == 'interface_list':
             return self.__list_of_interfaces()
-        if item == 'switch_fabrics':
-            return self.__list_switch_fabrics()
+        if item == 'network_services':
+            return self.__list_network_services()
         raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):

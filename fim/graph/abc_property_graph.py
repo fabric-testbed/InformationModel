@@ -44,7 +44,8 @@ from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
-from fim.slivers.switch_fabric import SwitchFabricSliver, SwitchFabricInfo
+from fim.slivers.path_info import PathInfo, ERO
+from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
 
@@ -86,7 +87,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "technology": ABCPropertyGraphConstants.PROP_TECHNOLOGY,
         "model": ABCPropertyGraphConstants.PROP_MODEL,
         "node_map": ABCPropertyGraphConstants.PROP_NODE_MAP,
-        "structural_info": ABCPropertyGraphConstants.PROP_STRUCTURAL_INFO
+        "structural_info": ABCPropertyGraphConstants.PROP_STRUCTURAL_INFO,
+        "ero": ABCPropertyGraphConstants.PROP_ERO,
+        "path_info": ABCPropertyGraphConstants.PROP_PATH_INFO,
+        "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL
     }
 
     @abstractmethod
@@ -232,6 +236,17 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
 
     @abstractmethod
+    def check_node_unique(self, *, label: str, name: str) -> bool:
+        """
+        Check no other node of this class/label and name exists. Doesn't
+        apply universally as e.g. Component names are only unique
+        within node, interface names are only unique within SF.
+        :param label:
+        :param name:
+        :return:
+        """
+
+    @abstractmethod
     def get_all_nodes_by_class(self, *, label: str) -> List[str]:
         """
         Get a list of nodes of this class/label
@@ -247,6 +262,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param ntype:
         :return:
         """
+
+    def get_all_network_nodes(self) -> List[str]:
+
+        return self.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_NetworkNode)
+
+    def get_all_network_links(self) -> List[str]:
+
+        return self.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_Link)
+
+    def get_all_network_service_nodes(self) -> List[str]:
+
+        return self.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_NetworkService )
 
     @abstractmethod
     def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
@@ -521,15 +548,25 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         return prop_dict
 
     @staticmethod
-    def switch_fabric_sliver_to_graph_properties_dict(sliver: SwitchFabricSliver) -> Dict[str, str]:
+    def network_service_sliver_to_graph_properties_dict(sliver: NetworkServiceSliver) -> Dict[str, str]:
         """
-        This method knows how to map switch fabric sliver fields to graph properties
+        This method knows how to map network service sliver fields to graph properties
         :param sliver:
         :return:
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
         if sliver.layer is not None:
             prop_dict[ABCPropertyGraph.PROP_LAYER] = str(sliver.layer)
+        if sliver.technology is not None:
+            prop_dict[ABCPropertyGraph.PROP_TECHNOLOGY] = str(sliver.technology)
+        if sliver.allocation_constraints is not None:
+            prop_dict[ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS] = sliver.allocation_constraints
+        if sliver.ero is not None:
+            prop_dict[ABCPropertyGraph.PROP_ERO] = sliver.ero.to_json()
+        if sliver.path_info is not None:
+            prop_dict[ABCPropertyGraph.PROP_PATH_INFO] = sliver.path_info.to_json()
+        if sliver.controller_url is not None:
+            prop_dict[ABCPropertyGraph.PROP_CONTROLLER_URL] = sliver.controller_url
 
         return prop_dict
 
@@ -545,6 +582,41 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         return prop_dict
 
     @staticmethod
+    def set_base_sliver_properties_from_graph_properties_dict(sliver: BaseSliver, d: Dict[str, str]):
+        """
+        Sets base sliver properties on existing sliver
+        :param sliver:
+        :param d:
+        :return:
+        """
+        sliver.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
+                              type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
+                              model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
+                              capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
+                              labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
+                              capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
+                                                                         json_str=d.get(
+                                                                             ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS,
+                                                                             None)),
+                              label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
+                                                                      json_str=d.get(
+                                                                          ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
+                                                                          None)),
+                              capacity_allocations=Capacities.from_json(
+                                  d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
+                                        None)),
+                              label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
+                                                                       None)),
+                              structural_info=StructuralInfo.from_json(
+                                  d.get(ABCPropertyGraph.PROP_STRUCTURAL_INFO, None)),
+                              reservation_info=ReservationInfo.from_json(d.get(ABCPropertyGraph.PROP_RESERVATION_INFO,
+                                                                               None)),
+                              details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
+                              node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
+                              d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
+                              stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]))
+
+    @staticmethod
     def node_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NodeSliver:
         n = NodeSliver()
         if d.get(ABCPropertyGraph.PROP_IMAGE_REF, None) is None:
@@ -552,61 +624,22 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             image_type = None
         else:
             image_ref, image_type = d[ABCPropertyGraph.PROP_IMAGE_REF].split(',')
-        n.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
-                         type=n.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
-                         model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                         capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
-                         labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
-                         capacity_allocations=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
-                                                                           None)),
-                         label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
-                                                                    None)),
-                         reservation_info=ReservationInfo.from_json(d.get(ABCPropertyGraph.PROP_RESERVATION_INFO,
-                                                                            None)),
-                         structural_info=StructuralInfo.from_json(d.get(ABCPropertyGraph.PROP_STRUCTURAL_INFO, None)),
-                         capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
-                             json_str=d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
-                         label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
-                             json_str=d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
-                         site=d.get(ABCPropertyGraph.PROP_SITE, None),
+        ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(n, d)
+        n.set_properties(site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                          image_ref=image_ref,
                          image_type=image_type,
                          management_ip=d.get(ABCPropertyGraph.PROP_MGMT_IP, None),
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
-                         details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
-                         node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
-                         d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                         stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE])
                          )
         return n
 
     @staticmethod
     def link_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NetworkLinkSliver:
         n = NetworkLinkSliver()
-        n.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
-                         type=n.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
-                         model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                         capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
-                         labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
-                         capacity_allocations=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
-                                                                           None)),
-                         label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
-                                                                    None)),
-                         reservation_info=ReservationInfo.from_json(d.get(ABCPropertyGraph.PROP_RESERVATION_INFO,
-                                                                            None)),
-                         structural_info=StructuralInfo.from_json(d.get(ABCPropertyGraph.PROP_STRUCTURAL_INFO, None)),
-                         capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
-                             json_str=d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
-                         label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
-                             json_str=d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
-                         allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
-                         details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
-                         layer=d.get(ABCPropertyGraph.PROP_LAYER),
+        ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(n, d)
+        n.set_properties(layer=d.get(ABCPropertyGraph.PROP_LAYER),
                          technology=d.get(ABCPropertyGraph.PROP_TECHNOLOGY),
-                         node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
-                         d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                         stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE])
                          )
         return n
 
@@ -618,54 +651,25 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         cs = ComponentSliver()
-        cs.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
-                          type=cs.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
-                          model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                          capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
-                          labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
-                          capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
-                              json_str=d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
-                          label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
-                              json_str=d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
-                          capacity_allocations=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
-                                                                            None)),
-                          label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
-                                                                     None)),
-                          details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
-                          node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
-                          d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                          stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE])
-                          )
+        ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(cs, d)
         return cs
 
     @staticmethod
-    def switch_fabric_sliver_from_graph_properties_dict(d: Dict[str, str]) -> SwitchFabricSliver:
+    def network_service_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NetworkServiceSliver:
         """
-        SwitchFabric sliver from node graph properties
+        NetworkService sliver from node graph properties
         :param d:
         :return:
         """
-        sf = SwitchFabricSliver()
-        sf.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
-                          type=sf.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
-                          model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                          capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
-                          labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
-                          capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
-                              json_str=d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
-                          label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
-                              json_str=d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
-                          capacity_allocations=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
-                                                                            None)),
-                          label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
-                                                                     None)),
-                          layer=sf.layer_from_str(d.get(ABCPropertyGraph.PROP_LAYER, None)),
-                          details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
-                          node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
-                          d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                          stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE])
-                          )
-        return sf
+        ns = NetworkServiceSliver()
+        ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(ns, d)
+        ns.set_properties(layer=d.get(ABCPropertyGraph.PROP_LAYER),
+                          technology=d.get(ABCPropertyGraph.PROP_TECHNOLOGY),
+                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
+                          ero=ERO.from_json(d.get(ABCPropertyGraph.PROP_ERO, None)),
+                          path_info=PathInfo.from_json(d.get(ABCPropertyGraph.PROP_PATH_INFO, None)),
+                          controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None))
+        return ns
 
     @staticmethod
     def interface_sliver_from_graph_properties_dict(d: Dict[str, str]) -> InterfaceSliver:
@@ -675,24 +679,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         isl = InterfaceSliver()
-        isl.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
-                           type=isl.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
-                           model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                           capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
-                           labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
-                           capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
-                               json_str=d.get(ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS, None)),
-                           label_delegations=Delegations.from_json(atype=DelegationType.LABEL,
-                               json_str=d.get(ABCPropertyGraph.PROP_LABEL_DELEGATIONS, None)),
-                           capacity_allocations=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS,
-                                                                             None)),
-                           label_allocations=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABEL_ALLOCATIONS,
-                                                                      None)),
-                           details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
-                           node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
-                           d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                           stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE])
-                           )
+        ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(isl, d)
         return isl
 
     def build_deep_node_sliver(self, *, node_id: str) -> NodeSliver:
@@ -709,7 +696,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         # create top-level sliver
         ns = self.node_sliver_from_graph_properties_dict(props)
         ns.node_id = node_id
-        # find and build deep slivers of switch fabrics (if any) and components (if any)
+        # find and build deep slivers of network services (if any) and components (if any)
         comps = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                         node_label=ABCPropertyGraph.CLASS_Component)
         if comps is not None and len(comps) > 0:
@@ -719,30 +706,30 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                 aci.add_device(cs)
             ns.attached_components_info = aci
 
-        sfs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
-                                      node_label=ABCPropertyGraph.CLASS_SwitchFabric)
-        if sfs is not None and len(sfs) > 0:
-            sfi = SwitchFabricInfo()
-            for s in sfs:
-                sfsl = self.build_deep_sf_sliver(node_id=s)
-                sfi.add_switch_fabric(sfsl)
-            ns.switch_fabric_info = sfi
+        nss = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
+                                      node_label=ABCPropertyGraph.CLASS_NetworkService)
+        if nss is not None and len(nss) > 0:
+            nsi = NetworkServiceInfo()
+            for s in nss:
+                nssl = self.build_deep_ns_sliver(node_id=s)
+                nsi.add_network_service(nssl)
+            ns.network_service_info = nsi
 
         return ns
 
-    def build_deep_link_sliver(self, *, node_id: str) -> NetworkLinkSliver:
+    def build_deep_ns_sliver(self, *, node_id: str) -> NetworkServiceSliver:
         """
-        Build a deep NetworkLinkSliver from a graph node
+        Build a deep sliver for a NetworkService
         :param node_id:
         :return:
         """
         clazzes, props = self.get_node_properties(node_id=node_id)
-        if ABCPropertyGraph.CLASS_Link not in clazzes:
+        if ABCPropertyGraph.CLASS_NetworkService not in clazzes:
             raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
-                                              msg="Node is not of class Link")
+                                              msg="Node is not of class NetworkService")
         # create top-level sliver
-        ns = self.link_sliver_from_graph_properties_dict(props)
-        ns.node_id = node_id
+        nss = self.network_service_sliver_from_graph_properties_dict(props)
+        nss.node_id = node_id
         # find interfaces and attach
         ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
@@ -753,30 +740,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                 ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
                 ifsl.node_id = node_id
                 ifi.add_interface(ifsl)
-            ns.interface_info = ifi
-
-        return ns
-
-    def build_deep_sf_sliver(self, *, node_id: str) -> SwitchFabricSliver:
-        clazzes, props = self.get_node_properties(node_id=node_id)
-        if ABCPropertyGraph.CLASS_SwitchFabric not in clazzes:
-            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
-                                              msg="Node is not of class SwitchFabric")
-        # create top-level sliver
-        sfs = self.switch_fabric_sliver_from_graph_properties_dict(props)
-        sfs.node_id = node_id
-        # find interfaces and attach
-        ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
-                                      node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
-        if ifs is not None and len(ifs) > 0:
-            ifi = InterfaceInfo()
-            for i in ifs:
-                _, iprops = self.get_node_properties(node_id=i)
-                ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
-                ifsl.node_id = node_id
-                ifi.add_interface(ifsl)
-            sfs.interface_info = ifi
-        return sfs
+            nss.interface_info = ifi
+        return nss
 
     def build_deep_component_sliver(self, *, node_id: str) -> ComponentSliver:
         clazzes, props = self.get_node_properties(node_id=node_id)
@@ -786,32 +751,266 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         # create top-level sliver
         cs = self.component_sliver_from_graph_properties_dict(props)
         cs.node_id = node_id
-        # find any switch fabrics, build and attach
-        sfs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
-                                      node_label=ABCPropertyGraph.CLASS_SwitchFabric)
-        if sfs is not None and len(sfs) > 0:
-            sfi = SwitchFabricInfo()
-            for s in sfs:
-                sfsl = self.build_deep_sf_sliver(node_id=s)
-                sfi.add_switch_fabric(sfsl)
-            cs.switch_fabric_info = sfi
+        # find any network services, build and attach
+        nss = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
+                                      node_label=ABCPropertyGraph.CLASS_NetworkService)
+        if nss is not None and len(nss) > 0:
+            nsi = NetworkServiceInfo()
+            for s in nss:
+                nssl = self.build_deep_ns_sliver(node_id=s)
+                nsi.add_network_service(nssl)
+            cs.network_service_info = nsi
         return cs
 
-    def get_all_link_interfaces(self, link_id: str) -> List[str]:
+    def remove_network_node_with_components_nss_cps_and_links(self, node_id: str):
+        """
+        Remove a network node, all of components and their interfaces, parent interfaces
+        and connected links (as appropriate)
+        :param node_id:
+        :return:
+        """
+        # the network node itself
+        # its components and network services
+        # component network services
+        # network service interfaces (if present)
+        # their parent interfaces (if present)
+        # the 'Link' objects connected to interfaces if only one or no other interface connects to them
+
+        # check we are a network node
+        labels, node_props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_NetworkNode not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg="This node type is not NetworkNode")
+        # get a list of components
+        components = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
+                                             node_label=ABCPropertyGraph.CLASS_Component)
+        for cid in components:
+            self.remove_component_with_nss_cps_and_links(node_id=cid)
+
+        # get a list of network services, delete the node
+        network_services = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
+                                                   node_label=ABCPropertyGraph.CLASS_NetworkService)
+        self.delete_node(node_id=node_id)
+        for cid in network_services:
+            self.remove_ns_with_cps_and_links(node_id=cid)
+
+    def remove_component_with_nss_cps_and_links(self, node_id: str):
+        """
+        Remove a component of a network node with all attached elements (network services
+        and interfaces). Parent interfaces and links are removed if they have no other
+        children or connected interfaces.
+        :param node_id: component node id
+        :return:
+        """
+        # check we are a component
+        labels, node_props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_Component not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg="This node type is not Component")
+        # get a list of NetworkServices, delete the node
+        network_services = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
+                                                   node_label=ABCPropertyGraph.CLASS_NetworkService)
+        self.delete_node(node_id=node_id)
+        for ns in network_services:
+            self.remove_ns_with_cps_and_links(node_id=ns)
+
+    def remove_network_link(self, node_id: str):
+
+        # check we are a link
+        labels, node_props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_Link not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg="This node type is not Link")
+        # edges to interfaces/connection points will disappear
+        self.delete_node(node_id=node_id)
+
+    def remove_ns_with_cps_and_links(self, node_id: str):
+        """
+        Remove network service with subtending interfaces and links
+        :param node_id:
+        :return:
+        """
+        # check we are a network service
+        labels, node_props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_NetworkService not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
+                                              msg="This node type is not NetworkService")
+        # get a list of interfaces, delete the network service
+        interfaces = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                             node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        self.delete_node(node_id=node_id)
+        for iif in interfaces:
+            self.remove_cp_and_links(node_id=iif)
+
+    def remove_cp_and_links(self, node_id: str):
+        """
+        Remove ConnectionPoint and links. Parent ConnectionPoints and links are removed
+        if they have no other children or other connected connection points.
+        :param node_id: interface node id
+        :return:
+        """
+        # some interfaces may have parent interfaces, which can be deleted if they only have the
+        # one child
+        interfaces_to_delete = {node_id}
+        parents = self.get_first_neighbor(node_id=node_id,
+                                          rel=ABCPropertyGraph.REL_CONNECTS,
+                                          node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        for parent in parents:  # really should only be one parent interface
+            children = self.get_first_neighbor(node_id=parent,
+                                               rel=ABCPropertyGraph.REL_CONNECTS,
+                                               node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+            if len(children) == 1:  # if only child, can delete parent
+                interfaces_to_delete.add(parent)
+        # interfaces themselves and parent interfaces
+        # may be connected to links which can be deleted if nothing
+        # else connects to them
+        links_to_delete = set()
+        for interface in interfaces_to_delete:
+            links = self.get_first_neighbor(node_id=interface,
+                                            rel=ABCPropertyGraph.REL_CONNECTS,
+                                            node_label=ABCPropertyGraph.CLASS_Link)
+            for link in links:  # should only be one
+                connected_interfaces = self.get_first_neighbor(node_id=link,
+                                                               rel=ABCPropertyGraph.REL_CONNECTS,
+                                                               node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+                if len(connected_interfaces) == 2:  # connected to us and another thing, can delete
+                    links_to_delete.add(link)
+        # delete nodes in these sets
+        for deleted_id in interfaces_to_delete.union(links_to_delete):
+            self.delete_node(node_id=deleted_id)
+
+    def add_network_node_sliver(self, *, sliver: NodeSliver):
+
+        assert sliver is not None
+        assert sliver.node_id is not None
+        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode, name=sliver.resource_name)
+
+        props = self.node_sliver_to_graph_properties_dict(sliver)
+        self.add_node(node_id=sliver.node_id, label=ABCPropertyGraph.CLASS_NetworkNode, props=props)
+        # if components aren't empty, add components, their network services and interfaces
+        aci = sliver.attached_components_info
+        if aci is not None:
+            for csliver in aci.devices.values():
+                self.add_component_sliver(parent_node_id=sliver.node_id,
+                                          component=csliver)
+        # if network services arent empty add them with their interfaces
+        nsi = sliver.network_service_info
+        if nsi is not None:
+            for ns in nsi.network_services.values():
+                self.add_network_service_sliver(parent_node_id=sliver.node_id,
+                                                network_service=ns)
+
+    def add_network_link_sliver(self, *, lsliver: NetworkLinkSliver, interfaces: List[str]):
+
+        assert lsliver is not None
+        assert lsliver.node_id is not None
+        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_Link, name=lsliver.resource_name)
+        assert interfaces is not None
+
+        props = self.link_sliver_to_graph_properties_dict(lsliver)
+        self.add_node(node_id=lsliver.node_id, label=ABCPropertyGraph.CLASS_Link, props=props)
+        # add edge links to specified interfaces
+        for i in interfaces:
+            self.add_link(node_a=lsliver.node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=i)
+
+    def add_component_sliver(self, *, parent_node_id: str, component: ComponentSliver):
+        """
+        Add network node component as a sliver, linking back to parent
+        :param parent_node_id:
+        :param component:
+        :return:
+        """
+        assert component.node_id is not None
+        assert parent_node_id is not None
+
+        props = self.component_sliver_to_graph_properties_dict(component)
+        self.add_node(node_id=component.node_id, label=ABCPropertyGraph.CLASS_Component, props=props)
+        self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_HAS, node_b=component.node_id)
+        nsi = component.network_service_info
+        if nsi is not None:
+            for ns in nsi.network_services.values():
+                self.add_network_service_sliver(parent_node_id=component.node_id,
+                                                network_service=ns)
+
+    def add_network_service_sliver(self, *, parent_node_id: str, network_service: NetworkServiceSliver):
+        """
+        Add network service as a sliver to either node or component, linking back to parent (if there is one).
+        :param parent_node_id: can be None
+        :param network_service:
+        :return:
+        """
+        assert network_service.node_id is not None
+        if parent_node_id is None:
+            # slice-wide network services must have unique names
+            assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
+                                          name=network_service.resource_name)
+
+        props = self.network_service_sliver_to_graph_properties_dict(network_service)
+        self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)
+        if parent_node_id is not None:
+            self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_HAS, node_b=network_service.node_id)
+        ii = network_service.interface_info
+        if ii is not None:
+            for i in ii.interfaces.values():
+                self.add_interface_sliver(parent_node_id=network_service.node_id,
+                                          interface=i)
+
+    def add_interface_sliver(self, *, parent_node_id: str, interface: InterfaceSliver):
+        """
+        Add interface to a network service, linking back to parent.
+        :param parent_node_id: network service id
+        :param interface: interface sliver description
+        :return:
+        """
+        assert interface.node_id is not None
+        assert parent_node_id is not None
+
+        props = self.interface_sliver_to_graph_properties_dict(interface)
+        self.add_node(node_id=interface.node_id, label=ABCPropertyGraph.CLASS_ConnectionPoint, props=props)
+        self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=interface.node_id)
+
+    def get_all_ns_or_link_connection_points(self, link_id: str) -> List[str]:
+        """
+        Get interfaces attached to a link or network service
+        :param link_id:
+        :return:
+        """
         assert link_id is not None
         # check this is a link
         labels, parent_props = self.get_node_properties(node_id=link_id)
-        if ABCPropertyGraph.CLASS_Link not in labels:
+        if ABCPropertyGraph.CLASS_Link not in labels and ABCPropertyGraph.CLASS_NetworkService not in labels:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=link_id,
-                                              msg="Node type is not Link")
+                                              msg="Node type is not Link or a NetworkService")
         return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                        node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
+    def get_all_node_or_component_connection_points(self, parent_node_id: str) -> List[str]:
+        """
+        Get a list of interfaces attached via network services
+        :param parent_node_id:
+        :return:
+        """
+        assert parent_node_id is not None
+        labels, parent_props = self.get_node_properties(node_id=parent_node_id)
+        if ABCPropertyGraph.CLASS_NetworkNode not in labels and \
+                ABCPropertyGraph.CLASS_Component not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
+                                              msg="Parent node type is not NetworkNode or Component")
+        nss_ifs = self.get_first_and_second_neighbor(node_id=parent_node_id, rel1=ABCPropertyGraph.REL_HAS,
+                                                     node1_label=ABCPropertyGraph.CLASS_NetworkService,
+                                                     rel2=ABCPropertyGraph.REL_CONNECTS,
+                                                     node2_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        ret = list()
+        # return only interface IDs, not interested in NetworkServices
+        for tup in nss_ifs:
+            ret.append(tup[1])
+        return ret
 
     def get_parent(self, node_id: str, rel: str, parent: str) -> Tuple[str, str]:
         """
         Return name and node_id properties of a parent node (connected via 'has' relationship).
-        NetworkNodes and Links have no parents, Components have NetworkNodes, SwitchFabrics have
-        Components or NetworkNodes, ConnectionPoints have SwitchFabrics
+        NetworkNodes and Links have no parents, Components have NetworkNodes, NetworkServices have
+        Components or NetworkNodes or None, ConnectionPoints have NetworkServices
         :param node_id:
         :param rel: relationship with parent
         :param parent: parent class

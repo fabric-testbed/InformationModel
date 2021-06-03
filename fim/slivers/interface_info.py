@@ -36,6 +36,9 @@ class InterfaceType(enum.Enum):
     """
     AccessPort = enum.auto()
     TrunkPort = enum.auto()
+    ServicePort = enum.auto()
+    DedicatedPort = enum.auto()
+    SharedPort = enum.auto()
     vInt = enum.auto()
 
     def help(self) -> str:

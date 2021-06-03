@@ -59,7 +59,7 @@ class NodeSliver(BaseSliver):
         self.image_type = None
         self.image_ref = None
         self.service_endpoint = None
-        self.switch_fabric_info = None
+        self.network_service_info = None
         self.site = None
 
     #

@@ -488,6 +488,9 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             # filter second neighbors by label
             second_neighbors = self._filter_nodes_by_label(graph, second_neighbors, node2_label)
             if len(second_neighbors) > 0:
+                # remove self in case they are there
+                if real_node in second_neighbors:
+                    second_neighbors.remove(real_node)
                 second_neighbors_dict[n] = second_neighbors
 
         # convert to a list of two-member lists, converting internal IDs to guids
@@ -645,6 +648,21 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
+
+    def check_node_unique(self, *, label: str, name: str):
+        """
+        Check no other node of this class/label and name exists
+        :param label:
+        :param name:
+        :return:
+        """
+        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_NAME, name]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
+                                            ]}))
+        return len(graph_nodes) == 0
 
 
 class NetworkXGraphStorage:

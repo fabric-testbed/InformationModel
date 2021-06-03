@@ -1,3 +1,13 @@
 # Overview
 
-Basic sliver data structure and supporting classes (like Capacities, Labels and Delegations). 
+Basic sliver data structures (things that map onto reservations):
+- NetworkNode
+- NetworkService
+  
+and supporting classes:
+- Components
+- Interfaces
+- Links
+- SwitchFabrics 
+- Ports
+

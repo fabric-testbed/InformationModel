@@ -31,7 +31,7 @@ import uuid
 
 from .attached_components import ComponentSliver, ComponentType
 from .interface_info import InterfaceInfo, InterfaceSliver, InterfaceType
-from .switch_fabric import SwitchFabricSliver, SwitchFabricInfo, SFLayer, SFType
+from .network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, ServiceType
 from .capacities_labels import Capacities, Labels
 
 
@@ -53,7 +53,7 @@ class ComponentCatalog:
         return catalog
 
     def generate_component(self, *, name: str, ctype: ComponentType, model: str,
-                           switch_fabric_node_id: str = None,
+                           ns_node_id: str = None,
                            interface_node_ids: List[str] = None,
                            interface_labels: List[Labels] = None) -> ComponentSliver:
         """
@@ -65,7 +65,7 @@ class ComponentCatalog:
         :param name: name to give to the component
         :param ctype: type of the component
         :param model:
-        :param switch_fabric_node_id: if specified and if component has a switch fabric, put that there
+        :param ns_node_id: if specified and if component has a switch fabric, put that there
         :param interface_node_ids: list of node ids for expected interfaces if component has any
         :param interface_labels: list of labels for expected interfaces if component has any
         :return:
@@ -102,7 +102,10 @@ class ComponentCatalog:
             for interface_name in interfaces_dict.keys():
                 isliver = InterfaceSliver()
                 isliver.set_name(name + '-' + interface_name)
-                isliver.set_type(InterfaceType.TrunkPort)
+                if cs.get_type() == ComponentType.SmartNIC:
+                    isliver.set_type(InterfaceType.DedicatedPort)
+                elif cs.get_type() == ComponentType.SharedNIC:
+                    isliver.set_type(InterfaceType.SharedPort)
                 if interface_node_ids is not None:
                     isliver.node_id = interface_node_ids[id_index]
                 else:
@@ -117,18 +120,18 @@ class ComponentCatalog:
                 cap = Capacities().set_fields(unit=units, bw=int(interfaces_dict[interface_name]))
                 isliver.set_capacities(cap=cap)
                 iinfo.add_interface(isliver)
-            sf = SwitchFabricSliver()
-            if switch_fabric_node_id is None:
-                switch_fabric_node_id = str(uuid.uuid4())
-            sf.node_id = switch_fabric_node_id
-            sf.set_name(name + '-l2sf')
-            sf.set_type(SFType.SwitchFabric)
+            ns = NetworkServiceSliver()
+            if ns_node_id is None:
+                ns_node_id = str(uuid.uuid4())
+            ns.node_id = ns_node_id
+            ns.set_name(name + '-l2ovs')
+            ns.set_type(ServiceType.OVS)
             # default to L2 for now
-            sf.set_layer(SFLayer.L2)
-            sf.interface_info = iinfo
-            sfinfo = SwitchFabricInfo()
-            sfinfo.add_switch_fabric(sf)
-            cs.set_switch_fabric_info(sfinfo)
+            ns.set_layer(NSLayer.L2)
+            ns.interface_info = iinfo
+            nsinfo = NetworkServiceInfo()
+            nsinfo.add_network_service(ns)
+            cs.set_network_service_info(nsinfo)
         return cs
 
     def component_details(self, *, model: str) -> str:
