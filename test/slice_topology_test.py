@@ -64,7 +64,7 @@ class SliceTest(unittest.TestCase):
         assert(len(self.topo.interface_list) == 4)
         assert(len(nic1.interface_list) == 1)
         assert(len(nic2.interface_list) == 2)
-        assert(len(list(nic1.switch_fabrics.values())[0].interface_list) == 1)
+        assert(len(list(nic1.network_services.values())[0].interface_list) == 1)
 
         self.assertTrue(len(gpu1.interfaces) == 0)
         self.assertTrue(len(nic1.interfaces) == 1)
@@ -86,10 +86,12 @@ class SliceTest(unittest.TestCase):
         # interfaces and links
         self.assertEqual(len(self.topo.interface_list), 4)
 
-        self.topo.add_link(name='l1', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
+        #print(f"testNodeAndComponents Interfaces {self.topo.interface_list}")
+        self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
 
         with self.assertRaises(AssertionError) as e:
-            self.topo.add_link(name='l1', ltype=f.LinkType.L1Path, interfaces=self.topo.interface_list[0:2])
+            self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge,
+                                          interfaces=self.topo.interface_list[0:2])
 
         #print(self.topo)
 
@@ -99,27 +101,35 @@ class SliceTest(unittest.TestCase):
         n1.unset_property('node_map')
         assert n1.get_property('node_map') is None
 
-        self.assertEqual(len(self.topo.links), 1)
+        self.assertEqual(len(self.topo.links), 4)
+        # 4 services - 3 in NICs, one global
+        self.assertEqual(len(self.topo.network_services), 4)
         # removal checks
         self.topo.remove_node(name='Node2')
 
         self.assertTrue(len(self.topo.links), 1)
         self.assertTrue(len(self.topo.nodes), 2)
 
-        # should remove the link since only one interface left
         n1.remove_component(name='nic1')
+        self.assertEqual(len(self.topo.links), 1)
+
+        n3.remove_component(name='nic3')
         self.assertEqual(len(self.topo.links), 0)
+
         # GPU left
         self.assertTrue(len(n1.components), 1)
-        self.assertTrue(len(self.topo.interface_list), 1)
+
         # remove remaining nodes
         self.topo.remove_node(name='node3')
         self.topo.remove_node(name='Node1')
         self.assertEqual(len(self.topo.nodes), 0)
         self.assertEqual(len(self.topo.interface_list), 0)
         self.assertEqual(len(self.topo.links), 0)
+        self.assertEqual(len(self.topo.network_services), 1)
+        self.topo.remove_network_service(name='s1')
+        self.assertEqual(len(self.topo.network_services), 0)
 
-    def testLinks(self):
+    def testNetworkServices(self):
         n1 = self.topo.add_node(name='Node1', site='RENC')
         n2 = self.topo.add_node(name='Node2', site='UKY', ntype=f.NodeType.Server)
         n3 = self.topo.add_node(name='Node3', site='RENC', management_ip='123.45.67.98',
@@ -145,13 +155,37 @@ class SliceTest(unittest.TestCase):
         lab.set_fields(ipv4="192.168.1.12")
         nic1.set_properties(labels=lab)
 
-        self.topo.add_link(name='l1', ltype=f.LinkType.L2STS, interfaces=self.topo.interface_list)
+        #s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
 
-        self.topo.remove_link(name='l1')
+        s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=self.topo.interface_list)
 
-        self.topo.add_link(name='l2', ltype=f.LinkType.L2PTP, interfaces=self.topo.interface_list[0:2])
+        print(f'S1 has these interfaces: {s1.interface_list}')
+        self.assertEqual(len(s1.interface_list), 4)
 
-        self.topo.remove_link(name='l2')
+        s1p = self.topo.network_services['s1']
+
+        print(f'S1p has these interfaces: {s1p.interface_list}')
+
+        s1.disconnect_interface(interface=p1)
+
+        print(f'S1 has these interfaces: {s1.interface_list}')
+        self.assertEqual(len(s1.interface_list), 3)
+
+        self.topo.remove_network_service('s1')
+
+        s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
+                                           interfaces=self.topo.interface_list[0:2])
+        self.assertEqual(len(s2.interface_list), 2)
+        print(f'S2 has these interfaces: {s2.interface_list}')
+
+        print(f'There are {self.topo.links} left in topology')
+        self.assertEqual(len(self.topo.links), 2)
+        print(f'Network services {self.topo.network_services}')
+        self.assertEqual(len(self.topo.network_services), 4)
+        self.topo.remove_network_service('s2')
+        self.assertEqual(len(self.topo.network_services), 3)
+        n1.remove_component('nic1')
+        self.assertEqual(len(self.topo.network_services), 2)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 
@@ -161,11 +195,11 @@ class SliceTest(unittest.TestCase):
         deep_sliver = self.topo.graph_model.build_deep_node_sliver(node_id=self.topo.nodes['n1'].node_id)
         self.assertNotEqual(deep_sliver, None)
         self.assertNotEqual(deep_sliver.attached_components_info, None)
-        self.assertNotEqual(deep_sliver.attached_components_info.devices['nic1'].switch_fabric_info, None)
+        self.assertNotEqual(deep_sliver.attached_components_info.devices['nic1'].network_service_info, None)
         self.assertNotEqual(deep_sliver.attached_components_info.
-                            devices['nic1'].switch_fabric_info.switch_fabrics['nic1-l2sf'].interface_info, None)
+                            devices['nic1'].network_service_info.network_services['nic1-l2ovs'].interface_info, None)
         self.assertEqual(len(deep_sliver.attached_components_info.
-                             devices['nic1'].switch_fabric_info.switch_fabrics['nic1-l2sf'].
+                             devices['nic1'].network_service_info.network_services['nic1-l2ovs'].
                              interface_info.interfaces), 1)
 
     def testSerDes(self):
