@@ -6,8 +6,6 @@ Basic sliver data structures (things that map onto reservations):
   
 and supporting classes:
 - Components
-- Interfaces
-- Links
-- SwitchFabrics 
-- Ports
+- Interfaces/ConnectionPoints
+- Links 
 

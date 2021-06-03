@@ -185,7 +185,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
             for cp in keep_cps:
                 cp_neighbors = self.get_first_and_second_neighbor(node_id=cp,
                                                                   rel1=ABCPropertyGraph.REL_CONNECTS,
-                                                                  node1_label=ABCPropertyGraph.CLASS_SwitchFabric,
+                                                                  node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                                   rel2=ABCPropertyGraph.REL_HAS,
                                                                   node2_label=ABCPropertyGraph.CLASS_NetworkNode)
                 for pair in cp_neighbors:
@@ -193,7 +193,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
 
                 cp_neighbors = self.get_first_and_second_neighbor(node_id=cp,
                                                                   rel1=ABCPropertyGraph.REL_CONNECTS,
-                                                                  node1_label=ABCPropertyGraph.CLASS_SwitchFabric,
+                                                                  node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                                   rel2=ABCPropertyGraph.REL_HAS,
                                                                   node2_label=ABCPropertyGraph.CLASS_Component)
                 for pair in cp_neighbors:

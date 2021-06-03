@@ -110,7 +110,7 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
                                                      rel2=ABCPropertyGraphConstants.REL_CONNECTS,
                                                      node2_label=ABCPropertyGraphConstants.CLASS_ConnectionPoint)
         ret = list()
-        # return only interface IDs, not interested in SwitchFabrics
+        # return only interface IDs, not interested in NetworkServices
         for tup in sfs_ifs:
             ret.append(tup[1])
         return ret

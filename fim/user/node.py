@@ -235,7 +235,7 @@ class Node(ModelElement):
 
     def __get_ns_by_name(self, name: str) -> NetworkService:
         """
-        Find SwitchFabric of a node by its name, return SwitchFabric object
+        Find NetworkService of a node by its name, return NetworkService object
         :param name:
         :return:
         """
@@ -245,7 +245,7 @@ class Node(ModelElement):
 
     def __get_ns_by_id(self, node_id: str) -> NetworkService:
         """
-        Get a network service of a node by its node_id, return SwitchFabric object
+        Get a network service of a node by its node_id, return NetworkService object
         :param node_id:
         :return:
         """

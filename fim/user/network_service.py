@@ -69,41 +69,41 @@ class NetworkService(ModelElement):
         assert topo is not None
 
         if etype == ElementType.NEW:
-            # cant use isinstance as it would create circular import dependencies
             # node id myst be specified for new nodes in substrate topologies
-            if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>":
-                raise RuntimeError("Cannot add network services to substrate topology")
             if node_id is None:
                 node_id = str(uuid.uuid4())
             super().__init__(name=name, node_id=node_id, topo=topo)
             if nstype is None:
                 raise RuntimeError("When creating new services you must specify ServiceType")
-            # FIXME isinstance
-            if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
-                                                              not isinstance(interfaces, list)):
-                raise RuntimeError("When creating new services you must specify the list of interfaces to connect.")
-            # check the number of instances of this service
-            if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
-                services = topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
-                                                                            ntype=str(nstype))
-                if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
-                    raise RuntimeError(f"Service type {nstype} cannot have {len(services) + 1} instances. "
-                                       f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
-            # check the number of interfaces
-            if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
-                if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
-                    raise RuntimeError(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
-                                       f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
-            # check the number of sites spanned by this service
-            if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
-                # trace ownership of each interface and count the sites involved
-                sites = set()
-                for interface in interfaces:
-                    owner = topo.get_owner_node(interface)
-                    sites.add(owner.get_property('site'))
-                if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
-                    raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
-                                       f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
+            # cant use isinstance as it would create circular import dependencies
+            # We do more careful checks for ExperimentTopologies, but for substrate we let things loose
+            if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
+                if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
+                                                                  not isinstance(interfaces, list)):
+                    raise RuntimeError("When creating new services in ExperimentTopology you "
+                                       "must specify the list of interfaces to connect.")
+                # check the number of instances of this service
+                if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
+                    services = topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
+                                                                                ntype=str(nstype))
+                    if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
+                        raise RuntimeError(f"Service type {nstype} cannot have {len(services) + 1} instances. "
+                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
+                # check the number of interfaces
+                if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
+                    if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
+                        raise RuntimeError(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
+                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
+                # check the number of sites spanned by this service
+                if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
+                    # trace ownership of each interface and count the sites involved
+                    sites = set()
+                    for interface in interfaces:
+                        owner = topo.get_owner_node(interface)
+                        sites.add(owner.get_property('site'))
+                    if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
+                        raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
+                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
             sliver = NetworkServiceSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
@@ -114,8 +114,9 @@ class NetworkService(ModelElement):
             sliver.set_properties(**kwargs)
             self.topo.graph_model.add_network_service_sliver(parent_node_id=parent_node_id, network_service=sliver)
             self._interfaces = list()
-            for i in interfaces:
-                self.connect_interface(interface=i)
+            if interfaces is not None and len(interfaces) > 0:
+                for i in interfaces:
+                    self.connect_interface(interface=i)
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
@@ -190,6 +191,44 @@ class NetworkService(ModelElement):
                 to_remove = i
         if to_remove is not None:
             self._interfaces.remove(to_remove)
+
+    def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort,
+                      **kwargs):
+        """
+        Add an interface to node (mostly needed in substrate topologies)
+        :param name:
+        :param node_id:
+        :param itype: interface type e.g. TrunkPort, AccessPort or VINT
+        :param kwargs: additional parameters
+        :return:
+        """
+        assert name is not None
+        # cant use isinstance as it would create circular import dependencies
+        if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
+            raise RuntimeError("Do not need to add interface to NetworkService in Experiment topology")
+
+        # check uniqueness
+        if name in self.__list_interfaces().keys():
+            raise RuntimeError('Interface names must be unique within a switch fabric')
+        iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
+                        etype=ElementType.NEW, topo=self.topo, itype=itype,
+                        **kwargs)
+        return iff
+
+    def remove_interface(self, *, name: str) -> None:
+        """
+        Remove an interface from the switch fabric, disconnect from links (in substrate topologies). Remove links
+        if they have nothing else connecting to them.
+        :param name:
+        :return:
+        """
+        assert name is not None
+        # cant use isinstance as it would create circular import dependencies
+        if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
+            raise RuntimeError("Cannot remove interface from NetworkService in Experiment topology")
+        node_id = self.topo.graph_model.find_connection_point_by_name(parent_node_id=self.node_id,
+                                                                      iname=name)
+        self.topo.graph_model.remove_cp_and_links(node_id=node_id)
 
     def get_property(self, pname: str) -> Any:
         """

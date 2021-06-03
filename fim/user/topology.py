@@ -124,7 +124,7 @@ class Topology(ABC):
 
     def get_owner_node(self, e: ModelElement) -> ModelElement or None:
         """
-        Get an owner Node element for Component, SwitchFabric or Interface. For Link and Node
+        Get an owner Node element for Component, NetworkService or Interface. For Link and Node
         return None
         :param e:
         :return:
@@ -628,7 +628,7 @@ class SubstrateTopology(Topology):
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
                             delegations_dicts[t][i.node_id] = delegations
-                # switchfabrics (for eg switches)
+                # network services (for eg switches)
                 for sf in n.network_services.values():
                     delegations = self.__copy_to_delegations(e=sf, atype=t,
                                                              delegation_id=delegation_id)
