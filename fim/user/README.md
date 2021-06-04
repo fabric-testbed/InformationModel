@@ -61,7 +61,30 @@ t.serialize('test_slice.graphml')
 print(t)
 ```
 
-Parsing on orchestrator side
+For setting instance sizes vs. capacities two things should be possible: (a) set capacity_hints in request to the 
+desired instance size and have the orchestrator fill in the allocated_capacities field and (b) set capacities field
+in request and have the orchestrator fill in capacity_hints and allocated_capacities field accordingly. 
+
+(a):
+```
+t = fu.ExperimentTopology()
+n1 = t.add_node(name='n1', site='RENC')
+caphint = fu.CapacityHints().set_fields(instance_type='fabric.c4.m16.d10')
+n1.set_properties(capacity_hints=caphint)
+... some time later after slice is provisioned
+t.nodes['n1'].get_property('allocated_capacities') # will return Capacities object core=4, ram=16, disk=10
+```
+or (b):
+```
+t = fu.ExperimentTopology()
+n1 = t.add_node(name='n1', site='RENC')
+cap = Capacities().set_fields(core=3, ram=10, disk=10)
+n1.set_properties(capacities=cap)
+... some time later after slice is provisioned
+t.nodes['n1'].get_property('allocated_capacities') # will return Capacities object core=4, ram=16, disk=10
+t.nodes['n1'].get_property('capacity_hints') # will return CapacityHints object with instance_type='fabric.c4.m16.d10'
+```
+Parsing on orchestrator side inside the control framework
 ```python
 import fim.graph.slices.networkx_asm as nx_asm
 
@@ -72,7 +95,6 @@ for nn_id in asm.get_all_network_nodes():
     sliver = asm.build_deep_node_sliver(node_id=nn_id)
     print(sliver)
 ```
-
 
 ## Pseudocode scripts
 

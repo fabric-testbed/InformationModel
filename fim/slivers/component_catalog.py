@@ -39,6 +39,7 @@ class ComponentCatalog:
     """
     Reading/parsing of component catalog resource file, generation of
     component slivers based on models, search, details etc.
+    This class relies on a resource file fim/slivers/data/component_catalog.json
     """
     def __init__(self):
         pass

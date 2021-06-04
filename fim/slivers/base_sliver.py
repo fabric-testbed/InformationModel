@@ -29,7 +29,7 @@ Base class for all sliver types
 from typing import Any, Tuple, List, Dict
 from abc import ABC, abstractmethod
 
-from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo
+from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, ReservationInfo, StructuralInfo
 from fim.slivers.delegations import Delegations
 
 
@@ -42,6 +42,7 @@ class BaseSliver(ABC):
         self.resource_name = None
         self.resource_model = None
         self.capacities = None
+        self.capacity_hints = None
         self.labels = None
         self.capacity_delegations = None
         self.label_delegations = None
@@ -78,6 +79,13 @@ class BaseSliver(ABC):
 
     def get_capacities(self) -> Capacities:
         return self.capacities
+
+    def set_capacity_hints(self, caphint: CapacityHints) -> None:
+        assert(caphint is None or isinstance(caphint, CapacityHints))
+        self.capacity_hints = caphint
+
+    def get_capacity_hints(self) -> CapacityHints:
+        return self.capacity_hints
 
     def set_labels(self, lab: Labels) -> None:
         assert(lab is None or isinstance(lab, Labels))

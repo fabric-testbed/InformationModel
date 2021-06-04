@@ -38,7 +38,7 @@ from enum import Enum
 import logging
 
 from fim.slivers.attached_components import ComponentSliver, AttachedComponentsInfo
-from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo, CapacityHints
 from fim.slivers.delegations import Delegations, DelegationType
 from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.base_sliver import BaseSliver
@@ -70,6 +70,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "name": ABCPropertyGraphConstants.PROP_NAME,
         "type": ABCPropertyGraphConstants.PROP_TYPE,
         "capacities": ABCPropertyGraphConstants.PROP_CAPACITIES,
+        "capacity_hints": ABCPropertyGraphConstants.PROP_CAPACITY_HINTS,
         "labels": ABCPropertyGraphConstants.PROP_LABELS,
         "capacity_delegations": ABCPropertyGraphConstants.PROP_CAPACITY_DELEGATIONS,
         "label_delegations": ABCPropertyGraphConstants.PROP_LABEL_DELEGATIONS,
@@ -473,6 +474,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MODEL] = sliver.resource_model
         if sliver.capacities is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
+        if sliver.capacity_hints is not None:
+            prop_dict[ABCPropertyGraph.PROP_CAPACITY_HINTS] = sliver.capacity_hints.to_json()
         if sliver.labels is not None:
             prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
         if sliver.capacity_delegations is not None:
@@ -593,6 +596,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                               model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
                               capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
+                              capacity_hints=CapacityHints.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_HINTS, None)),
                               labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
                               capacity_delegations=Delegations.from_json(atype=DelegationType.CAPACITY,
                                                                          json_str=d.get(
