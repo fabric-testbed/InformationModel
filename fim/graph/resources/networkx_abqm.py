@@ -96,7 +96,7 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
 
     def get_all_node_or_component_connection_points(self, parent_node_id: str) -> List[str]:
         """
-        Get a list of interfaces attached via switch fabrics to a composite node
+        Get a list of interfaces attached via network services to a composite node
         :param parent_node_id:
         :return:
         """

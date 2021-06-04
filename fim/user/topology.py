@@ -568,7 +568,7 @@ class SubstrateTopology(Topology):
     def __copy_to_delegations(e: ModelElement, atype: DelegationType,
                               delegation_id: str) -> Delegations or None:
         """
-        From a model element (node, component, switch_fabric, interface), copy
+        From a model element (node, component, network service, interface), copy
         capacities or labels to a Delegations and return Delegations or none if
         no capacities or labels specified. Return None if element is a stitch node.
         :param e:

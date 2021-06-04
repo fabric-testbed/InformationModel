@@ -152,8 +152,8 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
 
             # in addition to definite keep nodes, we should also keep nodes that
             # a) lie on shortest paths between two connection points we are keeping (to include the links)
-            # b) switch fabrics that connect to connection points
-            # c) network nodes that have switch fabrics
+            # b) network services that connect to connection points
+            # c) network nodes that have network services
             # Determine nodes to delete by doing a difference between all nodes and keep nodes
             # Remove nodes
             # Annotate keep nodes with proper delegation information

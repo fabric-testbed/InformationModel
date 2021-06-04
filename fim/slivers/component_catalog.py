@@ -65,7 +65,7 @@ class ComponentCatalog:
         :param name: name to give to the component
         :param ctype: type of the component
         :param model:
-        :param ns_node_id: if specified and if component has a switch fabric, put that there
+        :param ns_node_id: if specified and if component has a network service, put that there
         :param interface_node_ids: list of node ids for expected interfaces if component has any
         :param interface_labels: list of labels for expected interfaces if component has any
         :return:
