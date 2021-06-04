@@ -84,6 +84,20 @@ n1.set_properties(capacities=cap)
 t.nodes['n1'].get_property('allocated_capacities') # will return Capacities object core=4, ram=16, disk=10
 t.nodes['n1'].get_property('capacity_hints') # will return CapacityHints object with instance_type='fabric.c4.m16.d10'
 ```
+
+On orchestrator side instance size catalog can be used as follows:
+```
+from fim.slivers.instance_catalog import InstanceCatalog
+from fim.slivers.capacities_labels import Capacities
+cap = topo.nodes['n1'].get_property('capacities')
+cata = InstanceCatalog()
+c = cata.map_capacities_to_instance(cap=cap)
+c_cap = cata.get_instance_capacities(instance_type=c)
+caphints = CapacityHints().set_fields(instance_size=c)
+allocated_capacities=Capacities().set_fields(**c_cap)
+topo.nodes['n1'].set_properties(capacity_hints=caphints, allocated_capacities=allocated_capacities)
+```
+
 Parsing on orchestrator side inside the control framework
 ```python
 import fim.graph.slices.networkx_asm as nx_asm
