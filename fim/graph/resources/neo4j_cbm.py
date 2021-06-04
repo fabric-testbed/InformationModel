@@ -325,9 +325,9 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
     def get_intersite_links(self) -> List[Tuple[str, str, str]]:
         # does a lexicographic comparison of Site properties to ensure only unique links are returned
-        query = 'match p= (n:NetworkNode {Type:"Switch", GraphID: $graphId}) -[:has]- (:SwitchFabric) ' \
+        query = 'match p= (n:NetworkNode {Type:"Switch", GraphID: $graphId}) -[:has]- (:NetworkService) ' \
                 '-[:connects]- (cp1:ConnectionPoint) -[:connects]- (l:Link) ' \
-                '-[:connects]- (cp2:ConnectionPoint) -[:connects]- (:SwitchFabric) ' \
+                '-[:connects]- (cp2:ConnectionPoint) -[:connects]- (:NetworkService) ' \
                 '-[:has]- (m:NetworkNode {Type:"Switch", GraphID: $graphId}) where n.Site > m.Site ' \
                 'return n.NodeID as source, l.NodeID as link, m.NodeID as sink, n.Site as source_site, ' \
                 'm.Site as sink_site, cp1.NodeID as source_cp, cp2.NodeID as sink_cp'

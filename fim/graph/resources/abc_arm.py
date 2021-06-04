@@ -152,8 +152,8 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
 
             # in addition to definite keep nodes, we should also keep nodes that
             # a) lie on shortest paths between two connection points we are keeping (to include the links)
-            # b) switch fabrics that connect to connection points
-            # c) network nodes that have switch fabrics
+            # b) network services that connect to connection points
+            # c) network nodes that have network services
             # Determine nodes to delete by doing a difference between all nodes and keep nodes
             # Remove nodes
             # Annotate keep nodes with proper delegation information
@@ -185,7 +185,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
             for cp in keep_cps:
                 cp_neighbors = self.get_first_and_second_neighbor(node_id=cp,
                                                                   rel1=ABCPropertyGraph.REL_CONNECTS,
-                                                                  node1_label=ABCPropertyGraph.CLASS_SwitchFabric,
+                                                                  node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                                   rel2=ABCPropertyGraph.REL_HAS,
                                                                   node2_label=ABCPropertyGraph.CLASS_NetworkNode)
                 for pair in cp_neighbors:
@@ -193,7 +193,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
 
                 cp_neighbors = self.get_first_and_second_neighbor(node_id=cp,
                                                                   rel1=ABCPropertyGraph.REL_CONNECTS,
-                                                                  node1_label=ABCPropertyGraph.CLASS_SwitchFabric,
+                                                                  node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                                   rel2=ABCPropertyGraph.REL_HAS,
                                                                   node2_label=ABCPropertyGraph.CLASS_Component)
                 for pair in cp_neighbors:

@@ -31,14 +31,14 @@ import uuid
 from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, ElementType
 from .component import Component, ComponentType
-from .switch_fabric import SwitchFabric
+from .network_service import NetworkService
 from .interface import Interface
 
 from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 
 from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
-from ..slivers.switch_fabric import SFLayer
+from ..slivers.network_service import ServiceType
 
 
 class Node(ModelElement):
@@ -51,7 +51,7 @@ class Node(ModelElement):
     direct_interfaces - returns a dictionary of direct interfaces, i.e. those
     not attached to components (mostly relevant to switches, not servers
     or VMs)
-    switch_fabrics - returns a dictionary of switch fabrics (mostly relevant
+    network_services - returns a dictionary of network_services (mostly relevant
     to switches, not servers or VMs)
     """
 
@@ -143,17 +143,17 @@ class Node(ModelElement):
         return tuple(NodeSliver.list_properties())
 
     def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
-                      model: str,  switch_fabric_node_id: str=None, interface_node_ids=None,
+                      model: str, network_service_node_id: str=None, interface_node_ids=None,
                       interface_labels=None, **kwargs) -> Component:
         """
         Add a component of specified type, model and name to this node. When working with substrate
-        topologies you must specify the switch_fabric_node_id and provide a list of interface node ids.
+        topologies you must specify the network_service_node_id and provide a list of interface node ids.
         :param name:
         :param node_id:
         :param ctype:
         :param model:
         :param name:
-        :param switch_fabric_node_id: switch fabric identifier for substrate models
+        :param network_service_node_id: network service identifier for substrate models
         :param interface_node_ids: interface identifiers for substrate models
         :param interface_labels: list of labels for interfaces in substrate models
         :param kwargs: additional properties of the component
@@ -165,14 +165,14 @@ class Node(ModelElement):
             raise RuntimeError('Component names must be unique within node.')
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
-                      ctype=ctype, model=model, switch_fabric_node_id=switch_fabric_node_id,
+                      ctype=ctype, model=model, network_service_node_id=network_service_node_id,
                       interface_node_ids=interface_node_ids, interface_labels=interface_labels,
                       parent_node_id=self.node_id, **kwargs)
         return c
 
-    def add_switch_fabric(self, *, name: str, node_id: str = None, layer: SFLayer, **kwargs):
+    def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType, **kwargs) -> NetworkService:
         """
-        Add a switch fabric to node (mostly needed in substrate topologies)
+        Add a network service to node (mostly needed in substrate topologies)
         :param name:
         :param node_id:
         :param layer:
@@ -181,34 +181,34 @@ class Node(ModelElement):
         """
         assert name is not None
         # make sure name is unique within the node
-        if name in self.__list_switch_fabrics().keys():
-            raise RuntimeError('SwitchFabric names must be unique within node.')
-        sf = SwitchFabric(name=name, node_id=node_id, layer=layer, parent_node_id=self.node_id,
-                          etype=ElementType.NEW, topo=self.topo, **kwargs)
-        return sf
+        if name in self.__list_network_services().keys():
+            raise RuntimeError('NetworkService names must be unique within node.')
+        ns = NetworkService(name=name, node_id=node_id, parent_node_id=self.node_id, topo=self.topo,
+                            etype=ElementType.NEW, nstype=nstype, **kwargs)
+        return ns
 
     def remove_component(self, name: str) -> None:
         """
-        Remove a component from the node (and switch fabrics and their interfaces)
+        Remove a component from the node (and network services and their interfaces)
         :param name:
         :return:
         """
         assert name is not None
         node_id = self.topo.graph_model.find_component_by_name(parent_node_id=self.node_id,
                                                                component_name=name)
-        self.topo.graph_model.remove_component_with_sfs_cps_and_links(node_id=node_id)
+        self.topo.graph_model.remove_component_with_nss_cps_and_links(node_id=node_id)
 
-    def remove_switch_fabric(self, name: str) -> None:
+    def remove_network_service(self, name: str) -> None:
         """
-        Remove a switch fabric from the node (and all its interfaces)
+        Remove a network service from the node (and all its interfaces)
         :param name:
         :return:
         """
         assert name is not None
 
-        node_id = self.topo.graph_model.find_sf_by_name(parent_node_id=self.node_id,
-                                                        sfname=name)
-        self.topo.graph_model.remove_sf_with_cps_and_links(node_id=node_id)
+        node_id = self.topo.graph_model.find_ns_by_name(parent_node_id=self.node_id,
+                                                        nsname=name)
+        self.topo.graph_model.remove_ns_with_cps_and_links(node_id=node_id)
 
     def __get_component_by_name(self, name: str) -> Component:
         """
@@ -233,27 +233,27 @@ class Node(ModelElement):
         return Component(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
                          topo=self.topo)
 
-    def __get_sf_by_name(self, name: str) -> SwitchFabric:
+    def __get_ns_by_name(self, name: str) -> NetworkService:
         """
-        Find SwitchFabric of a node by its name, return SwitchFabric object
+        Find NetworkService of a node by its name, return NetworkService object
         :param name:
         :return:
         """
         assert name is not None
-        node_id = self.topo.graph_model.find_sf_by_name(parent_node_id=self.node_id, component_name=name)
-        return SwitchFabric(name=name, node_id=node_id, topo=self.topo)
+        node_id = self.topo.graph_model.find_ns_by_name(parent_node_id=self.node_id, component_name=name)
+        return NetworkService(name=name, node_id=node_id, topo=self.topo)
 
-    def __get_sf_by_id(self, node_id: str) -> SwitchFabric:
+    def __get_ns_by_id(self, node_id: str) -> NetworkService:
         """
-        Get a switch fabric of a node by its node_id, return SwitchFabric object
+        Get a network service of a node by its node_id, return NetworkService object
         :param node_id:
         :return:
         """
         assert node_id is not None
         _, node_props = self.topo.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return SwitchFabric(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
-                            topo=self.topo)
+        return NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id,
+                              topo=self.topo)
 
     def __get_interface_by_id(self, node_id: str) -> Interface:
         """
@@ -282,17 +282,17 @@ class Node(ModelElement):
             ret[c.name] = c
         return ViewOnlyDict(ret)
 
-    def __list_switch_fabrics(self) -> ViewOnlyDict:
+    def __list_network_services(self) -> ViewOnlyDict:
         """
-        List all switch fabric children of a node as a dictionary organized
-        by switch fabric name. Modifying the dictionary will not affect
-        the underlying model, but modifying Components in the dictionary will.
+        List all network service children of a node as a dictionary organized
+        by network service name. Modifying the dictionary will not affect
+        the underlying model, but modifying NetworkServices in the dictionary will.
         :return:
         """
-        node_id_list = self.topo.graph_model.get_all_network_node_or_component_sfs(parent_node_id=self.node_id)
+        node_id_list = self.topo.graph_model.get_all_network_node_or_component_nss(parent_node_id=self.node_id)
         ret = dict()
         for nid in node_id_list:
-            c = self.__get_sf_by_id(nid)
+            c = self.__get_ns_by_id(nid)
             ret[c.name] = c
         return ViewOnlyDict(ret)
 
@@ -358,8 +358,8 @@ class Node(ModelElement):
             return self.__list_of_interfaces()
         if item == 'direct_interfaces':
             return self.__list_direct_interfaces()
-        if item == 'switch_fabrics':
-            return self.__list_switch_fabrics()
+        if item == 'network_services':
+            return self.__list_network_services()
         raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):

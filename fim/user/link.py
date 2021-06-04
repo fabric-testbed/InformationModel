@@ -32,19 +32,18 @@ from .model_element import ModelElement, ElementType
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface
 from fim.slivers.network_link import NetworkLinkSliver, LinkType
-from fim.slivers.switch_fabric import SFLayer
 
 
 class Link(ModelElement):
     """
-    A link object in a topology. In addition to public methods the following calls
+    A link object in a topology connecting interfaces together.
+    In addition to public methods the following calls
     return various dictionaries or lists:
     link.interface_list - a list of interfaces attached to this link
     """
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
                  interfaces: List[Interface] = None,
-                 layer: SFLayer = SFLayer.L2,
                  ltype: LinkType = None, technology: str = None, **kwargs):
         """
         Don't call this method yourself, call topology.add_link()
@@ -55,7 +54,6 @@ class Link(ModelElement):
         :param topo:
         :param etype: is this supposed to exist or new should be created
         :param interfaces: list of interface objects to connect
-        :param layer: layer of the link, defaults to L2
         :param ltype: link type if new
         :param technology: link technology
         :param kwargs: any additional properties
@@ -77,14 +75,14 @@ class Link(ModelElement):
             # FIXME isinstance
             if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
                                                               not isinstance(interfaces, list)):
-                raise RuntimeError("When creating new links you must specify the list of interfaces to connect")
-
+                raise RuntimeError("When creating new links you must specify the list of interfaces to connect.")
             self._interfaces = interfaces
             sliver = NetworkLinkSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
             sliver.set_type(ltype)
-            sliver.set_layer(layer)
+            # set layer based on type
+            sliver.set_layer(NetworkLinkSliver.LinkConstraints[ltype].layer)
             sliver.set_technology(technology)
             sliver.set_properties(**kwargs)
 
@@ -101,7 +99,7 @@ class Link(ModelElement):
             if existing_node_id != node_id:
                 raise RuntimeError(f'Link name {name} is not unique within the topology.')
             # collect a list of interfaces it attaches to
-            interface_list = self.topo.graph_model.get_all_link_interfaces(link_id=self.node_id)
+            interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()
             # need to look up their names - a bit inefficient, need to think about this /ib
             for iff in interface_list:
@@ -111,7 +109,7 @@ class Link(ModelElement):
 
     def get_property(self, pname: str) -> Any:
         """
-        Retrieve a interface property
+        Retrieve a link property
         :param pname:
         :return:
         """
@@ -121,7 +119,7 @@ class Link(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a interface property
+        Set a link property
         :param pname:
         :param pval:
         :return:

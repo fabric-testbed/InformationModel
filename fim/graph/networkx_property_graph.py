@@ -321,6 +321,22 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
 
+    def get_all_nodes_by_class_and_type(self, *, label: str, ntype: str) -> List[str]:
+        assert label is not None
+        assert ntype is not None
+        my_graph = self.storage.get_graph(self.graph_id)
+        graph_nodes = list(nxq.search_nodes(my_graph,
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]},
+                                                {'eq': [ABCPropertyGraph.PROP_TYPE, ntype]}
+                                            ]
+                                            }))
+        ret = list()
+        for n in graph_nodes:
+            ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
+        return ret
+
     def list_all_node_ids(self) -> List[str]:
         """
         List all NodeID properties of nodes in a graph
@@ -472,6 +488,9 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             # filter second neighbors by label
             second_neighbors = self._filter_nodes_by_label(graph, second_neighbors, node2_label)
             if len(second_neighbors) > 0:
+                # remove self in case they are there
+                if real_node in second_neighbors:
+                    second_neighbors.remove(real_node)
                 second_neighbors_dict[n] = second_neighbors
 
         # convert to a list of two-member lists, converting internal IDs to guids
@@ -629,6 +648,21 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
+
+    def check_node_unique(self, *, label: str, name: str):
+        """
+        Check no other node of this class/label and name exists
+        :param label:
+        :param name:
+        :return:
+        """
+        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+                                            {'and': [
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
+                                                {'eq': [ABCPropertyGraph.PROP_NAME, name]},
+                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
+                                            ]}))
+        return len(graph_nodes) == 0
 
 
 class NetworkXGraphStorage:

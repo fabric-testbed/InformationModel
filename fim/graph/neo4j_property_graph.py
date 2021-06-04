@@ -107,6 +107,17 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                                                   node_id=None, msg="Unable to find network links")
             return val.data()['nodeids']
 
+    def get_all_nodes_by_class_and_type(self, *, label: str, ntype: str) -> List[str]:
+        assert label is not None
+        assert ntype is not None
+        query = f"MATCH(n:{label} {{GraphID: $graphId, Type: $ntype}}) RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, ntype=ntype).single()
+            if val is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg="Unable to find network links")
+            return val.data()['nodeids']
+
     def list_all_node_ids(self) -> List[str]:
         """
         List all NodeID properties of nodes in a graph
@@ -441,7 +452,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
         query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[:{rel1}]- "\
                 f"(b:{node1_label} {{GraphID: $graphId}}) -[:{rel2}]- "\
-                f"(c:{node2_label} {{GraphID: $graphId}}) return b.NodeID, c.NodeID"
+                f"(c:{node2_label} {{GraphID: $graphId}}) WHERE $nodeA <> c.NodeID return b.NodeID, c.NodeID"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_id).values()
             if val is None:
@@ -579,6 +590,17 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
                                                   node_id=None, msg="Unable to find stitch nodes")
             return val.data()['nodeids']
+
+    def check_node_unique(self, *, label: str, name: str) -> bool:
+        assert label is not None
+        assert name is not None
+
+        query = f"MATCH (n:{label} {{GraphID: $graphId, Name: $name}}) RETURN collect(n.NodeID) as nodeids"
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id, name=name).single()
+            if val is None or len(val.data()) == 0 or len(val.data()['nodeids']) == 0:
+                return True
+            return False
 
 
 class Neo4jGraphImporter(ABCGraphImporter):

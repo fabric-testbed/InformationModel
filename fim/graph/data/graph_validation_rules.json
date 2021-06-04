@@ -8,8 +8,8 @@
     "msg": "All node NodeIDs must be distinct."
   },
   {
-    "rule": "MATCH (n:GraphNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Class IN [\"ConnectionPoint\", \"NetworkNode\", \"SwitchFabric\", \"Component\", \"Link\"])",
-    "msg": "All nodes must be of class NetworkNode, Component, ConnectionPoint, SwitchFabric or Link"
+    "rule": "MATCH (n:GraphNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Class IN [\"ConnectionPoint\", \"NetworkNode\", \"CompositeNode\", \"NetworkService\", \"Component\", \"Link\"])",
+    "msg": "All nodes must be of class NetworkNode, CompositeNode, Component, ConnectionPoint, NetworkService or Link"
   },
   {
     "rule": "MATCH (n:NetworkNode {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Server\", \"Switch\", \"VM\", \"Container\", \"NAS\"])",
@@ -17,34 +17,38 @@
   },
   {
     "rule": "MATCH (n:Component {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"SmartNIC\", \"GPU\", \"FPGA\", \"NVME\", \"SharedNIC\"])",
-    "msg": "All Components must be of type NIC, SmartNIC, GPU, FPGA or NVMe"
+    "msg": "All Components must be of type SharedNIC, SmartNIC, GPU, FPGA or NVME"
   },
   {
-    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Port\", \"AccessPort\", \"TrunkPort\", \"AccessVint\", \"TrunkVint\"])",
-    "msg": "All ConnectionPoints must be of type Port, AccessPort, TrunkPort, AccessVint or TrunkVint"
+    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"AccessPort\", \"TrunkPort\", \"ServicePort\", \"DedicatedPort\", \"SharedPort\", \"vInt\"])",
+    "msg": "All ConnectionPoints must be of type AccessPort, TrunkPort, ServicePort, DedicatedPort, SharedPort or vInt"
   },
   {
-    "rule": "MATCH (n:SwitchFabric {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"SwitchFabric\"])",
-    "msg": "All SwitchFabrics must be of type SwitchFabric"
+    "rule": "MATCH (n:NetworkService {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [ \"P4\", \"OVS\", \"MPLS\", \"L2Path\", \"L2Bridge\", \"L2PTP\", \"L2STS\", \"FABNetv4\", \"FABNetv6\", \"L3VPN\", \"PortMirror\"])",
+    "msg": "All NetworkServices must be of type P4, OVS, MPLS, L2Path, L2Bridge, L2PTP, L2STS, FABNetv4, FABNetv6, L3VPN or PortMirror"
   },
   {
-    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"DAC\", \"Wave\", \"Patch\", \"L2Path\"])",
+    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Wave\", \"Patch\", \"L2Path\"])",
     "msg": "All Links must be of type DAC, Patch or Wave"
   },
   {
-    "rule": "MATCH(n:ConnectionPoint {GraphID: $graphId}) -[:connects]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"SwitchFabric\" with count(n) as vcps match(c:ConnectionPoint {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
-    "msg": "All ConnectionPoints must be connected to a SwitchFabric"
-  },
-  {
-    "rule": "MATCH(n:SwitchFabric {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"Component\" with count(n) as vcps match(c:SwitchFabric {GraphID: $graphId}) with vcps, count(c) as cps return cps = vcps",
-    "msg": "All SwitchFabrics must be owned by a Component or a NetworkNode"
-  },
-  {
-    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" with count(n) as vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) as cs return cs = vcs",
-    "msg": "All Components must be owned by a NetworkNode"
+    "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) where m.Class=\"NetworkNode\" or m.Class=\"CompositeNode\" with count(n) as vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) as cs return cs = vcs",
+    "msg": "All Components must be owned by a NetworkNode or a CompositeNode"
   },
   {
     "rule": "MATCH (o:GraphNode {GraphID: $graphId}) -[:connects]- (n:Link {GraphID: $graphId}) where o.Class <> \"ConnectionPoint\" return count(o)=0",
     "msg": "Links can only connect to ConnectionPoints"
+  },
+  {
+    "rule": "MATCH (n:Link {GraphID: $graphId}) WHERE n.Type = \"Patch\" or n.Type=\"L2Path\" or n.Type=\"L1Path\" or n.Type=\"L2PTP\" or n.Type=\"PortMirror\" WITH collect(size((n) -[:connects]- ())) as sizes RETURN any(s in sizes where s=2)",
+    "msg": "Patch, L[12]Path, L2PTP or PortMirror link type can only connect two ConnectionPoints"
+  },
+  {
+    "rule": "MATCH (n:Link) WHERE n.Type=\"FABNetv4\" RETURN count(n) <= 1",
+    "msg": "Only one instance of FABnetv4 allowed to be present"
+  },
+  {
+    "rule": "MATCH (n:Link) WHERE n.Type=\"FABNetv6\" RETURN count(n) <= 1",
+    "msg": "Only one instance of FABnetv6 allowed to be present"
   }
 ]

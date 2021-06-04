@@ -165,7 +165,7 @@ class AdTest(unittest.TestCase):
         # Usually slot 7, second port not connected
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
-                                        switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
+                                        network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
                                         interface_labels=[f.Labels().set_fields(bdf=vf_ids,
                                                                                 mac=vf_macs,
@@ -183,7 +183,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
-                                      switch_fabric_node_id=fnw.node_id + '-shnic-sf',
+                                      network_service_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
                                                                               mac=vf_macs,
@@ -201,7 +201,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
-                                      switch_fabric_node_id=snw.node_id + '-shnic-sf',
+                                      network_service_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
                                                                               mac=vf_macs,
@@ -217,7 +217,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic1 = fnw.add_component(name=fnw.name + '-nic1', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic1',
-                                     switch_fabric_node_id=fnw.node_id + '-nic1-sf',
+                                     network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:74'),
                                                          mac_to_node_id('04:3F:72:B7:15:75')],
                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:74',
@@ -232,7 +232,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
-                                     switch_fabric_node_id=fnw.node_id + '-nic2-sf',
+                                     network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:5C'),
                                                          mac_to_node_id('04:3F:72:B7:19:5D')],
                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:5C',
@@ -247,7 +247,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic1',
-                                     switch_fabric_node_id=snw.node_id + '-nic1-sf',
+                                     network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:D4'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:D5')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:D4',
@@ -262,7 +262,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic2',
-                                     switch_fabric_node_id=snw.node_id + '-nic2-sf',
+                                     network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:E8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:E9')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:E8',
@@ -286,8 +286,9 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2450R1BL',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -295,42 +296,42 @@ class AdTest(unittest.TestCase):
         port_caps1.set_fields(bw=25)
 
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
                                   capacities=port_caps)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:01'),
                                   capacities=port_caps)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:02'),
                                   capacities=port_caps)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:03'),
                                   capacities=port_caps)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:04'),
                                   capacities=port_caps)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:05'),
                                   capacities=port_caps)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:06'),
                                   capacities=port_caps)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:07'),
                                   capacities=port_caps1)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:08'),
                                   capacities=port_caps1)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:09'),
                                    capacities=port_caps1)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:0A'),
                                    capacities=port_caps1)
 
@@ -339,41 +340,41 @@ class AdTest(unittest.TestCase):
         #
         # FIXME: Link node ids need to come from somewhere, could be an extension of interface ID
         # FIXME: on the switch, or something else
-        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.Patch,
                                 interfaces=[gpuw_shnic.interfaces['renc-w1-shnic-p1'], sp1],
                                 node_id=sp1.node_id + '-DAC')
 
-        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_shnic.interfaces['renc-w2-shnic-p1'], sp2],
                                 node_id=sp2.node_id + '-DAC')
 
-        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['renc-w2-nic1-p1'], sp3],
                                 node_id=sp3.node_id + '-DAC')
-        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['renc-w2-nic1-p2'], sp4],
                                 node_id=sp4.node_id + '-DAC')
-        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['renc-w2-nic2-p1'], sp5],
                                 node_id=sp5.node_id + '-DAC')
-        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['renc-w2-nic2-p2'], sp6],
                                 node_id=sp6.node_id + '-DAC')
 
-        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.Patch,
                                 interfaces=[snw_shnic.interfaces['renc-w3-shnic-p1'], sp7],
                                 node_id=sp7.node_id + '-DAC')
 
-        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.Patch,
                                 interfaces=[snw_nic1.interfaces['renc-w3-nic1-p1'], sp8],
                                 node_id=sp8.node_id + '-DAC')
-        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic1.interfaces['renc-w3-nic1-p2'], sp9],
                                  node_id=sp9.node_id + '-DAC')
-        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['renc-w3-nic2-p1'], sp10],
                                  node_id=sp10.node_id + '-DAC')
-        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['renc-w3-nic2-p2'], sp11],
                                  node_id=sp11.node_id + '-DAC')
         #
@@ -589,7 +590,7 @@ class AdTest(unittest.TestCase):
         # Usually slot 7, second port not connected (Uky in slot 6)
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
-                                        switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
+                                        network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         # there is one interface and we need one name
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
                                         interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -612,7 +613,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
-                                      switch_fabric_node_id=fnw.node_id + '-shnic-sf',
+                                      network_service_node_id=fnw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -631,7 +632,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
-                                      switch_fabric_node_id=snw.node_id + '-shnic-sf',
+                                      network_service_node_id=snw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -648,7 +649,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic1 = fnw.add_component(name=fnw.name + '-nic1', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic1',
-                                     switch_fabric_node_id=fnw.node_id + '-nic1-sf',
+                                     network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:50'),
                                                          mac_to_node_id('0C:42:A1:EA:C7:51')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:50',
@@ -670,7 +671,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
-                                     switch_fabric_node_id=fnw.node_id + '-nic2-sf',
+                                     network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:04'),
                                                          mac_to_node_id('0C:42:A1:78:F8:05')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:04',
@@ -685,7 +686,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic1',
-                                     switch_fabric_node_id=snw.node_id + '-nic1-sf',
+                                     network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:F8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:F9')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:F8',
@@ -700,7 +701,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic2',
-                                     switch_fabric_node_id=snw.node_id + '-nic2-sf',
+                                     network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:DC'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:DD')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:DC',
@@ -724,8 +725,9 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2451R0XZ',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -733,42 +735,42 @@ class AdTest(unittest.TestCase):
         port_caps1.set_fields(bw=25)
 
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
                                   capacities=port_caps)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:01'),
                                   capacities=port_caps)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:02'),
                                   capacities=port_caps)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:03'),
                                   capacities=port_caps)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:04'),
                                   capacities=port_caps)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:05'),
                                   capacities=port_caps)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:06'),
                                   capacities=port_caps)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:07'),
                                   capacities=port_caps1)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:08'),
                                   capacities=port_caps1)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:09'),
                                    capacities=port_caps1)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:0A'),
                                    capacities=port_caps1)
 
@@ -777,41 +779,41 @@ class AdTest(unittest.TestCase):
         #
         # FIXME: Link node ids need to come from somewhere, could be an extension of interface ID
         # FIXME: on the switch, or something else
-        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.Patch,
                                 interfaces=[gpuw_shnic.interfaces['uky-w1-shnic-p1'], sp1],
                                 node_id=sp1.node_id + '-DAC')
 
-        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_shnic.interfaces['uky-w2-shnic-p1'], sp2],
                                 node_id=sp2.node_id + '-DAC')
 
-        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['uky-w2-nic1-p1'], sp3],
                                 node_id=sp3.node_id + '-DAC')
-        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['uky-w2-nic1-p2'], sp4],
                                 node_id=sp4.node_id + '-DAC')
-        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['uky-w2-nic2-p1'], sp5],
                                 node_id=sp5.node_id + '-DAC')
-        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['uky-w2-nic2-p2'], sp6],
                                 node_id=sp6.node_id + '-DAC')
 
-        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.Patch,
                                 interfaces=[snw_shnic.interfaces['uky-w3-shnic-p1'], sp7],
                                 node_id=sp7.node_id + '-DAC')
 
-        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.Patch,
                                 interfaces=[snw_nic1.interfaces['uky-w3-nic1-p1'], sp8],
                                 node_id=sp8.node_id + '-DAC')
-        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic1.interfaces['uky-w3-nic1-p2'], sp9],
                                  node_id=sp9.node_id + '-DAC')
-        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['uky-w3-nic2-p1'], sp10],
                                  node_id=sp10.node_id + '-DAC')
-        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['uky-w3-nic2-p2'], sp11],
                                  node_id=sp11.node_id + '-DAC')
         #
@@ -1024,7 +1026,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
-                                        switch_fabric_node_id=gpuw.node_id + '-shnic-sf',
+                                        network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         # there is one interface and we need one name
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
                                         interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -1043,7 +1045,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
-                                      switch_fabric_node_id=fnw.node_id + '-shnic-sf',
+                                      network_service_node_id=fnw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -1062,7 +1064,7 @@ class AdTest(unittest.TestCase):
         vf_vlans = [1001, 1002, 1003, 1004]
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
-                                      switch_fabric_node_id=snw.node_id + '-shnic-sf',
+                                      network_service_node_id=snw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
                                       interface_labels=[f.Labels().set_fields(bdf=vf_ids,
@@ -1079,7 +1081,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic1 = fnw.add_component(name=fnw.name + '-nic1', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic1',
-                                     switch_fabric_node_id=fnw.node_id + '-nic1-sf',
+                                     network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:6C'),
                                                          mac_to_node_id('04:3F:72:B7:15:6D')],
                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:6C',
@@ -1094,7 +1096,7 @@ class AdTest(unittest.TestCase):
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',
-                                     switch_fabric_node_id=fnw.node_id + '-nic2-sf',
+                                     network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:AC'),
                                                          mac_to_node_id('04:3F:72:B7:18:AD')],
                                      interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:AC',
@@ -1109,7 +1111,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic1',
-                                     switch_fabric_node_id=snw.node_id + '-nic1-sf',
+                                     network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:12'),
                                                          mac_to_node_id('0C:42:A1:91:75:13')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:12',
@@ -1124,7 +1126,7 @@ class AdTest(unittest.TestCase):
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
                                      node_id=snw.node_id + '-nic2',
-                                     switch_fabric_node_id=snw.node_id + '-nic2-sf',
+                                     network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:0E'),
                                                          mac_to_node_id('0C:42:A1:91:75:0F')],
                                      interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:0E',
@@ -1148,8 +1150,9 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2450R1AR',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf')
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1157,42 +1160,42 @@ class AdTest(unittest.TestCase):
         port_caps1.set_fields(bw=25)
 
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
                                   capacities=port_caps)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:01'),
                                   capacities=port_caps)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:02'),
                                   capacities=port_caps)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:03'),
                                   capacities=port_caps)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:04'),
                                   capacities=port_caps)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:05'),
                                   capacities=port_caps)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:06'),
                                   capacities=port_caps)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:07'),
                                   capacities=port_caps1)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:08'),
                                   capacities=port_caps1)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:09'),
                                    capacities=port_caps1)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:0A'),
                                    capacities=port_caps1)
 
@@ -1201,41 +1204,41 @@ class AdTest(unittest.TestCase):
         #
         # FIXME: Link node ids need to come from somewhere, could be an extension of interface ID
         # FIXME: on the switch, or something else
-        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.Patch,
                                 interfaces=[gpuw_shnic.interfaces['lbnl-w1-shnic-p1'], sp1],
                                 node_id=sp1.node_id + '-DAC')
 
-        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_shnic.interfaces['lbnl-w2-shnic-p1'], sp2],
                                 node_id=sp2.node_id + '-DAC')
 
-        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['lbnl-w2-nic1-p1'], sp3],
                                 node_id=sp3.node_id + '-DAC')
-        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l4 = self.topo.add_link(name='l4', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic1.interfaces['lbnl-w2-nic1-p2'], sp4],
                                 node_id=sp4.node_id + '-DAC')
-        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l5 = self.topo.add_link(name='l5', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['lbnl-w2-nic2-p1'], sp5],
                                 node_id=sp5.node_id + '-DAC')
-        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l6 = self.topo.add_link(name='l6', ltype=f.LinkType.Patch,
                                 interfaces=[fnw_nic2.interfaces['lbnl-w2-nic2-p2'], sp6],
                                 node_id=sp6.node_id + '-DAC')
 
-        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l8 = self.topo.add_link(name='l7', ltype=f.LinkType.Patch,
                                 interfaces=[snw_shnic.interfaces['lbnl-w3-shnic-p1'], sp7],
                                 node_id=sp7.node_id + '-DAC')
 
-        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l9 = self.topo.add_link(name='l8', ltype=f.LinkType.Patch,
                                 interfaces=[snw_nic1.interfaces['lbnl-w3-nic1-p1'], sp8],
                                 node_id=sp8.node_id + '-DAC')
-        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l10 = self.topo.add_link(name='l9', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic1.interfaces['lbnl-w3-nic1-p2'], sp9],
                                  node_id=sp9.node_id + '-DAC')
-        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l11 = self.topo.add_link(name='l10', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['lbnl-w3-nic2-p1'], sp10],
                                  node_id=sp10.node_id + '-DAC')
-        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.DAC, layer=f.Layer.L2,
+        l12 = self.topo.add_link(name='l11', ltype=f.LinkType.Patch,
                                  interfaces=[snw_nic2.interfaces['lbnl-w3-nic2-p2'], sp11],
                                  node_id=sp11.node_id + '-DAC')
         #
@@ -1316,8 +1319,10 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2450R1BL',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch, stitch_node=True)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf', stitch_node=True)
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS,
+                                           stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1328,51 +1333,51 @@ class AdTest(unittest.TestCase):
         #port_labs = f.Labels()
         #port_labs.set_fields(vlan_range='1000-2000')
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:00'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:01'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:02'),
                                   capacities=port_caps, stitch_node=True)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:03'),
                                   capacities=port_caps, stitch_node=True)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:04'),
                                   capacities=port_caps, stitch_node=True)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:05'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:06'),
                                   capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:07'),
                                   capacities=port_caps1, stitch_node=True)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('00:00:00:00:00:08'),
                                   capacities=port_caps1, stitch_node=True)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:09'),
                                    capacities=port_caps1, stitch_node=True)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:0A'),
                                    capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards UKY and LBNL
-        renc_uky = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
+        renc_uky = dp_ns.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:10'),
                                    capacities=port_caps)
 
-        renc_lbnl = dp_sf.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
+        renc_lbnl = dp_ns.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('00:00:00:00:00:11'),
                                    capacities=port_caps)
 
@@ -1383,9 +1388,10 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2451R0XZ',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch, stitch_node=True)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf',
-                                         stitch_node=True)
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS,
+                                           stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1396,51 +1402,51 @@ class AdTest(unittest.TestCase):
         #port_labs = f.Labels()
         #port_labs.set_fields(vlan_range='1000-2000')
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:00'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:01'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:02'),
                                   capacities=port_caps, stitch_node=True)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:03'),
                                   capacities=port_caps, stitch_node=True)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:04'),
                                   capacities=port_caps, stitch_node=True)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:05'),
                                   capacities=port_caps, stitch_node=True)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:06'),
                                   capacities=port_caps, stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:07'),
                                   capacities=port_caps1, stitch_node=True)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('10:00:00:00:00:08'),
                                   capacities=port_caps1, stitch_node=True)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:09'),
                                    capacities=port_caps1, stitch_node=True)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:0A'),
                                    capacities=port_caps1, stitch_node=True)
 
         # FIXME: fake ports towards RENC and LBNL
-        uky_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
+        uky_renc = dp_ns.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:10'),
                                    capacities=port_caps)
 
-        uky_lbnl = dp_sf.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
+        uky_lbnl = dp_ns.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('10:00:00:00:00:11'),
                                    capacities=port_caps)
 
@@ -1452,8 +1458,10 @@ class AdTest(unittest.TestCase):
                                     node_id='FOC2450R1AR',
                                     capacities=f.Capacities().set_fields(unit=1),
                                     ntype=f.NodeType.Switch, stitch_node=True)
-        dp_sf = switch.add_switch_fabric(name=switch.name+'-sf', layer=f.Layer.L2,
-                                         node_id=switch.node_id + '-sf', stitch_node=True)
+        dp_ns = switch.add_network_service(name=switch.name+'-ns',
+                                           node_id=switch.node_id + '-ns',
+                                           nstype=f.ServiceType.MPLS,
+                                           stitch_node=True)
         # add ports
         port_caps = f.Capacities()
         port_caps1 = f.Capacities()
@@ -1464,45 +1472,45 @@ class AdTest(unittest.TestCase):
         #port_labs = f.Labels()
         #port_labs.set_fields(vlan_range='1000-2000')
         # FIXME: don't have port MAC addresses yet - placeholders
-        sp1 = dp_sf.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
+        sp1 = dp_ns.add_interface(name='HundredGigE 0/0/0/5', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:00'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/5',
                                                                mac='20:00:00:00:00:00'),
                                   stitch_node=True)
 
-        sp2 = dp_sf.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
+        sp2 = dp_ns.add_interface(name='HundredGigE 0/0/0/13', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:01'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/13',
                                                                mac='20:00:00:00:00:01'),
                                   stitch_node=True)
 
-        sp3 = dp_sf.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
+        sp3 = dp_ns.add_interface(name='HundredGigE 0/0/0/15', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:02'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/15',
                                                                mac='20:00:00:00:00:02'),
                                   stitch_node=True)
-        sp4 = dp_sf.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
+        sp4 = dp_ns.add_interface(name='HundredGigE 0/0/0/9', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:03'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/9',
                                                                mac='20:00:00:00:00:03'),
                                   stitch_node=True)
-        sp5 = dp_sf.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
+        sp5 = dp_ns.add_interface(name='HundredGigE 0/0/0/17', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:04'),
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/17',
                                                                mac='20:00:00:00:00:04'),
                                   capacities=port_caps, stitch_node=True)
-        sp6 = dp_sf.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
+        sp6 = dp_ns.add_interface(name='HundredGigE 0/0/0/19', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:05'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/19',
                                                                mac='20:00:00:00:00:05'),
                                   stitch_node=True)
 
-        sp7 = dp_sf.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
+        sp7 = dp_ns.add_interface(name='HundredGigE 0/0/0/21', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:06'),
                                   capacities=port_caps,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/21',
@@ -1510,25 +1518,25 @@ class AdTest(unittest.TestCase):
                                   stitch_node=True)
 
         # FIXME: what to do about breakout ports in slownets?
-        sp8 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
+        sp8 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.1', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:07'),
                                   capacities=port_caps1,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.1',
                                                                mac='20:00:00:00:00:07'),
                                   stitch_node=True)
-        sp9 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
+        sp9 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.2', itype=f.InterfaceType.TrunkPort,
                                   node_id=mac_to_node_id('20:00:00:00:00:08'),
                                   capacities=port_caps1,
                                   labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.2',
                                                                mac='20:00:00:00:00:08'),
                                   stitch_node=True)
-        sp10 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
+        sp10 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.3', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:09'),
                                    capacities=port_caps1,
                                    labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.3',
                                                                 mac='20:00:00:00:00:09'),
                                    stitch_node=True)
-        sp11 = dp_sf.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
+        sp11 = dp_ns.add_interface(name='HundredGigE 0/0/0/25.4', itype=f.InterfaceType.TrunkPort,
                                    node_id=mac_to_node_id('20:00:00:00:00:0A'),
                                    capacities=port_caps1,
                                    labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/25.4',
@@ -1536,28 +1544,28 @@ class AdTest(unittest.TestCase):
                                    stitch_node=True)
 
         # FIXME: fake ports towards UKY and RENC
-        lbnl_renc = dp_sf.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
+        lbnl_renc = dp_ns.add_interface(name='HundredGigE 0/0/0/26', itype=f.InterfaceType.TrunkPort,
                                         node_id=mac_to_node_id('20:00:00:00:00:10'),
                                         labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/26',
                                                                      mac='20:00:00:00:00:10'),
                                         capacities=port_caps)
 
-        lbnl_uky = dp_sf.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
+        lbnl_uky = dp_ns.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
                                        node_id=mac_to_node_id('20:00:00:00:00:11'),
                                        labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/27',
                                                                     mac='20:00:00:00:00:11'),
                                        capacities=port_caps)
 
         # add 3 links
-        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
+        l1 = self.topo.add_link(name='l1', ltype=f.LinkType.L2Path,
                                 interfaces=[renc_uky, uky_renc],
                                 node_id=renc_uky.node_id + '-Wave')
 
-        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
+        l2 = self.topo.add_link(name='l2', ltype=f.LinkType.L2Path,
                                 interfaces=[uky_lbnl, lbnl_uky],
                                 node_id=uky_lbnl.node_id + '-Wave')
 
-        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.L2Path, layer=f.Layer.L2,
+        l3 = self.topo.add_link(name='l3', ltype=f.LinkType.L2Path,
                                 interfaces=[renc_lbnl, lbnl_renc],
                                 node_id=renc_lbnl.node_id + '-Wave')
 

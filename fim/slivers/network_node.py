@@ -27,17 +27,20 @@ import enum
 import ipaddress
 
 from .base_sliver import BaseSliver
-from .attached_components import AttachedComponentsInfo
-from .interface_info import InterfaceInfo
-from .switch_fabric import SwitchFabricInfo
 
 
 class NodeType(enum.Enum):
+    """
+    Possible NetworkNode types in FABRIC.
+    """
     Server = enum.auto()
     VM = enum.auto()
     Container = enum.auto()
     Switch = enum.auto()
     NAS = enum.auto()
+
+    def help(self) -> str:
+        return 'A ' + self.name
 
     def __repr__(self):
         return self.name
@@ -56,7 +59,7 @@ class NodeSliver(BaseSliver):
         self.image_type = None
         self.image_ref = None
         self.service_endpoint = None
-        self.switch_fabric_info = None
+        self.network_service_info = None
         self.site = None
 
     #

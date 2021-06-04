@@ -31,9 +31,18 @@ from .base_sliver import BaseSliver
 
 
 class InterfaceType(enum.Enum):
+    """
+    Possible Interface/Port types in FABRIC.
+    """
     AccessPort = enum.auto()
     TrunkPort = enum.auto()
+    ServicePort = enum.auto()
+    DedicatedPort = enum.auto()
+    SharedPort = enum.auto()
     vInt = enum.auto()
+
+    def help(self) -> str:
+        return 'An ' + self.name
 
     def __repr__(self):
         return self.name

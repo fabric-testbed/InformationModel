@@ -24,17 +24,23 @@
 #
 # Author: Komal Thareja (kthare10@renci.org)
 import enum
+from recordclass import recordclass
 
 from .base_sliver import BaseSliver
-from .interface_info import InterfaceInfo
-from .switch_fabric import SFLayer
+from .network_service import NSLayer
 
 
 class LinkType(enum.Enum):
-    DAC = enum.auto()
-    Wave = enum.auto()
-    Patch = enum.auto()
-    L2Path = enum.auto()
+    """
+    Possible Link types in FABRIC. Links are passive, cannot be instantiated
+    on demand. Links can only connect two interfaces.
+    """
+    Patch = enum.auto() # DAC cable or patch fiber
+    L1Path = enum.auto() # Wave
+    L2Path = enum.auto() # provider L2 path
+
+    def help(self) -> str:
+        return self.name
 
     def __repr__(self):
         return self.name
@@ -43,22 +49,40 @@ class LinkType(enum.Enum):
         return self.name
 
 
+LinkConstraintRecord = recordclass('LinkConstraintRecord',
+                                   ['layer', 'desc',
+                                    'num_interfaces'])
+
+
 class NetworkLinkSliver(BaseSliver):
+
+    """
+    Services can be limited by the number of interfaces/connection points they can connect
+    The number of sites they may connect and the number of instances they may have in a slice.
+    """
+    # whenever there is no limit, num is set to 0
+    NO_LIMIT = 0
+
+    LinkConstraints = {
+        LinkType.Patch: LinkConstraintRecord(layer=NSLayer.L2, num_interfaces=2,
+                                             desc='A fiber patch or a cable.'),
+        LinkType.L1Path: LinkConstraintRecord(layer=NSLayer.L1, num_interfaces=2,
+                                             desc='A wavelength.'),
+        LinkType.L2Path: LinkConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT,
+                                              desc='A provider L2 path or service.')}
 
     def __init__(self):
         super().__init__()
         self.layer = None
         self.technology = None
-        self.interface_info = None
-        self.allocation_constraints = None
 
     #
     # Setters are only needed for things we want users to be able to set
     #
-    def get_layer(self) -> SFLayer:
+    def get_layer(self) -> NSLayer:
         return self.layer
 
-    def set_layer(self, layer: SFLayer):
+    def set_layer(self, layer: NSLayer):
         self.layer = layer
 
     def get_technology(self) -> str:
@@ -66,12 +90,6 @@ class NetworkLinkSliver(BaseSliver):
 
     def set_technology(self, technology: str):
         self.technology = technology
-
-    def set_allocation_constraints(self, allocation_constraints: str):
-        self.allocation_constraints = allocation_constraints
-
-    def get_allocation_constraints(self) -> str:
-        return self.allocation_constraints
 
     @staticmethod
     def type_from_str(ltype: str) -> LinkType or None:
@@ -82,9 +100,10 @@ class NetworkLinkSliver(BaseSliver):
                 return t
 
     @staticmethod
-    def layer_from_str(layer: str) -> SFLayer or None:
+    def layer_from_str(layer: str) -> NSLayer or None:
         if layer is None:
             return None
-        for t in SFLayer:
+        for t in NSLayer:
             if layer == str(t):
                 return t
+

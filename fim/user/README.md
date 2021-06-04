@@ -40,13 +40,14 @@ Some example scripts that *should* run.
 
 ```python
 import fim.user as fu
+
 t = fu.ExperimentTopology()
 n1 = t.add_node(name='n1', site='RENC')
 t.add_node(name='n2', site='RENC')
 cap = fu.Capacities().set_fields(ram=1000, core=8)
 n1.set_property('capacities', cap)
 nic1 = t.nodes['n1'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
-nic2 = t.nodes['n2'].add_component(ctype=fu.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
+nic2 = t.nodes['n2'].add_component(ctype=fu.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
 cap = fu.Capacities()
 cap.set_fields(bw=50, unit=1)
 lab = fu.Labels()
@@ -54,7 +55,7 @@ lab.set_fields(ipv4="192.168.1.12")
 nic1.set_properties(capacities=cap, labels=lab)
 nic1.get_property('capacities')
 nic1.unset_property('labels')
-t.add_link(name='l1', interfaces=t.interface_list, ltype=fu.LinkType.Wave)
+t.add_network_service(name='s1', interfaces=t.interface_list, ltype=fu.ServiceType.L2Bridge)
 t.draw()
 t.serialize('test_slice.graphml')
 print(t)

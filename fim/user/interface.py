@@ -48,7 +48,7 @@ class Interface(ModelElement):
         :param node_id:
         :param topo:
         :param etype: is this supposed to exist or new should be created
-        :param parent_node_id: parent switch fabric or parent interface
+        :param parent_node_id: parent network service or parent interface
         :param itype: node type if it is new
         :param kwargs: any additional properties
         """

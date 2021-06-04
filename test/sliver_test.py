@@ -3,7 +3,8 @@ import unittest
 from fim.slivers.attached_components import ComponentSliver, ComponentType, AttachedComponentsInfo
 from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
-from fim.slivers.switch_fabric import SwitchFabricSliver, SwitchFabricInfo
+from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
+from fim.slivers.path_info import ERO, PathInfo, Path
 
 
 class TestSlivers(unittest.TestCase):
@@ -45,3 +46,16 @@ class TestSlivers(unittest.TestCase):
                           management_ip='192.168.1.1')
         with self.assertRaises(ValueError) as ve:
             ns.set_property('management_ip', '192.168.1.x')
+
+    def testNetworkServiceSliver(self):
+        ns = NetworkServiceSliver()
+        p = Path()
+        p.set_symmetric(['a', 'b', 'c'])
+        pi = PathInfo()
+        pi.set(payload=p)
+        ns.set_properties(path_info=pi)
+        e = ERO()
+        e.set(payload=p)
+        ns.set_properties(ero=e)
+        pi1 = ns.get_property('path_info')
+        assert(pi.get() == pi1.get())

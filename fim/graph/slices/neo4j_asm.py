@@ -35,17 +35,6 @@ class Neo4jASM(ABCASMPropertyGraph, Neo4jPropertyGraph):
     def __init__(self, *, graph_id=str, importer, logger=None):
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
 
-    def check_node_unique(self, *, label: str, name: str) -> bool:
-        assert label is not None
-        assert name is not None
-
-        query = f"MATCH (n:{label} {{GraphID: $graphId, Name: $name}}) RETURN collect(n.NodeID) as nodeids"
-        with self.driver.session() as session:
-            val = session.run(query, graphId=self.graph_id, name=name).single()
-            if val is None or len(val.data()) == 0 or len(val.data()['nodeids']) == 0:
-                return True
-            return False
-
     def check_node_name(self, *, node_id: str, label: str, name: str) -> bool:
         assert node_id is not None
         assert label is not None

@@ -61,21 +61,6 @@ class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
 
         return my_graph.nodes[graph_nodes[0]][ABCPropertyGraph.NODE_ID]
 
-    def check_node_unique(self, *, label: str, name: str):
-        """
-        Check no other node of this class/label and name exists
-        :param label:
-        :param name:
-        :return:
-        """
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
-                                            {'and': [
-                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
-                                                {'eq': [ABCPropertyGraph.PROP_NAME, name]},
-                                                {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
-                                            ]}))
-        return len(graph_nodes) == 0
-
     def check_node_name(self, *, node_id: str, label: str, name: str) -> bool:
         assert node_id is not None
         assert name is not None

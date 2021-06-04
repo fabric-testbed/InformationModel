@@ -27,7 +27,7 @@ from typing import Any, List
 import enum
 
 from .base_sliver import BaseSliver
-from .switch_fabric import SwitchFabricInfo
+from .network_service import NetworkServiceInfo
 
 
 @enum.unique
@@ -49,10 +49,10 @@ class ComponentSliver(BaseSliver):
 
     def __init__(self):
         super().__init__()
-        self.switch_fabric_info = None
+        self.network_service_info = None
 
-    def set_switch_fabric_info(self, sf_info: SwitchFabricInfo):
-        self.switch_fabric_info = sf_info
+    def set_network_service_info(self, ns_info: NetworkServiceInfo):
+        self.network_service_info = ns_info
 
     @staticmethod
     def type_from_str(ctype: str) -> ComponentType or None:
