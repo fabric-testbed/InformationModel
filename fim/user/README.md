@@ -74,6 +74,16 @@ n1.set_properties(capacity_hints=caphint)
 ... some time later after slice is provisioned
 t.nodes['n1'].get_property('allocated_capacities') # will return Capacities object core=4, ram=16, disk=10
 ```
+On orchestrator side you would then:
+```
+from fim.slivers.instance_catalog import InstanceCatalog
+from fim.slivers.capacities_labels import Capacities
+caphint=topo.nodes['n1'].get_property('capacity_hints')
+cata = InstanceCatalog()
+caps = cata.get_instance_capacities(instance_type=caphint.instance_type)
+topo.nodes['n1'].set_properties(capacities=caps, allocated_capacities=caps)
+# use caphint.instance_type when you get to AM
+```
 or (b):
 ```
 t = fu.ExperimentTopology()
@@ -91,11 +101,10 @@ from fim.slivers.instance_catalog import InstanceCatalog
 from fim.slivers.capacities_labels import Capacities
 cap = topo.nodes['n1'].get_property('capacities')
 cata = InstanceCatalog()
-c = cata.map_capacities_to_instance(cap=cap)
-c_cap = cata.get_instance_capacities(instance_type=c)
-caphints = CapacityHints().set_fields(instance_size=c)
-allocated_capacities=Capacities().set_fields(**c_cap)
-topo.nodes['n1'].set_properties(capacity_hints=caphints, allocated_capacities=allocated_capacities)
+it = cata.map_capacities_to_instance(cap=cap)
+c_cap = cata.get_instance_capacities(instance_type=it)
+caphints = CapacityHints().set_fields(instance_type=it)
+topo.nodes['n1'].set_properties(capacity_hints=caphints, allocated_capacities=c_cap)
 ```
 
 Parsing on orchestrator side inside the control framework
