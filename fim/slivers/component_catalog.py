@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 import os
 import json
 import uuid
@@ -33,6 +33,7 @@ from .attached_components import ComponentSliver, ComponentType
 from .interface_info import InterfaceInfo, InterfaceSliver, InterfaceType
 from .network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, ServiceType
 from .capacities_labels import Capacities, Labels
+from fim.view_only_dict import ViewOnlyDict
 
 
 class ComponentCatalog:
@@ -41,17 +42,20 @@ class ComponentCatalog:
     component slivers based on models, search, details etc.
     This class relies on a resource file fim/slivers/data/component_catalog.json
     """
+    catalog_instance = None
+
     def __init__(self):
         pass
 
     @staticmethod
-    def __read_catalog() -> List[Any]:
-        catalog_file = os.path.join(os.path.dirname(__file__), 'data', 'component_catalog.json')
-        f = open(catalog_file)
-        catalog = json.load(f)
-        f.close()
-        assert isinstance(catalog, list)
-        return catalog
+    def __read_catalog() -> Tuple[Any]:
+        if ComponentCatalog.catalog_instance is None:
+            catalog_file = os.path.join(os.path.dirname(__file__), 'data', 'component_catalog.json')
+            with open(catalog_file) as f:
+                catalog = json.load(f)
+            assert isinstance(catalog, list)
+            ComponentCatalog.catalog_instance = catalog
+        return tuple(ComponentCatalog.catalog_instance)
 
     def generate_component(self, *, name: str, ctype: ComponentType, model: str,
                            ns_node_id: str = None,
@@ -152,7 +156,7 @@ class ComponentCatalog:
             raise CatalogException(f'Unable to find model {model} in the catalog')
         return component_dict['Details']
 
-    def search_catalog(self, *, ctype: ComponentType) -> Dict[str, str]:
+    def search_catalog(self, *, ctype: ComponentType) -> ViewOnlyDict:
         """
         Provide a dictionaty of matching component models and their details
         based on component type
@@ -160,7 +164,6 @@ class ComponentCatalog:
         :return:
         """
         catalog = self.__read_catalog()
-        component_dict = None
         matching_components = list()
         for c in catalog:
             if str(ctype) == c['Type']:
@@ -171,7 +174,7 @@ class ComponentCatalog:
         ret = dict()
         for c in matching_components:
             ret[c['Model']] = c['Details']
-        return ret
+        return ViewOnlyDict(ret)
 
 
 class CatalogException(Exception):

@@ -29,6 +29,8 @@ from typing import Dict, Any, List, Tuple
 import os
 import json
 
+from fim.view_only_dict import ViewOnlyDict
+
 from .capacities_labels import Capacities
 
 
@@ -39,16 +41,20 @@ class InstanceCatalog:
     RAM and disk. The class relies on a resource file
     fim/slivers/data/instance_sizes.json
     """
+    __catalog_instance = None
+
     def __init__(self):
         pass
 
     @staticmethod
-    def __read_catalog() -> Dict[str, Capacities]:
-        catalog_file = os.path.join(os.path.dirname(__file__), 'data', 'instance_sizes.json')
-        with open(catalog_file) as f:
-            catalog = json.load(f)
-        assert isinstance(catalog, dict)
-        return {k: Capacities().set_fields(**v) for (k, v) in catalog.items()}
+    def __read_catalog() -> ViewOnlyDict:
+        if InstanceCatalog.__catalog_instance is None:
+            catalog_file = os.path.join(os.path.dirname(__file__), 'data', 'instance_sizes.json')
+            with open(catalog_file) as f:
+                catalog = json.load(f)
+            assert isinstance(catalog, dict)
+            InstanceCatalog.__catalog_instance = {k: Capacities().set_fields(**v) for (k, v) in catalog.items()}
+        return ViewOnlyDict(InstanceCatalog.__catalog_instance)
 
     def get_instance_capacities(self, *, instance_type: str) -> Capacities or None:
         """
@@ -73,11 +79,13 @@ class InstanceCatalog:
         values = list(c.values())
         candidates = list(filter(lambda x: (x.core >= cap.core and x.ram >= cap.ram and x.disk >= cap.disk),
                                  values))
+        candidates.sort()
         if len(candidates) > 0:
             return keys[values.index(candidates[0])]
+        # return the largest instance
         return keys[-1]
 
-    def list_instances(self) -> Dict[str, Capacities]:
+    def list_instances(self) -> ViewOnlyDict:
         """
         List available instance types and their capacities
         :return:
