@@ -63,11 +63,11 @@ class TestSlivers(unittest.TestCase):
 
     def testCapacitiesLabels(self):
         ns = NodeSliver()
-        cap = Capacities().set_fields(unit=1, core=2)
         cap_hint = CapacityHints().set_fields(instance_type='blah')
         lab = Labels().set_fields(vlan_range='1-4096')
-        ns.set_properties(capacities=cap, labels=lab, capacity_hints=cap_hint)
+        ns.set_properties(capacities=Capacities(unit=1, core=2), labels=lab, capacity_hints=cap_hint)
         assert(ns.get_capacity_hints().instance_type == 'blah')
         assert(ns.get_labels().vlan_range == '1-4096')
+        assert(ns.get_capacities().core == 2)
 
 

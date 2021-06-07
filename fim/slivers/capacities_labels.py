@@ -103,7 +103,7 @@ class Capacities(JSONField):
     """
     UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps', 'burst_size': 'Mbits'}
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.cpu = 0
         self.core = 0
         self.ram = 0
@@ -111,6 +111,7 @@ class Capacities(JSONField):
         self.bw = 0
         self.burst_size = 0
         self.unit = 0
+        self.set_fields(**kwargs)
 
     def set_fields(self, **kwargs):
         """
@@ -128,7 +129,8 @@ class Capacities(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise CapacityException(f"Unable to set field {k} of capacity, no such field available")
+                raise CapacityException(f"Unable to set field {k} of capacity, no such field available "
+                                        f"{[k for k in self.__dict__.keys()]}")
         return self
 
     def __add__(self, other):
@@ -240,8 +242,9 @@ class CapacityHints(JSONField):
     e.g. an instance size name. They have to be mappable to actual capacities
     via e.g. a catalog.
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.instance_type = None
+        self.set_fields(**kwargs)
 
     def set_fields(self, **kwargs):
         """
@@ -284,7 +287,7 @@ class Labels(JSONField):
     Class implementing various encodings of labels field, encoding
     and decoding from JSON dictionaries of properties
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.bdf = None
         self.mac = None
         self.ipv4 = None
@@ -299,6 +302,7 @@ class Labels(JSONField):
         self.instance_parent = None
         self.local_name = None
         self.local_type = None
+        self.set_fields(**kwargs)
 
     def set_fields(self, **kwargs):
         """
@@ -315,7 +319,8 @@ class Labels(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise LabelException(f"Unable to set field {k} of labels, no such field available")
+                raise LabelException(f"Unable to set field {k} of labels, no such field available "
+                                     f"{[k for k in self.__dict__.keys()]}")
         # to support call chaining
         return self
 
@@ -342,9 +347,10 @@ class ReservationInfo(JSONField):
     Reservation info structure for ASM sliver objects
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.reservation_id = None
         self.reservation_state = None
+        self.set_fields(**kwargs)
 
     def set_fields(self, **kwargs):
         """
@@ -361,7 +367,8 @@ class ReservationInfo(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise ReservationInfoException(f"Unable to set field {k} of reservation info, no such field available")
+                raise ReservationInfoException(f"Unable to set field {k} of reservation info, no such field "
+                                               f"available {[k for k in self.__dict__.keys()]}")
         # to support call chaining
         return self
 
