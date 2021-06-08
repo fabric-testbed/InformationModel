@@ -40,6 +40,7 @@ class ABCPropertyGraphConstants(ABC):
     PROP_CAPACITY_DELEGATIONS = "CapacityDelegations"
     PROP_LABEL_DELEGATIONS = "LabelDelegations"
     PROP_CAPACITIES = "Capacities"
+    PROP_CAPACITY_HINTS = "CapacityHints"
     PROP_LABELS = "Labels"
     PROP_LABEL_ALLOCATIONS = "LabelAllocations"
     PROP_CAPACITY_ALLOCATIONS = "CapacityAllocations"
@@ -68,7 +69,7 @@ class ABCPropertyGraphConstants(ABC):
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
                            PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO, PROP_STRUCTURAL_INFO,
-                           PROP_ERO, PROP_PATH_INFO]
+                           PROP_ERO, PROP_PATH_INFO, PROP_CAPACITY_HINTS]
     # these properties cannot be unset
     NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS]
 

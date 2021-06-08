@@ -5,6 +5,7 @@ from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.slivers.path_info import ERO, PathInfo, Path
+from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints
 
 
 class TestSlivers(unittest.TestCase):
@@ -59,3 +60,14 @@ class TestSlivers(unittest.TestCase):
         ns.set_properties(ero=e)
         pi1 = ns.get_property('path_info')
         assert(pi.get() == pi1.get())
+
+    def testCapacitiesLabels(self):
+        ns = NodeSliver()
+        cap = Capacities().set_fields(unit=1, core=2)
+        cap_hint = CapacityHints().set_fields(instance_type='blah')
+        lab = Labels().set_fields(vlan_range='1-4096')
+        ns.set_properties(capacities=cap, labels=lab, capacity_hints=cap_hint)
+        assert(ns.get_capacity_hints().instance_type == 'blah')
+        assert(ns.get_labels().vlan_range == '1-4096')
+
+

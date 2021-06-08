@@ -154,6 +154,14 @@ class SliceTest(unittest.TestCase):
         lab = f.Labels()
         lab.set_fields(ipv4="192.168.1.12")
         nic1.set_properties(labels=lab)
+        caphints = f.CapacityHints()
+        caphints.set_fields(instance_type='blah')
+        n1.set_properties(capacity_hints=caphints)
+
+        # check capacities, hints labels on the graph
+        n1p = self.topo.nodes['Node1']
+        caphints1 = n1p.get_property('capacity_hints')
+        assert(caphints.instance_type == caphints1.instance_type)
 
         #s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
 
@@ -201,6 +209,12 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(deep_sliver.attached_components_info.
                              devices['nic1'].network_service_info.network_services['nic1-l2ovs'].
                              interface_info.interfaces), 1)
+        self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
+        deep_sliver1 = self.topo.graph_model.build_deep_ns_sliver(node_id=self.topo.network_services['s1'].node_id)
+        self.assertNotEqual(deep_sliver1, None)
+        self.assertNotEqual(deep_sliver1.interface_info, None)
+        self.assertEqual(len(deep_sliver1.interface_info.interfaces), 1)
+        print(f'Network deep sliver interfaces: {deep_sliver1.interface_info.interfaces}')
 
     def testSerDes(self):
         self.topo.add_node(name='n1', site='RENC')

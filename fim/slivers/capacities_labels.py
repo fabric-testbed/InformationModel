@@ -148,6 +148,27 @@ class Capacities(JSONField):
 
         return ret
 
+    def __gt__(self, other):
+        assert isinstance(other, Capacities)
+        for f, v in self.__dict__.items():
+            if v < other.__dict__[f]:
+                return False
+        return True
+
+    def __lt__(self, other):
+        assert isinstance(other, Capacities)
+        for f, v in self.__dict__.items():
+            if v > other.__dict__[f]:
+                return False
+        return True
+
+    def __eq__(self, other):
+        assert isinstance(other, Capacities)
+        for f, v in self.__dict__.items():
+            if v != other.__dict__[f]:
+                return False
+        return True
+
     def negative_fields(self) -> List[str]:
         """
         returns list of fields that are negative
@@ -211,6 +232,51 @@ class CapacityTuple:
         for k in d1:
             ret = ret + k + ": " + f'{d1[k]:,}' + "/" + f'{d2[k]:,} ' + Capacities.UNITS[k] + ", "
         return ret[:-2] + '}'
+
+
+class CapacityHints(JSONField):
+    """
+    Capacity hints are strings representing something about the capacity of a sliver,
+    e.g. an instance size name. They have to be mappable to actual capacities
+    via e.g. a catalog.
+    """
+    def __init__(self):
+        self.instance_type = None
+
+    def set_fields(self, **kwargs):
+        """
+        Universal setter for all fields. Values should be strings.
+        Throws a LabelException if you try to set a non-existent field.
+        :param kwargs:
+        :return: self to support call chaining
+        """
+        for k, v in kwargs.items():
+            assert v is not None  # could be strings
+            assert isinstance(v, str)
+            try:
+                # will toss an exception if field is not defined
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
+            except AttributeError:
+                raise CapacityHintException(f"Unable to set field {k} of capacity hints, no such field available")
+        # to support call chaining
+        return self
+
+    def __add__(self, other):
+        assert isinstance(other, Labels)
+        raise RuntimeError("Not Implemented")
+
+    def __str__(self):
+        d = self.__dict__.copy()
+        for k in self.__dict__:
+            if d[k] is None:
+                d.pop(k)
+        if len(d) == 0:
+            return ''
+        ret = "{ "
+        for i, v in d.items():
+            ret = ret + i + ": " + str(v) + ", "
+        return ret[:-2] + "}"
 
 
 class Labels(JSONField):
@@ -331,6 +397,15 @@ class StructuralInfo(JSONField):
 
 
 class CapacityException(Exception):
+    """
+    Exception with a capacity
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Delegation exception: {msg}")
+
+
+class CapacityHintException(Exception):
     """
     Exception with a capacity
     """

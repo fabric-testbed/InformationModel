@@ -25,6 +25,7 @@ ComponentType = atcomp.ComponentType
 ComponentCatalog = cata.ComponentCatalog
 InterfaceType = iinfo.InterfaceType
 Capacities = caplab.Capacities
+CapacityHints = caplab.CapacityHints
 Labels = caplab.Labels
 ReservationInfo = caplab.ReservationInfo
 Layer = nss.NSLayer
