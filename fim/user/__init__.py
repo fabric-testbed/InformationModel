@@ -8,6 +8,7 @@ import fim.slivers.network_link as nlink
 import fim.slivers.network_service as nss
 import fim.slivers.attached_components as atcomp
 import fim.slivers.component_catalog as cata
+import fim.slivers.instance_catalog as icata
 import fim.slivers.interface_info as iinfo
 import fim.slivers.capacities_labels as caplab
 import fim.slivers.delegations as dlg
@@ -22,7 +23,9 @@ Node = node.Node
 Component = comp.Component
 NodeType = nnode.NodeType
 ComponentType = atcomp.ComponentType
+ComponentModelType = cata.ComponentModelType
 ComponentCatalog = cata.ComponentCatalog
+InstanceCatalog = icata.InstanceCatalog
 InterfaceType = iinfo.InterfaceType
 Capacities = caplab.Capacities
 CapacityHints = caplab.CapacityHints

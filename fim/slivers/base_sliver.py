@@ -206,7 +206,7 @@ class BaseSliver(ABC):
             raise RuntimeError(f'Unable to get property {prop_name} of the sliver - no such property available')
 
     def __repr__(self):
-        exclude_set = {"get_property"}
+        exclude_set = {"get_property", "get_stitch_node"}
         print_set = list()
         for k in dir(self):
             if k.startswith('get_') and k not in exclude_set:
