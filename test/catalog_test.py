@@ -1,7 +1,7 @@
 import unittest
 from typing import Dict
 
-from fim.slivers.component_catalog import ComponentCatalog, CatalogException
+from fim.slivers.component_catalog import ComponentCatalog, CatalogException, ComponentModelType
 from fim.slivers.instance_catalog import InstanceCatalog
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.capacities_labels import Capacities
@@ -26,3 +26,13 @@ class CatalogTest(unittest.TestCase):
         c = cata.map_capacities_to_instance(cap=cap)
         cap1 = cata.get_instance_capacities(instance_type=c)
         self.assertTrue(cap1.core > cap.core and cap1.ram > cap.ram and cap1.disk > cap.disk)
+        cap = Capacities(ram=20, cpu=1, core=9, disk=110)
+        c = cata.map_capacities_to_instance(cap=cap)
+        cap1 = cata.get_instance_capacities(instance_type=c)
+        self.assertTrue(cap1.core > cap.core and cap1.ram > cap.ram and cap1.disk > cap.disk)
+
+    def testComponentTypeModel(self):
+        cata = ComponentCatalog()
+        c = cata.generate_component(name='myNIC', comp_model=ComponentModelType.SmartNIC_ConnectX_6)
+        self.assertEqual(
+            len(c.network_service_info.get_network_service('myNIC-l2ovs').interface_info.interfaces.keys()), 2)

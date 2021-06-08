@@ -23,17 +23,22 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-
+import enum
 from typing import Dict, Any, List, Tuple
 import os
 import json
 import uuid
+import re
 
 from .attached_components import ComponentSliver, ComponentType
 from .interface_info import InterfaceInfo, InterfaceSliver, InterfaceType
 from .network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, ServiceType
 from .capacities_labels import Capacities, Labels
 from fim.view_only_dict import ViewOnlyDict
+
+
+ComponentModelTypeMap = dict()
+ComponentModelType = None
 
 
 class ComponentCatalog:
@@ -57,12 +62,14 @@ class ComponentCatalog:
             ComponentCatalog.catalog_instance = catalog
         return tuple(ComponentCatalog.catalog_instance)
 
-    def generate_component(self, *, name: str, ctype: ComponentType, model: str,
+    def generate_component(self, *, name: str, ctype: ComponentType = None, model: str = None,
+                           comp_model: ComponentModelType = None,
                            ns_node_id: str = None,
                            interface_node_ids: List[str] = None,
                            interface_labels: List[Labels] = None) -> ComponentSliver:
         """
-        Generate a component sliver with this name and model and properties, and interfaces as needed
+        Generate a component sliver with this name and model (encoded as separate type/model fields or
+        a combined comp_model type) and properties, and interfaces as needed
         based on the catalog description. Interfaces if present are named
         as a concatenation of component name and port name from the catalog with
         and '_' connecting them.
@@ -70,22 +77,29 @@ class ComponentCatalog:
         :param name: name to give to the component
         :param ctype: type of the component
         :param model:
+        :param comp_model: type and model encoded together - specify model type together or separately
         :param ns_node_id: if specified and if component has a network service, put that there
         :param interface_node_ids: list of node ids for expected interfaces if component has any
         :param interface_labels: list of labels for expected interfaces if component has any
         :return:
         """
         assert name is not None
-        assert model is not None
+        if comp_model is not None:
+            model = ComponentModelTypeMap[comp_model]['Model']
+            ctype_str = ComponentModelTypeMap[comp_model]['Type']
+        else:
+            if ctype is None or model is None:
+                raise RuntimeError('Either ctype and model must be specified, or comp_model.')
+            ctype_str = str(ctype)
         catalog = self.__read_catalog()
         component_dict = None
         for c in catalog:
-            if model == c['Model'] and str(ctype) == c['Type']:
+            if model == c['Model'] and ctype_str == c['Type']:
                 component_dict = c
                 break
 
         if component_dict is None:
-            raise CatalogException(f'Unable to find model {model} of type {ctype}in the catalog')
+            raise CatalogException(f'Unable to find model {model} of type {ctype_str}in the catalog')
 
         cs = ComponentSliver()
         cs.set_name(name)
@@ -175,6 +189,36 @@ class ComponentCatalog:
         for c in matching_components:
             ret[c['Model']] = c['Details']
         return ViewOnlyDict(ret)
+
+    @staticmethod
+    def __massage_name(name: str) -> str:
+        """
+        Massage to make it python friendly
+        :param name:
+        :return:
+        """
+        return re.sub(r'[ -]', '_', name)
+
+    def populate_catalog_models_and_types(self):
+        """
+        Called via __init__.py to populate ComponentModelType
+        :return:
+        """
+        global ComponentModelType
+        global ComponentModelTypeMap
+        catalog = self.__read_catalog()
+        enum_dict = dict()
+        enum_idx = 1
+        for c in catalog:
+            type_model_name = '_'.join([self.__massage_name(c['Type']),
+                                        self.__massage_name(c['Model'])])
+            enum_dict[type_model_name] = enum_idx
+            enum_idx += 1
+        # create dynamic enum
+        ComponentModelType = enum.Enum('ComponentModelType', enum_dict)
+        # populate mapping
+        for k, v in enum_dict.items():
+            ComponentModelTypeMap[ComponentModelType(v)] = catalog[v-1]
 
 
 class CatalogException(Exception):

@@ -25,7 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 from typing import Any, Dict, List, Tuple
-
+import recordclass
 import uuid
 
 from fim.view_only_dict import ViewOnlyDict
@@ -36,7 +36,7 @@ from .interface import Interface
 from ..slivers.capacities_labels import Labels
 from ..slivers.attached_components import ComponentSliver, ComponentType
 from ..slivers.network_service import NSLayer
-from ..slivers.component_catalog import ComponentCatalog
+from ..slivers.component_catalog import ComponentCatalog, ComponentModelType
 
 
 class Component(ModelElement):
@@ -51,7 +51,8 @@ class Component(ModelElement):
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING, model: str = None,
-                 ctype: ComponentType = None, parent_node_id: str = None,
+                 ctype: ComponentType = None, comp_model: ComponentModelType = None,
+                 parent_node_id: str = None,
                  network_service_node_id: str = None, interface_node_ids: List[str] = None,
                  interface_labels: List[Labels] = None, **kwargs):
         """
@@ -63,6 +64,7 @@ class Component(ModelElement):
         :param etype: is this supposed to be new or existing
         :param model: must be specified if a new component
         :param ctype: component type
+        :param comp_model: Component and Model combined
         :param parent_node_id: node_id of the parent Node (for new components)
         :param network_service_node_id: node id of network_service if one needs to be added (for substrate models only)
         :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
@@ -80,8 +82,8 @@ class Component(ModelElement):
                 node_id = str(uuid.uuid4())
             if parent_node_id is None:
                 raise RuntimeError("Parent node id must be specified for new components")
-            if model is None or ctype is None:
-                raise RuntimeError("Model and component type must be specified for new components")
+            if (model is None or ctype is None) and comp_model is None:
+                raise RuntimeError("Model and component type or comp_model must be specified for new components")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
                     (network_service_node_id is None or interface_node_ids is None or interface_labels is None):
@@ -92,6 +94,7 @@ class Component(ModelElement):
             cata = ComponentCatalog()
 
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
+                                                  comp_model=comp_model,
                                                   ns_node_id=network_service_node_id,
                                                   interface_node_ids=interface_node_ids,
                                                   interface_labels=interface_labels)
