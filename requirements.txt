@@ -20,7 +20,7 @@ networkx==2.5
 networkx-query==1.0.1
 numpy==1.20.0
 packaging==20.8
-Pillow==8.1.1
+Pillow==8.2.0
 pipdeptree==1.0.0
 pkginfo==1.6.1
 pluggy==0.13.1
