@@ -299,6 +299,7 @@ class Labels(JSONField):
         self.instance_parent = None
         self.local_name = None
         self.local_type = None
+        self.device_name = None
 
     def set_fields(self, **kwargs):
         """
