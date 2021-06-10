@@ -41,10 +41,8 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
     """
     Interface for an ARM Mixin on top of a property graph
     """
-    DELEGATION_TYPE_TO_CLASS = {DelegationType.LABEL: (ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
-                                                       Label),
-                                DelegationType.CAPACITY: (ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS,
-                                                          Capacity)}
+    DELEGATION_TYPE_TO_PROP = {DelegationType.LABEL: ABCPropertyGraph.PROP_LABEL_DELEGATIONS,
+                               DelegationType.CAPACITY: ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS}
 
     DelegationInfo = recordclass('DelegationInfo', ['graph_id',
                                                     'graph',
@@ -142,7 +140,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
                 if delegations_by_node.get(node, None) is None:
                     continue
                 for atype in [DelegationType.LABEL, DelegationType.CAPACITY]:
-                    prop_field_name, _ = self.DELEGATION_TYPE_TO_CLASS[atype]
+                    prop_field_name = self.DELEGATION_TYPE_TO_PROP[atype]
                     ds = None
                     if delegations_by_node[node].get(atype, None) is not None:
                         ds = delegations_by_node[node][atype].return_delegations_for_id(del_id)
@@ -215,7 +213,7 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
         :return:
         """
         assert node_id is not None
-        prop_field_name, _ = self.DELEGATION_TYPE_TO_CLASS[delegation_type]
+        prop_field_name = self.DELEGATION_TYPE_TO_PROP[delegation_type]
         _, props = self.get_node_properties(node_id=node_id)
         if props.get(prop_field_name, None) is not None and \
                 props[prop_field_name] != ABCARMPropertyGraph.NEO4j_NONE:
