@@ -1,4 +1,5 @@
 import setuptools
+from fim import __VERSION__
 
 with open("README.md", "r") as fh:
   long_description = fh.read()
@@ -8,7 +9,7 @@ with open("requirements.txt", "r") as fh:
 
 setuptools.setup(
   name="fabric_fim",
-  version="0.54",
+  version=__VERSION__,
   author="Ilya Baldin, Komal Thareja",
   description="FABRIC Information Model Library",
   url="https://github.com/fabric-testbed/InformationModel",
