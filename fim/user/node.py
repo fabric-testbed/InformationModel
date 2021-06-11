@@ -144,7 +144,7 @@ class Node(ModelElement):
         return tuple(NodeSliver.list_properties())
 
     def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType = None,
-                      model: str = None, comp_model: ComponentModelType = None,
+                      model: str = None, model_type: ComponentModelType = None,
                       network_service_node_id: str=None, interface_node_ids=None,
                       interface_labels=None, **kwargs) -> Component:
         """
@@ -154,7 +154,7 @@ class Node(ModelElement):
         :param node_id:
         :param ctype: ComponentType
         :param model: Model string (exact match)
-        :param  comp_model: ComponentModelType (combines ComponentType and Model)
+        :param  model_type: ComponentModelType (combines ComponentType and Model)
         :param network_service_node_id: network service identifier for substrate models
         :param interface_node_ids: interface identifiers for substrate models
         :param interface_labels: list of labels for interfaces in substrate models
@@ -167,7 +167,7 @@ class Node(ModelElement):
             raise RuntimeError('Component names must be unique within node.')
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
-                      ctype=ctype, model=model, comp_model=comp_model,
+                      ctype=ctype, model=model, comp_model=model_type,
                       network_service_node_id=network_service_node_id,
                       interface_node_ids=interface_node_ids, interface_labels=interface_labels,
                       parent_node_id=self.node_id, **kwargs)

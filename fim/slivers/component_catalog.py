@@ -63,7 +63,7 @@ class ComponentCatalog:
         return tuple(ComponentCatalog.catalog_instance)
 
     def generate_component(self, *, name: str, ctype: ComponentType = None, model: str = None,
-                           comp_model: ComponentModelType = None,
+                           model_type: ComponentModelType = None,
                            ns_node_id: str = None,
                            interface_node_ids: List[str] = None,
                            interface_labels: List[Labels] = None) -> ComponentSliver:
@@ -77,16 +77,16 @@ class ComponentCatalog:
         :param name: name to give to the component
         :param ctype: type of the component
         :param model:
-        :param comp_model: type and model encoded together - specify model type together or separately
+        :param model_type: type and model encoded together - specify model type together or separately
         :param ns_node_id: if specified and if component has a network service, put that there
         :param interface_node_ids: list of node ids for expected interfaces if component has any
         :param interface_labels: list of labels for expected interfaces if component has any
         :return:
         """
         assert name is not None
-        if comp_model is not None:
-            model = ComponentModelTypeMap[comp_model]['Model']
-            ctype_str = ComponentModelTypeMap[comp_model]['Type']
+        if model_type is not None:
+            model = ComponentModelTypeMap[model_type]['Model']
+            ctype_str = ComponentModelTypeMap[model_type]['Type']
         else:
             if ctype is None or model is None:
                 raise RuntimeError('Either ctype and model must be specified, or comp_model.')

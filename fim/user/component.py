@@ -94,7 +94,7 @@ class Component(ModelElement):
             cata = ComponentCatalog()
 
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
-                                                  comp_model=comp_model,
+                                                  model_type=comp_model,
                                                   ns_node_id=network_service_node_id,
                                                   interface_node_ids=interface_node_ids,
                                                   interface_labels=interface_labels)

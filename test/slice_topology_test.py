@@ -138,7 +138,7 @@ class SliceTest(unittest.TestCase):
 
         # component checks
         n1.add_component(ctype=f.ComponentType.GPU, model='RTX6000', name='gpu1')
-        n1.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        n1.add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
         n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
 

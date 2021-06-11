@@ -33,6 +33,6 @@ class CatalogTest(unittest.TestCase):
 
     def testComponentTypeModel(self):
         cata = ComponentCatalog()
-        c = cata.generate_component(name='myNIC', comp_model=ComponentModelType.SmartNIC_ConnectX_6)
+        c = cata.generate_component(name='myNIC', model_type=ComponentModelType.SmartNIC_ConnectX_6)
         self.assertEqual(
             len(c.network_service_info.get_network_service('myNIC-l2ovs').interface_info.interfaces.keys()), 2)
