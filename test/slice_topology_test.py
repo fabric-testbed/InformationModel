@@ -246,6 +246,7 @@ class SliceTest(unittest.TestCase):
                                       interfaces=self.topo.interface_list)
         self.topo.serialize(file_name='single-site.graphml')
         self.topo.serialize(file_name='single-site.json', fmt=f.GraphFormat.JSON_NODELINK)
+        self.topo.serialize(file_name='single-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
@@ -261,3 +262,4 @@ class SliceTest(unittest.TestCase):
                                       interfaces=self.topo.interface_list)
         self.topo.serialize(file_name='two-site.graphml')
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
+        self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
