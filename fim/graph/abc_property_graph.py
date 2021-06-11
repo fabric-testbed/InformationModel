@@ -887,7 +887,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         assert sliver is not None
         assert sliver.node_id is not None
-        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode, name=sliver.resource_name)
+
+        if not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode,
+                                      name=sliver.resource_name):
+            raise RuntimeError(f'Node name {sliver.resource_name} must be unique.')
 
         props = self.node_sliver_to_graph_properties_dict(sliver)
         self.add_node(node_id=sliver.node_id, label=ABCPropertyGraph.CLASS_NetworkNode, props=props)
@@ -908,8 +911,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         assert lsliver is not None
         assert lsliver.node_id is not None
-        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_Link, name=lsliver.resource_name)
         assert interfaces is not None
+
+        if not self.check_node_unique(label=ABCPropertyGraph.CLASS_Link, name=lsliver.resource_name):
+            raise RuntimeError(f'Link name {lsliver.resource_name} must be unique.')
 
         props = self.link_sliver_to_graph_properties_dict(lsliver)
         self.add_node(node_id=lsliver.node_id, label=ABCPropertyGraph.CLASS_Link, props=props)
@@ -944,10 +949,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         assert network_service.node_id is not None
-        if parent_node_id is None:
+        if parent_node_id is None and not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
+                                                                 name=network_service.resource_name):
             # slice-wide network services must have unique names
-            assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
-                                          name=network_service.resource_name)
+            raise RuntimeError(f'Network service name {network_service.resource_name} must be unique.')
 
         props = self.network_service_sliver_to_graph_properties_dict(network_service)
         self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)
