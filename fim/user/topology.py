@@ -396,10 +396,11 @@ class Topology(ABC):
         :param graph_string:
         :return:
         """
+        if file_name is None and graph_string is None:
+            raise RuntimeError('Either file_name or graph_string parameters must be specified.')
         if file_name is not None:
             nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
         else:
-            assert graph_string is not None
             nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
         self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
                                        importer=nx_pgraph.importer,
@@ -677,10 +678,11 @@ class AdvertizedTopology(Topology):
         :param graph_string:
         :return:
         """
+        if file_name is None and graph_string is None:
+            raise RuntimeError('Either file_name or graph_string must be specified.')
         if file_name is not None:
             nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
         else:
-            assert graph_string is not None
             nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
         self.graph_model = NetworkXABQMFactory.create(nx_pgraph)
 
