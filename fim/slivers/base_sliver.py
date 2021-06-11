@@ -54,6 +54,7 @@ class BaseSliver(ABC):
         self.details = None
         self.node_map = None
         self.stitch_node = False
+        self.site = None
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -153,6 +154,12 @@ class BaseSliver(ABC):
 
     def get_stitch_node(self) -> bool:
         return self.stitch_node
+
+    def set_site(self, site: str):
+        self.site = site
+
+    def get_site(self) -> str:
+        return self.site
 
     def set_properties(self, **kwargs):
         """

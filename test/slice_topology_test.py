@@ -88,6 +88,8 @@ class SliceTest(unittest.TestCase):
 
         #print(f"testNodeAndComponents Interfaces {self.topo.interface_list}")
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
+        print(self.topo.network_services['s1'])
+        assert(self.topo.network_services['s1'].get_property('site') == 'RENC')
 
         # disabled - replaced with RuntimeError
         #with self.assertRaises(AssertionError) as e:
@@ -205,10 +207,13 @@ class SliceTest(unittest.TestCase):
         self.assertNotEqual(deep_sliver, None)
         self.assertNotEqual(deep_sliver.attached_components_info, None)
         self.assertNotEqual(deep_sliver.attached_components_info.devices['nic1'].network_service_info, None)
+
+        # note that names given to NetworkServices attached to NICs have GUIDs in them - they must be unique
+        network_service_name = deep_sliver.attached_components_info.devices['nic1'].network_service_info.get_network_service_names()[0]
         self.assertNotEqual(deep_sliver.attached_components_info.
-                            devices['nic1'].network_service_info.network_services['nic1-l2ovs'].interface_info, None)
+                            devices['nic1'].network_service_info.network_services[network_service_name].interface_info, None)
         self.assertEqual(len(deep_sliver.attached_components_info.
-                             devices['nic1'].network_service_info.network_services['nic1-l2ovs'].
+                             devices['nic1'].network_service_info.network_services[network_service_name].
                              interface_info.interfaces), 1)
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
         deep_sliver1 = self.topo.graph_model.build_deep_ns_sliver(node_id=self.topo.network_services['s1'].node_id)
@@ -226,3 +231,33 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(t1.graph_model.graph_id, self.topo.graph_model.graph_id)
         self.assertTrue('n1' in t1.nodes.keys())
         self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
+
+    def testBasicOneSiteSlice(self):
+        # create a basic slice and export to GraphML and JSON
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n2', site='RENC')
+        self.topo.add_node(name='n3', site='RENC')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.NVME_P4510, name='drive1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.GPU_RTX6000, name='gpu1')
+        self.topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+        self.topo.add_network_service(name='bridge1', nstype=f.ServiceType.L2Bridge,
+                                      interfaces=self.topo.interface_list)
+        self.topo.serialize(file_name='single-site.graphml')
+        self.topo.serialize(file_name='single-site.json', fmt=f.GraphFormat.JSON_NODELINK)
+
+    def testBasicTwoSiteSlice(self):
+        # create a basic slice and export to GraphML and JSON
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n2', site='RENC')
+        self.topo.add_node(name='n3', site='UKY')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.NVME_P4510, name='drive1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.GPU_RTX6000, name='gpu1')
+        self.topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+        self.topo.add_network_service(name='bridge1', nstype=f.ServiceType.L2STS,
+                                      interfaces=self.topo.interface_list)
+        self.topo.serialize(file_name='two-site.graphml')
+        self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)

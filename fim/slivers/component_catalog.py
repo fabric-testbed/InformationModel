@@ -66,7 +66,8 @@ class ComponentCatalog:
                            model_type: ComponentModelType = None,
                            ns_node_id: str = None,
                            interface_node_ids: List[str] = None,
-                           interface_labels: List[Labels] = None) -> ComponentSliver:
+                           interface_labels: List[Labels] = None,
+                           parent_name: str = None) -> ComponentSliver:
         """
         Generate a component sliver with this name and model (encoded as separate type/model fields or
         a combined comp_model type) and properties, and interfaces as needed
@@ -81,6 +82,7 @@ class ComponentCatalog:
         :param ns_node_id: if specified and if component has a network service, put that there
         :param interface_node_ids: list of node ids for expected interfaces if component has any
         :param interface_labels: list of labels for expected interfaces if component has any
+        :param parent_name: helps generate unique ids
         :return:
         """
         assert name is not None
@@ -143,7 +145,11 @@ class ComponentCatalog:
             if ns_node_id is None:
                 ns_node_id = str(uuid.uuid4())
             ns.node_id = ns_node_id
-            ns.set_name(name + '-l2ovs')
+            # network service names are supposed to be unique within a graph
+            if parent_name is not None:
+                ns.set_name(parent_name + "-" + name + '-l2ovs')
+            else:
+                ns.set_name(name + "-l2ovs")
             ns.set_type(ServiceType.OVS)
             # default to L2 for now
             ns.set_layer(NSLayer.L2)

@@ -50,7 +50,8 @@ class NetworkService(ModelElement):
                  etype: ElementType = ElementType.EXISTING,
                  parent_node_id: str = None,
                  interfaces: List[Interface] = None,
-                 nstype: ServiceType = None, technology: str = None, **kwargs):
+                 nstype: ServiceType = None, technology: str = None,
+                 **kwargs):
         """
         Don't call this method yourself, call topology.add_network_service()
         node_id will be generated if not provided for experiment topologies
@@ -68,6 +69,7 @@ class NetworkService(ModelElement):
         assert name is not None
         assert topo is not None
 
+        site = None
         if etype == ElementType.NEW:
             # node id myst be specified for new nodes in substrate topologies
             if node_id is None:
@@ -104,10 +106,15 @@ class NetworkService(ModelElement):
                     if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
                         raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
                                            f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
+                    # set site property for  services that only are in one site
+                    if NetworkServiceSliver.ServiceConstraints[nstype].num_sites == 1:
+                        site = sites.pop()
+
             sliver = NetworkServiceSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
             sliver.set_type(nstype)
+            sliver.set_site(site)
             # set based on service type
             sliver.set_layer(NetworkServiceSliver.ServiceConstraints[nstype].layer)
             sliver.set_technology(technology)
@@ -125,7 +132,7 @@ class NetworkService(ModelElement):
                 graph_model.find_node_by_name(node_name=name,
                                               label=ABCPropertyGraph.CLASS_NetworkService)
             if existing_node_id != node_id:
-                raise RuntimeError(f'Service name {name} is not unique within the topology.')
+                raise RuntimeError(f'Service name {name} node id does not match the expected node id.')
             # collect a list of interface nodes it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()

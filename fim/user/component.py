@@ -93,11 +93,16 @@ class Component(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             cata = ComponentCatalog()
 
+            # get the name of the parent node to pass to component generation
+            _, parent_props = self.topo.graph_model.get_node_properties(node_id=parent_node_id)
+            parent_name = parent_props.get(ABCPropertyGraph.PROP_NAME, None)
+
             comp_sliver = cata.generate_component(name=name, model=model, ctype=ctype,
                                                   model_type=comp_model,
                                                   ns_node_id=network_service_node_id,
                                                   interface_node_ids=interface_node_ids,
-                                                  interface_labels=interface_labels)
+                                                  interface_labels=interface_labels,
+                                                  parent_name=parent_name)
             comp_sliver.node_id = node_id
             comp_sliver.set_properties(**kwargs)
 
