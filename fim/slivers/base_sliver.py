@@ -54,6 +54,7 @@ class BaseSliver(ABC):
         self.details = None
         self.node_map = None
         self.stitch_node = False
+        self.site = None
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -154,6 +155,12 @@ class BaseSliver(ABC):
     def get_stitch_node(self) -> bool:
         return self.stitch_node
 
+    def set_site(self, site: str):
+        self.site = site
+
+    def get_site(self) -> str:
+        return self.site
+
     def set_properties(self, **kwargs):
         """
         Lets you set multiple properties exposed via setter methods
@@ -206,7 +213,7 @@ class BaseSliver(ABC):
             raise RuntimeError(f'Unable to get property {prop_name} of the sliver - no such property available')
 
     def __repr__(self):
-        exclude_set = {"get_property"}
+        exclude_set = {"get_property", "get_stitch_node"}
         print_set = list()
         for k in dir(self):
             if k.startswith('get_') and k not in exclude_set:

@@ -472,6 +472,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
         if sliver.resource_model is not None:
             prop_dict[ABCPropertyGraph.PROP_MODEL] = sliver.resource_model
+        if sliver.site is not None:
+            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.capacities is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
         if sliver.capacity_hints is not None:
@@ -510,8 +512,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
 
-        if sliver.site is not None:
-            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.image_ref is not None and sliver.image_type is not None:
             prop_dict[ABCPropertyGraph.PROP_IMAGE_REF] = sliver.image_ref + ',' + str(sliver.image_type)
         if sliver.management_ip is not None:
@@ -595,6 +595,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         sliver.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
                               type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                               model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
+                              site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                               capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
                               capacity_hints=CapacityHints.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_HINTS, None)),
                               labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
@@ -629,8 +630,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         else:
             image_ref, image_type = d[ABCPropertyGraph.PROP_IMAGE_REF].split(',')
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(n, d)
-        n.set_properties(site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         image_ref=image_ref,
+        n.set_properties(image_ref=image_ref,
                          image_type=image_type,
                          management_ip=d.get(ABCPropertyGraph.PROP_MGMT_IP, None),
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
@@ -887,7 +887,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         assert sliver is not None
         assert sliver.node_id is not None
-        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode, name=sliver.resource_name)
+
+        if not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode,
+                                      name=sliver.resource_name):
+            raise RuntimeError(f'Node name {sliver.resource_name} must be unique.')
 
         props = self.node_sliver_to_graph_properties_dict(sliver)
         self.add_node(node_id=sliver.node_id, label=ABCPropertyGraph.CLASS_NetworkNode, props=props)
@@ -908,7 +911,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         assert lsliver is not None
         assert lsliver.node_id is not None
-        assert self.check_node_unique(label=ABCPropertyGraph.CLASS_Link, name=lsliver.resource_name)
         assert interfaces is not None
 
         props = self.link_sliver_to_graph_properties_dict(lsliver)
@@ -944,10 +946,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         assert network_service.node_id is not None
-        if parent_node_id is None:
+        if parent_node_id is None and not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
+                                                                 name=network_service.resource_name):
             # slice-wide network services must have unique names
-            assert self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
-                                          name=network_service.resource_name)
+            raise RuntimeError(f'Network service name {network_service.resource_name} must be unique.')
 
         props = self.network_service_sliver_to_graph_properties_dict(network_service)
         self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)

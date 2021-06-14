@@ -60,7 +60,6 @@ class NodeSliver(BaseSliver):
         self.image_ref = None
         self.service_endpoint = None
         self.network_service_info = None
-        self.site = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -97,12 +96,6 @@ class NodeSliver(BaseSliver):
 
     def get_service_endpoint(self) -> str:
         return self.service_endpoint
-
-    def set_site(self, site: str):
-        self.site = site
-
-    def get_site(self) -> str:
-        return self.site
 
     @staticmethod
     def type_from_str(ntype: str) -> NodeType or None:

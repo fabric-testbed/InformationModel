@@ -39,6 +39,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryExcep
 from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType
+from ..slivers.component_catalog import ComponentModelType
 
 
 class Node(ModelElement):
@@ -47,8 +48,8 @@ class Node(ModelElement):
     return various dictionaries or lists:
     node.components - returns a dictionary of components by name
     node.interfaces - returns a dictionary of interfaces by name
-    interface_list - returns a list of interfaces
-    direct_interfaces - returns a dictionary of direct interfaces, i.e. those
+    node.interface_list - returns a list of interfaces
+    node.direct_interfaces - returns a dictionary of direct interfaces, i.e. those
     not attached to components (mostly relevant to switches, not servers
     or VMs)
     network_services - returns a dictionary of network_services (mostly relevant
@@ -142,17 +143,18 @@ class Node(ModelElement):
     def list_properties() -> Tuple[str]:
         return tuple(NodeSliver.list_properties())
 
-    def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType,
-                      model: str, network_service_node_id: str=None, interface_node_ids=None,
+    def add_component(self, *, name: str, node_id: str = None, ctype: ComponentType = None,
+                      model: str = None, model_type: ComponentModelType = None,
+                      network_service_node_id: str=None, interface_node_ids=None,
                       interface_labels=None, **kwargs) -> Component:
         """
         Add a component of specified type, model and name to this node. When working with substrate
         topologies you must specify the network_service_node_id and provide a list of interface node ids.
         :param name:
         :param node_id:
-        :param ctype:
-        :param model:
-        :param name:
+        :param ctype: ComponentType
+        :param model: Model string (exact match)
+        :param  model_type: ComponentModelType (combines ComponentType and Model)
         :param network_service_node_id: network service identifier for substrate models
         :param interface_node_ids: interface identifiers for substrate models
         :param interface_labels: list of labels for interfaces in substrate models
@@ -165,7 +167,8 @@ class Node(ModelElement):
             raise RuntimeError('Component names must be unique within node.')
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
-                      ctype=ctype, model=model, network_service_node_id=network_service_node_id,
+                      ctype=ctype, model=model, comp_model=model_type,
+                      network_service_node_id=network_service_node_id,
                       interface_node_ids=interface_node_ids, interface_labels=interface_labels,
                       parent_node_id=self.node_id, **kwargs)
         return c
