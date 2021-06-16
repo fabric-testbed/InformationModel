@@ -50,6 +50,7 @@ class BaseSliver(ABC):
         self.label_allocations = None
         self.reservation_info = None
         self.structural_info = None
+        # note that node_id is deliberately not settable to avoid being accidentally overwritten by user
         self.node_id = None
         self.details = None
         self.node_map = None

@@ -592,6 +592,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param d:
         :return:
         """
+        # there is no setter for node id so users can't accidentally override it
+        sliver.node_id = d.get(ABCPropertyGraph.NODE_ID)
         sliver.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
                               type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                               model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
@@ -699,7 +701,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class NetworkNode")
         # create top-level sliver
         ns = self.node_sliver_from_graph_properties_dict(props)
-        ns.node_id = node_id
         # find and build deep slivers of network services (if any) and components (if any)
         comps = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                         node_label=ABCPropertyGraph.CLASS_Component)
@@ -733,7 +734,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class NetworkService")
         # create top-level sliver
         nss = self.network_service_sliver_from_graph_properties_dict(props)
-        nss.node_id = node_id
         # find interfaces and attach
         ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
@@ -742,7 +742,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             for i in ifs:
                 _, iprops = self.get_node_properties(node_id=i)
                 ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
-                ifsl.node_id = node_id
                 ifi.add_interface(ifsl)
             nss.interface_info = ifi
         return nss
@@ -754,7 +753,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class Component")
         # create top-level sliver
         cs = self.component_sliver_from_graph_properties_dict(props)
-        cs.node_id = node_id
         # find any network services, build and attach
         nss = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                       node_label=ABCPropertyGraph.CLASS_NetworkService)
