@@ -95,10 +95,21 @@ class SliceTest(unittest.TestCase):
         # interfaces and links
         self.assertEqual(len(self.topo.interface_list), 4)
 
-        #print(f"testNodeAndComponents Interfaces {self.topo.interface_list}")
+        # no peers yet
+        service_port = self.topo.interface_list[0].get_peer()
+        self.assertEqual(service_port, None)
+
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
         print(self.topo.network_services['s1'])
         assert(self.topo.network_services['s1'].get_property('site') == 'RENC')
+
+        # test peer code
+        service_port = self.topo.interface_list[0].get_peer()
+        print(f'This is a service port {service_port}')
+        self.assertEqual(service_port.get_property('type'), f.InterfaceType.ServicePort)
+        # back to self
+        self_port = service_port.get_peer()
+        self.assertEqual(self_port, self.topo.interface_list[0])
 
         # disabled - replaced with RuntimeError
         #with self.assertRaises(AssertionError) as e:

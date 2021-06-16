@@ -122,6 +122,20 @@ class Interface(ModelElement):
     def list_properties() -> Tuple[str]:
         return InterfaceSliver.list_properties()
 
+    def get_peer(self):
+        """
+        Find a 'peer' interface connected across a Link. Returns Interface object.
+        :return: peer Interface object or None
+        """
+        peer_id = self.topo.graph_model.find_peer_connection_point(node_id=self.node_id)
+        if peer_id is None:
+            return None
+        clazzes, node_props = self.topo.graph_model.get_node_properties(node_id=peer_id)
+        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+        assert ABCPropertyGraph.CLASS_ConnectionPoint in clazzes
+        return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=peer_id,
+                         topo=self.topo)
+
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         if_sliver = self.topo.graph_model.interface_sliver_from_graph_properties_dict(node_properties)
