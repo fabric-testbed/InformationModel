@@ -593,7 +593,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         # there is no setter for node id so users can't accidentally override it
-        sliver.node_id = d.get(ABCPropertyGraph.NODE_ID)
+        sliver.node_id = d.get(ABCPropertyGraph.NODE_ID, None)
         sliver.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
                               type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                               model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
