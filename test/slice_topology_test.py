@@ -43,8 +43,17 @@ class SliceTest(unittest.TestCase):
         nic1 = n1.components['nic1']
         nic2 = n2.components['nic2']
 
+        p1 = nic1.interfaces['nic1-p1']
+        p1lab = p1.get_property('labels')
+        self.assertEqual(p1lab.local_name, "p1")
+
         p1 = nic2.interfaces['nic2-p1']
+        p1lab = p1.get_property('labels')
+        self.assertEqual(p1lab.local_name, "p1")
+
         p2 = nic2.interfaces['nic2-p2']
+        p2lab = p2.get_property('labels')
+        self.assertEqual(p2lab.local_name, "p2")
         # check parent code
         assert(self.topo.get_parent_element(e=gpu1) == n1)
         assert(self.topo.get_parent_element(e=p1) == self.topo.get_parent_element(e=p2))

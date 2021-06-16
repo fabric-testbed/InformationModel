@@ -175,6 +175,11 @@ class AdTest(unittest.TestCase):
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
+        gpu_shnic_lab = gpuw.components[gpuw.name + '-shnic'].interfaces[gpuw.name + '-shnic' + '-p1'].get_property('labels')
+        print(f'Shared NIC labels {gpu_shnic_lab}')
+        self.assertTrue(isinstance(gpu_shnic_lab.local_name, list))
+        self.assertEqual(gpu_shnic_lab.local_name, ["p1", "p1", "p1", "p1"])
+
         pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
         pf_mac = '04:3F:72:B7:18:B4'
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
@@ -229,6 +234,11 @@ class AdTest(unittest.TestCase):
                                      capacities=f.Capacities().set_fields(unit=1),
                                      labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
+
+        fnw_shnic_lab = fnw.components[fnw.name + '-nic1'].interfaces[fnw.name + '-nic1' + '-p1'].get_property('labels')
+        print(f'Dedicated NIC labels {fnw_shnic_lab}')
+        self.assertTrue(isinstance(fnw_shnic_lab.local_name, str))
+        self.assertEqual(fnw_shnic_lab.local_name, "p1")
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
                                      node_id=fnw.node_id + '-nic2',

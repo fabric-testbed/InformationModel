@@ -133,6 +133,17 @@ class ComponentCatalog:
                     isliver.node_id = str(uuid.uuid4())
                 if interface_labels is not None:
                     isliver.set_labels(interface_labels[id_index])
+                # set local_name to port name from catalog, however for sr-iov cards it needs to
+                # be a list of identical names. We use bdf labels as indicator of how many devices
+                # are behind it.
+                if isliver.labels is not None:
+                    if isliver.labels.bdf is not None and \
+                            isinstance(isliver.labels.bdf, list):
+                        isliver.labels.set_fields(local_name=[interface_name for k in range(len(isliver.labels.bdf))])
+                    else:
+                        isliver.labels.set_fields(local_name=interface_name)
+                else:
+                    isliver.set_labels(Labels(local_name=interface_name))
                 # if labels are lists, extract the length to make it the number of units
                 lab = isliver.get_labels()
                 units = len(lab.bdf) if lab is not None and lab.bdf is not None else 1
