@@ -132,24 +132,7 @@ $ pytest [-s] test
 ```
 
 This will produce substrate ARM models and save them into file in project root folder.
-These tests require Neo4j docker running to support tests of Neo4j-implemented models. 
-
-## Rules for creating new graphs (Obsoleted Section)
-
-- Use [graph-template.graphml](test/models/graph-template.graphml) as a starter - copy it to a new name. 
-The reason is yEd doesn't allow to save custom property schema separate from a graph and the template graph 
-provides definitions for all custom node and edge properties. *Do not create a new graph from scratch as it 
-will not have custom properties defined. Copying from a template graph into a new graph will lose properties*. 
-- Use cut and paste from existing nodes in the template to build a new graph and fill in appropriate fields
-using <right-click on node or edge>Properties | Data 
-- Each node must have a Class and Type properties specified from 
-[this document](https://docs.google.com/spreadsheets/d/1H9O7ptnODTpWvV2m2uTWQE34y1jleZIScEIh3B-_yS0/edit#gid=0).
-Additional properties can be specified as needed in accordance with 
-[this document](https://docs.google.com/document/d/1fmuUBVe_XWCJEI9zwImjFMBRFcRo-MZ9rUTWTu81atM/edit#heading=h.svpgmv6dph79).
-- In general you don't need to assign NodeID properties on individual nodes, instead using [fim_util](util/README.md) 
-to assign them, *however* when constructing linked models e.g. a site and a network AM advertisement that have 
-nodes in common  (ConnectionPoints, SwitchFabrics etc), it is critical that same nodes appearing in both graphs 
-carry the same NodeIDs, so those are best created in one graph and then cut-and-pasted in the other.  
+These tests require Neo4j docker running to support tests of Neo4j-implemented models.
 
 ## Graph validation
 
