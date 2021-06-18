@@ -198,7 +198,7 @@ Neo4j label `GraphNode` is hard-coded within FIM - every graph node has this lab
 from the Class property and is meaningful to FIM. 
 This is done for performance reasons to make it easier to create indexes and query models using those indexes.
 
-The following indexes are required (can be created via script or through Neo4j console):
+The following indexes are required (indexes are created automatically by Neo4jGraphImporter whenever it is used):
 ```
 CREATE INDEX graphid FOR (n:GraphNode) ON (n.GraphID)
 CREATE INDEX graphid_nodeid FOR (n:GraphNode) ON (n.GraphID, n.NodeID)
