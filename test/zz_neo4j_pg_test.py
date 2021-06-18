@@ -301,11 +301,10 @@ class Neo4jTests(unittest.TestCase):
         ls = set()
         for l in links:
             ls.add(l[1])
-        assert('node_id-00-00-00-00-00-11-Wave' in ls and
-               'node_id-10-00-00-00-00-11-Wave' in ls and
-               'node_id-00-00-00-00-00-10-Wave' in ls)
+        assert('port+renc-data-sw:HundredGigE0/0/0/26-Wave' in ls and
+               'port+renc-data-sw:HundredGigE0/0/0/27-Wave' in ls and
+               'port+uky-data-sw:HundredGigE0/0/0/27-Wave' in ls)
         print('Done')
-
 
         ad = 'Network-ad.graphml'
         print(f"Unmerging graph {adm_ids[ad]}")
