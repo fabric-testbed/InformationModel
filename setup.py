@@ -17,6 +17,7 @@ setuptools.setup(
   long_description_content_type="text/plain",
   packages=setuptools.find_packages(),
   include_package_data=True,
+  scripts=['util/fim_util.py'],
   classifiers=[
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
