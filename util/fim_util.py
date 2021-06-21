@@ -79,7 +79,8 @@ def load_file(*, filename, graph_id, neo4j_config):
     _graph = neo4j_graph_importer.import_graph_from_file(graph_file=filename, graph_id=graph_id)
     print(f"Created graph {_graph}")
     try:
-        return _graph.validate_graph()
+        _graph.validate_graph()
+        return _graph.graph_id
     except PropertyGraphImportException as pe:
         print(f"Unable to load graph due to error {pe.msg}, deleting")
         _graph.delete_graph()
@@ -97,7 +98,7 @@ def load_file_direct(*, filename, neo4j_config):
                                               pswd=neo4j_config["pass"],
                                               import_host_dir=neo4j_config["import_host_dir"],
                                               import_dir=neo4j_config["import_dir"])
-    return neo4j_graph_importer.import_graph_from_file_direct(graph_file=filename)
+    return neo4j_graph_importer.import_graph_from_file_direct(graph_file=filename).graph_id
 
 
 def enumerate_nodes(*, filename, new_filename, neo4j_config):
@@ -133,6 +134,50 @@ def delete_graphs(*, neo4j_config, graph_id=None):
         neo4j_graph.delete_graph(graph_id=graph_id)
 
 
+def merge_ads(*, neo4j_config, file_names, delete_arms, delete_adms):
+    """
+    Merge these advertisements together in the order provided
+    :param neo4j_config:
+    :param file_names: list of file names
+    :return:
+    """
+    neo4j_graph_importer = Neo4jGraphImporter(url=neo4j_config["url"], user=neo4j_config["user"],
+                                              pswd=neo4j_config["pass"],
+                                              import_host_dir=neo4j_config["import_host_dir"],
+                                              import_dir=neo4j_config["import_dir"])
+    cbm = Neo4jCBMGraph(importer=neo4j_graph_importer)
+    print(f'Created blank CBM {cbm.graph_id}')
+
+    arms = dict()
+    for file_name in file_names:
+        _graph = neo4j_graph_importer.import_graph_from_file(graph_file=file_name)
+        print(f'Loaded {file_name} as graph ID {_graph.graph_id}')
+        _graph.validate_graph()
+        arms[file_name] = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=_graph.graph_id,
+                                                                 importer=neo4j_graph_importer))
+        # generate a dict of ADMs from site graph ARM
+        site_adms = arms[file_name].generate_adms()
+        print(f'ADMS for {file_name}:')
+        for adm_id in site_adms.keys():
+            print(f'  ADM id {adm_id}: {site_adms[adm_id].graph_id}')
+
+        # desired ADM is under 'primary'
+        site_adm = site_adms['primary']
+
+        print(f'Merging into CBM')
+        cbm.merge_adm(adm=site_adm)
+        cbm.validate_graph()
+
+        if delete_arms:
+            print(f'Deleting ARM {file_name}')
+            arms[file_name].delete_graph()
+        if delete_adms:
+            print(f'Deleting ADMs for {file_name}')
+            for adm in site_adms.values():
+                adm.delete_graph()
+    print('Completed')
+
+
 def save_graph(*, outfile, graph_id, neo4j_config):
     """
     Save indicated graph id into a file
@@ -158,7 +203,9 @@ if __name__ == "__main__":
 
     operations = parser.add_mutually_exclusive_group()
     operations.add_argument("-l", "--load", action="store_true",
-                            help="load specified file into Neo4j (requires -f, optional -g, -r)")
+                            help="load specified file into Neo4j (requires one or more -f, optional -g, -r)")
+    parser.add_argument("-m", "--merge", action="store_true",
+                        help="generate ADMs from provided ARMs and merge into CBM")
     operations.add_argument("-w", "--wipe", action="store_true",
                             help="wipe neo4j instance of all graphs (optional -g)")
     operations.add_argument("-e", "--enumerate", action="store_true",
@@ -168,11 +215,11 @@ if __name__ == "__main__":
                             help="save a specific graph into a file (requires -o and -g)")
     parser.add_argument("-c", "--config", action="store", default=FIM_CONFIG_YAML,
                         help="provide alternative configuration file")
-    parser.add_argument("-f", "--file", action="store",
-                        help="GraphML file to be operated on")
-    parser.add_argument("-o", "--outfile", action="store",
-                        help="output GraphML file")
-    parser.add_argument("-g", "--graph", action="store",
+    parser.add_argument("-f", "--file", action="append",
+                        help="GraphML file(s) to be operated on")
+    parser.add_argument("-o", "--outfile", action="append",
+                        help="output GraphML file(s)")
+    parser.add_argument("-g", "--graph", action="append",
                         help="identifier of the graph in the Neo4j database")
     parser.add_argument("-r", "--direct", action="store_true",
                         help="load file directly without validation or any manipulations")
@@ -194,21 +241,44 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if args.load:
-        if args.file is None:
-            print("Must specify -f option", file=sys.stderr)
+        if args.file is None or len(args.file) == 0:
+            print("Must specify at least one -f option", file=sys.stderr)
+            sys.exit(-1)
+        if not args.direct and (args.graph is None or len(args.graph) != len(args.file)):
+            print("Must specify the same number of -g options as -f")
+            sys.exit(-1)
         # load a file with a given id (or generated id)
+        print(args.file)
         try:
-            if args.direct:
-                gid = load_file_direct(filename=args.file, neo4j_config=yaml_config["neo4j"])
+            if not args.direct:
+                for file, graph in zip(args.file, args.graph):
+                    gid = load_file(filename=file, neo4j_config=yaml_config["neo4j"],
+                                    graph_id=args.graph)
+                    if gid is not None:
+                        print(f"Graph {file} successfully loaded with id {gid}")
+                    else:
+                        sys.exit(-1)
             else:
-                gid = load_file(filename=args.file, neo4j_config=yaml_config["neo4j"], graph_id=args.graph)
-            if gid is not None:
-                print(f"Graph successfully loaded with id {gid}")
-                sys.exit(0)
-            else:
-                sys.exit(-1)
+                for file in args.file:
+                    gid = load_file_direct(filename=file, neo4j_config=yaml_config["neo4j"])
+                    if gid is not None:
+                        print(f"Graph {file} successfully loaded with id {gid}")
+                    else:
+                        sys.exit(-1)
         except Exception as e:
             print(f"Unable to load file {args.file} to Neo4j due to {e.args}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+            sys.exit(-1)
+    elif args.merge:
+        if args.file is None or len(args.file) == 0:
+            print('Must specify at least one -f option', file=sys.stderr)
+            sys.exit(-1)
+        # merge specified files into a CBM
+        try:
+            merge_ads(neo4j_config=yaml_config["neo4j"], file_names=args.file,
+                      delete_arms=True, delete_adms=True)
+        except Exception as e:
+            print(f"Unable to merge files {args.file} to Neo4j due to {e.args}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
             sys.exit(-1)
     elif args.wipe:
@@ -219,21 +289,25 @@ if __name__ == "__main__":
         else:
             print("Deleted all graphs from the database")
     elif args.enumerate:
-        # enumerate a file
-        file = args.file
-        newfile = args.outfile
-        if file is None or newfile is None:
-            print("Must specify -f and -o options", file=sys.stderr)
+        if args.file is None or len(args.file) == 0:
+            print('Must specify at least one -f option', file=sys.stderr)
             sys.exit(-1)
-
-        print(f"Enumerating nodes in {file} and saving as {newfile}")
-        enumerate_nodes(filename=file, new_filename=newfile, neo4j_config=yaml_config["neo4j"])
+        if args.outfile is None or len(args.outfile) != len(args.file):
+            print('Must specify same number of -o options as -f options', file=sys.stderr)
+            sys.exit(-1)
+        # enumerate a file
+        for infile, outfile in zip(args.file, args.outfile):
+            print(f"Enumerating nodes in {infile} and saving as {outfile}")
+            enumerate_nodes(filename=infile, new_filename=outfile, neo4j_config=yaml_config["neo4j"])
     elif args.save:
+        if args.outfile is None or len(args.outfile) != 1:
+            print('Must specify one -o option', file=sys.stderr)
+            sys.exit(-1)
         # save graph
-        outfile = args.outfile
+        outfile = args.outfile[0]
         graph = args.graph
-        if outfile is None or graph is None:
-            print("Must specify output file and graph id (-o and -g)", file=sys.stderr)
+        if graph is None:
+            print("Must specify graph id (-g)", file=sys.stderr)
             sys.exit(-1)
 
         print(f"Saving graph {graph} into file {outfile}")
