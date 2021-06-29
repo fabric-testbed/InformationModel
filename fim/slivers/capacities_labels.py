@@ -297,7 +297,7 @@ class Labels(JSONField):
         self.asn = None
         self.vlan = None
         self.vlan_range = None
-        self.outer_vlan = None
+        self.inner_vlan = None
         self.instance = None
         self.instance_parent = None
         self.local_name = None
