@@ -17,6 +17,7 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual(len(c.network_service_info.get_network_service('myNIC-l2ovs').interface_info.interfaces.keys()), 2)
         c1 = cata.generate_component(name='myGPU', model='RTX6000', ctype=ComponentType.GPU)
         self.assertIsNone(c1.network_service_info)
+        c2 = cata.generate_component(name='myGPU', model='Quadro RTX 6000/8000', ctype=ComponentType.GPU)
         with self.assertRaises(CatalogException):
             cata.generate_component(name='some', model='blah', ctype=ComponentType.SmartNIC)
 
