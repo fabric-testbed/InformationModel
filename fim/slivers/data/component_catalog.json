@@ -1,6 +1,7 @@
 [
   {
     "Model": "RTX6000",
+    "AlsoModels": ["Quadro RTX 6000/8000"],
     "Type": "GPU",
     "Details": "NVIDIA Corporation TU102GL [Quadro RTX 6000/8000] (rev a1)"
   },

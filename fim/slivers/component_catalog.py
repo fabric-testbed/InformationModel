@@ -96,16 +96,23 @@ class ComponentCatalog:
         catalog = self.__read_catalog()
         component_dict = None
         for c in catalog:
-            if model == c['Model'] and ctype_str == c['Type']:
+            main_model = c['Model']
+            also_model_list = c.get('AlsoModels', None)
+
+            if model == main_model and ctype_str == c['Type']:
                 component_dict = c
                 break
+            if also_model_list is not None:
+                if model in also_model_list and ctype_str == c['Type']:
+                    component_dict = c
+                    break
 
         if component_dict is None:
-            raise CatalogException(f'Unable to find model {model} of type {ctype_str}in the catalog')
+            raise CatalogException(f'Unable to find model {model} of type {ctype_str} in the catalog')
 
         cs = ComponentSliver()
         cs.set_name(name)
-        cs.set_model(model)
+        cs.set_model(component_dict['Model'])
         cs.set_type(cs.type_from_str(component_dict['Type']))
         cs.set_details(component_dict['Details'])
         if 'Interfaces' in component_dict.keys():
