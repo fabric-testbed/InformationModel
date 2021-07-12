@@ -156,7 +156,11 @@ class ComponentCatalog:
                 units = len(lab.bdf) if lab is not None and lab.bdf is not None else 1
                 id_index = id_index + 1
                 # set port speed and units (inferring from length of bdf array)
-                cap = Capacities().set_fields(unit=units, bw=int(interfaces_dict[interface_name]))
+                # for SR-IOV bw==0 to indicate best-effort by default
+                if cs.get_type() == ComponentType.SharedNIC:
+                    cap = Capacities(unit=units)
+                else:
+                    cap = Capacities(unit=units, bw=int(interfaces_dict[interface_name]))
                 isliver.set_capacities(cap=cap)
                 iinfo.add_interface(isliver)
             ns = NetworkServiceSliver()

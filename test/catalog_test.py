@@ -15,11 +15,19 @@ class CatalogTest(unittest.TestCase):
         c = cata.generate_component(name='myNIC', model='ConnectX-6', ctype=ComponentType.SmartNIC)
         self.assertIsNotNone(c.network_service_info)
         self.assertEqual(len(c.network_service_info.get_network_service('myNIC-l2ovs').interface_info.interfaces.keys()), 2)
+        cns = c.network_service_info.get_network_service(c.network_service_info.get_network_service_names()[0])
+        cport = cns.interface_info.get_interface(cns.interface_info.get_interface_names()[0])
+        self.assertEqual(cport.get_property('capacities').bw, 100)
         c1 = cata.generate_component(name='myGPU', model='RTX6000', ctype=ComponentType.GPU)
         self.assertIsNone(c1.network_service_info)
         c2 = cata.generate_component(name='myGPU', model='Quadro RTX 6000/8000', ctype=ComponentType.GPU)
         with self.assertRaises(CatalogException):
             cata.generate_component(name='some', model='blah', ctype=ComponentType.SmartNIC)
+        c3 = cata.generate_component(name='SharedNIC', ctype=ComponentType.SharedNIC, model='ConnectX-6')
+        c3ns = c3.network_service_info.get_network_service(c3.network_service_info.get_network_service_names()[0])
+        c3port = c3ns.interface_info.get_interface(c3ns.interface_info.get_interface_names()[0])
+        self.assertEqual(c3port.get_property('capacities').bw, 0)
+
 
     def testInstanceCatalog(self):
         cata = InstanceCatalog()

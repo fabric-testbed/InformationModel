@@ -79,3 +79,6 @@ class InterfaceInfo:
 
     def get_interface(self, name: str):
         return self.interfaces.get(name, None)
+
+    def get_interface_names(self):
+        return list(self.interfaces.keys())
