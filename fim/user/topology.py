@@ -821,9 +821,13 @@ class AdvertizedTopology(Topology):
         """
         lines = list()
         for n in self.sites.values():
-            ncp = CapacityTuple(total=n.get_property("capacities"),
-                                allocated=n.get_property("capacity_allocations"))
-            lines.append(n.name + ": " + str(ncp))
+            tot_cap = n.get_property("capacities")
+            alloc_cap = n.get_property("capacity_allocations")
+            if tot_cap is not None and alloc_cap is not None:
+                ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
+                lines.append(n.name + ": " + str(ncp))
+            else:
+                lines.append(n.name)
             lines.append("\tComponents:")
             for c in n.components.values():
                 ccp = CapacityTuple(total=c.get_property("capacities"),

@@ -621,7 +621,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               details=d.get(ABCPropertyGraph.PROP_DETAILS, None),
                               node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
                               d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
-                              stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]))
+                              stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]) if
+                              d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False
+                              )
 
     @staticmethod
     def node_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NodeSliver:
