@@ -34,7 +34,6 @@ import uuid
 
 from ..abc_property_graph import ABCPropertyGraph, PropertyGraphQueryException
 from fim.slivers.delegations import DelegationType, Pools, Delegations
-from ..typed_tuples import Label, Capacity
 
 
 class ABCARMPropertyGraph(ABCPropertyGraph):

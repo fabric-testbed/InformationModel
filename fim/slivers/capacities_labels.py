@@ -23,10 +23,13 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import json
 
 from abc import ABC, abstractmethod
+
+import requests
+import urllib.parse
 
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
@@ -404,6 +407,56 @@ class StructuralInfo(JSONField):
         return self
 
 
+class Location(JSONField):
+    """
+    Location representation (as address, coordinates or any other useful way)
+    """
+    def __init__(self, **kwargs):
+        self.postal = None
+        self.set_fields(**kwargs)
+
+    def set_fields(self, **kwargs):
+        """
+        Universal setter for location fields. Values are strings.
+        :param kwargs:
+        :return:
+        """
+        for k, v in kwargs.items():
+            assert v is not None
+            assert isinstance(v, str)
+            try:
+                # will throw exception if field is not defined
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
+            except AttributeError:
+                raise LocationException(f"Unable to set field {k} of location, no such field available")
+        return self
+
+    def to_latlon(self) -> Tuple[float, float]:
+        """
+        Return a tuple of floats indicating Lat/Lon of the location. Uses Nomatim OpenStreetMaps
+        service.
+        :return:
+        """
+        url = 'https://nominatim.openstreetmap.org/search/' + urllib.parse.quote(self.postal) + '?format=json'
+        # per terms of service set user agent
+        headers = {'User-Agent': 'FABRIC FIM Utility'}
+        response = requests.get(url, headers)
+        if response.status_code != 200:
+            raise LocationException(f"Unable to convert address to Lat/Lon via OpenStreetmaps due "
+                                    f"to: {response.reason}")
+        try:
+            response_json = response.json()
+            if not isinstance(response_json, list):
+                raise ValueError
+            if len(response_json) < 1:
+                raise ValueError
+        except ValueError:
+            raise LocationException(f"Unable to interpret response from OpenStreetmaps for address {self.postal}")
+
+        return float(response_json[0]['lat']), float(response_json[0]['lon'])
+
+
 class CapacityException(Exception):
     """
     Exception with a capacity
@@ -448,3 +501,12 @@ class StructuralInfoException(Exception):
     def __init__(self, msg: str):
         assert msg is not None
         super().__init__(f"ReservationInfo exception: {msg}")
+
+
+class LocationException(Exception):
+    """
+    Exception with location
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Location exception: {msg}")

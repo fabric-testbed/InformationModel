@@ -53,6 +53,7 @@ class ABCPropertyGraphConstants(ABC):
     PROP_LAYER = 'Layer'
     PROP_TECHNOLOGY = 'Technology'
     PROP_SITE = 'Site'
+    PROP_LOCATION = 'Location'
     PROP_IMAGE_REF = 'ImageRef'
     PROP_MGMT_IP = 'MgmtIp'
     PROP_ALLOCATION_CONSTRAINTS = 'AllocationConstraints'
