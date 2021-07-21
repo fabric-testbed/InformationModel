@@ -135,6 +135,7 @@ class NetworkServiceSliver(BaseSliver):
         self.ero = None
         self.path_info = None
         self.controller_url = None
+        self.site = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -174,6 +175,12 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_controller_url(self) -> None:
         return self.controller_url
+
+    def set_site(self, site: str):
+        self.site = site
+
+    def get_site(self) -> str:
+        return self.site
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:

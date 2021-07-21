@@ -38,7 +38,7 @@ from enum import Enum
 import logging
 
 from fim.slivers.attached_components import ComponentSliver, AttachedComponentsInfo
-from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo, CapacityHints
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo, CapacityHints, Location
 from fim.slivers.delegations import Delegations, DelegationType
 from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.base_sliver import BaseSliver
@@ -472,8 +472,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
         if sliver.resource_model is not None:
             prop_dict[ABCPropertyGraph.PROP_MODEL] = sliver.resource_model
-        if sliver.site is not None:
-            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.capacities is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
         if sliver.capacity_hints is not None:
@@ -520,6 +518,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS] = sliver.allocation_constraints
         if sliver.service_endpoint is not None:
             prop_dict[ABCPropertyGraph.PROP_SERVICE_ENDPOINT] = str(sliver.service_endpoint)
+        if sliver.site is not None:
+            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
+        if sliver.location is not None:
+            prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
 
         return prop_dict
 
@@ -570,6 +572,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_PATH_INFO] = sliver.path_info.to_json()
         if sliver.controller_url is not None:
             prop_dict[ABCPropertyGraph.PROP_CONTROLLER_URL] = sliver.controller_url
+        if sliver.site is not None:
+            prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
 
         return prop_dict
 
@@ -597,7 +601,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         sliver.set_properties(name=d.get(ABCPropertyGraph.PROP_NAME, None),
                               type=sliver.type_from_str(d.get(ABCPropertyGraph.PROP_TYPE, None)),
                               model=d.get(ABCPropertyGraphConstants.PROP_MODEL, None),
-                              site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                               capacities=Capacities.from_json(d.get(ABCPropertyGraph.PROP_CAPACITIES, None)),
                               capacity_hints=CapacityHints.from_json(d.get(ABCPropertyGraph.PROP_CAPACITY_HINTS, None)),
                               labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_LABELS, None)),
@@ -639,6 +642,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          management_ip=d.get(ABCPropertyGraph.PROP_MGMT_IP, None),
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
+                         site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
                          )
         return n
 
@@ -676,7 +681,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                           ero=ERO.from_json(d.get(ABCPropertyGraph.PROP_ERO, None)),
                           path_info=PathInfo.from_json(d.get(ABCPropertyGraph.PROP_PATH_INFO, None)),
-                          controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None))
+                          controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None),
+                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None)
+                          )
         return ns
 
     @staticmethod

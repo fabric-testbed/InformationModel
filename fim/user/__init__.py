@@ -28,6 +28,7 @@ ComponentCatalog = cata.ComponentCatalog
 InstanceCatalog = icata.InstanceCatalog
 InterfaceType = iinfo.InterfaceType
 Capacities = caplab.Capacities
+Location = caplab.Location
 CapacityHints = caplab.CapacityHints
 Labels = caplab.Labels
 ReservationInfo = caplab.ReservationInfo

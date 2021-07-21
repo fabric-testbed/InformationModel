@@ -5,7 +5,7 @@ from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.slivers.path_info import ERO, PathInfo, Path
-from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints
+from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location
 
 
 class TestSlivers(unittest.TestCase):
@@ -70,4 +70,14 @@ class TestSlivers(unittest.TestCase):
         assert(ns.get_labels().vlan_range == '1-4096')
         assert(ns.get_capacities().core == 2)
 
+    def testLocation(self):
+        ns = NodeSliver()
+        loc = Location(postal='100 Europa Dr., Chapel Hill, NC 27517')
+        assert(loc.postal is not None)
+        ns.set_properties(location=loc)
+        loc1 = ns.get_property('location')
+        lat, lon = loc1.to_latlon()
+        self.assertGreater(lat, 35.00)
+        self.assertLess(lon, -79.00)
+        #print(f'{lat=} {lon=}')
 

@@ -26,6 +26,7 @@
 import enum
 import ipaddress
 
+from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
 
 
@@ -60,6 +61,8 @@ class NodeSliver(BaseSliver):
         self.image_ref = None
         self.service_endpoint = None
         self.network_service_info = None
+        self.site = None
+        self.location = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -96,6 +99,19 @@ class NodeSliver(BaseSliver):
 
     def get_service_endpoint(self) -> str:
         return self.service_endpoint
+
+    def set_site(self, site: str):
+        self.site = site
+
+    def get_site(self) -> str:
+        return self.site
+
+    def set_location(self, location: Location):
+        assert(location is None or isinstance(location, Location))
+        self.location = location
+
+    def get_location(self) -> Location:
+        return self.location
 
     @staticmethod
     def type_from_str(ntype: str) -> NodeType or None:

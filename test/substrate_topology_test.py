@@ -17,6 +17,7 @@ class AdTest(unittest.TestCase):
     def testRENCSiteAd(self):
         # create a site advertisement
         site = 'RENC'
+        loc = f.Location(postal='100 Europa Dr., Chapel Hill, NC 27517')
         head_model = 'R7515'
         worker_model = 'R7525'
         hn_cap = f.Capacities()
@@ -36,18 +37,18 @@ class AdTest(unittest.TestCase):
         #
 
         gpuw = self.topo.add_node(name='renc-w1',
-                                  model=worker_model, site=site,
+                                  model=worker_model, site=site, location=loc,
                                   node_id='HX6VQ53',
                                   ntype=f.NodeType.Server,
                                   capacities=gpu_worker_cap)
 
         fnw = self.topo.add_node(name='renc-w2',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='HX7LQ53',
                                  ntype=f.NodeType.Server,
                                  capacities=network_worker_cap)
         snw = self.topo.add_node(name='renc-w3',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='HX7KQ53',
                                  ntype=f.NodeType.Server,
                                  capacities=network_worker_cap)
@@ -336,6 +337,7 @@ class AdTest(unittest.TestCase):
     def testUKYSiteAd(self):
         # create a site advertisement
         site = 'UKY'
+        loc = f.Location(postal='301 Hilltop Ave Lexington, KY 40506')
         head_model = 'R7515'
         worker_model = 'R7525'
         hn_cap = f.Capacities()
@@ -355,15 +357,15 @@ class AdTest(unittest.TestCase):
         #
 
         gpuw = self.topo.add_node(name='uky-w1',
-                                  model=worker_model, site=site,
+                                  model=worker_model, site=site, location=loc,
                                   node_id='3JB2R53',
                                   ntype=f.NodeType.Server, capacities=gpu_worker_cap)
         fnw = self.topo.add_node(name='uky-w2',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='3JB0R53',
                                  ntype=f.NodeType.Server, capacities=network_worker_cap)
         snw = self.topo.add_node(name='uky-w3',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='3JB1R53',
                                  ntype=f.NodeType.Server, capacities=network_worker_cap)
 
@@ -654,6 +656,7 @@ class AdTest(unittest.TestCase):
     def testLBNLSiteAd(self):
         # create a site advertisement
         site = 'LBNL'
+        loc = f.Location(postal='1 Cyclotron Rd, Berkeley, CA 94720')
         head_model = 'R7515'
         worker_model = 'R7525'
         hn_cap = f.Capacities()
@@ -673,15 +676,15 @@ class AdTest(unittest.TestCase):
         #
 
         gpuw = self.topo.add_node(name='lbnl-w1',
-                                  model=worker_model, site=site,
+                                  model=worker_model, site=site, location=loc,
                                   node_id='5B3BR53',
                                   ntype=f.NodeType.Server, capacities=gpu_worker_cap)
         fnw = self.topo.add_node(name='lbnl-w2',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='5B38R53',
                                  ntype=f.NodeType.Server, capacities=network_worker_cap)
         snw = self.topo.add_node(name='lbnl-w3',
-                                 model=worker_model, site=site,
+                                 model=worker_model, site=site, location=loc,
                                  node_id='5B39R53',
                                  ntype=f.NodeType.Server, capacities=network_worker_cap)
 
