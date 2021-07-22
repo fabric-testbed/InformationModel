@@ -103,7 +103,7 @@ class NetworkService(ModelElement):
                     for interface in interfaces:
                         owner = topo.get_owner_node(interface)
                         sites.add(owner.get_property('site'))
-                    if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
+                    if len(sites) != NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
                         raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
                                            f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
                     # set site property for  services that only are in one site
@@ -123,7 +123,9 @@ class NetworkService(ModelElement):
             self._interfaces = list()
             if interfaces is not None and len(interfaces) > 0:
                 for i in interfaces:
-                    self.connect_interface(interface=i)
+                    # run through guardrails, then connect
+                    self.__service_guardrails(sliver, i)
+                    self.__connect_interface(interface=i)
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
@@ -142,7 +144,30 @@ class NetworkService(ModelElement):
                 name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
             self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
-    def connect_interface(self, *, interface: Interface):
+    @staticmethod
+    def __service_guardrails(sliver: NetworkServiceSliver, interface: Interface):
+        """
+        Checks if this interface can be added to this service for various reasons related to e.g.
+        service implementation constraints (that can be temporary and change from release to release).
+        Prints warnings or throws exceptions.
+        :param sliver:
+        :param interface:
+        :return:
+        """
+        # - L2P2P service does not work for shared ports
+        # - L2S2S needs to warn that it may not work if the VMs with shared ports land on the same worker
+        if sliver.get_type() == ServiceType.L2PTP and \
+            interface.get_property('type') == InterfaceType.SharedPort:
+            raise RuntimeError(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
+                               f"L2P2P service currently doesn't support shared interfaces")
+        if sliver.get_type() == ServiceType.L2STS and \
+            interface.get_property('type') == InterfaceType.SharedPort:
+            print('WARNING: Current implementation of L2STS service does not support hairpins (connections withing the '
+                  'same physical port), if your VMs are assigned to the same worker node, communications between them '
+                  'over this service will not be possible! We recommend not using L2STS with shared ports unless you '
+                  'know what you are doing.')
+
+    def __connect_interface(self, *, interface: Interface):
         """
         Connect a (compute or switch) node interface to network service by transparently
         creating a peer service interface and a link between them
@@ -152,6 +177,7 @@ class NetworkService(ModelElement):
         assert interface is not None
         assert isinstance(interface, Interface)
 
+        # FIXME: IMPORTANT need to check number of connected interfaces here, not just in service constructor
         # we can only connect interfaces connected to (compute or switch) nodes
         if self.topo.get_owner_node(interface) is None:
             raise RuntimeError(f'Interface {interface} is not owned by a node, as expected.')

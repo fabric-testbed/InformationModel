@@ -161,6 +161,7 @@ class SliceTest(unittest.TestCase):
         # component checks
         n1.add_component(ctype=f.ComponentType.GPU, model='RTX6000', name='gpu1')
         n1.add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        n1.add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic4')
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
         n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
 
@@ -191,7 +192,7 @@ class SliceTest(unittest.TestCase):
         s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=self.topo.interface_list)
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 4)
+        self.assertEqual(len(s1.interface_list), 6)
 
         s1p = self.topo.network_services['s1']
 
@@ -200,23 +201,23 @@ class SliceTest(unittest.TestCase):
         s1.disconnect_interface(interface=p1)
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 3)
+        self.assertEqual(len(s1.interface_list), 5)
 
         self.topo.remove_network_service('s1')
 
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                           interfaces=self.topo.interface_list[0:2])
+                                           interfaces=self.topo.interface_list[2:4])
         self.assertEqual(len(s2.interface_list), 2)
         print(f'S2 has these interfaces: {s2.interface_list}')
 
         print(f'There are {self.topo.links} left in topology')
         self.assertEqual(len(self.topo.links), 2)
         print(f'Network services {self.topo.network_services}')
-        self.assertEqual(len(self.topo.network_services), 4)
+        self.assertEqual(len(self.topo.network_services), 5)
         self.topo.remove_network_service('s2')
-        self.assertEqual(len(self.topo.network_services), 3)
+        self.assertEqual(len(self.topo.network_services), 4)
         n1.remove_component('nic1')
-        self.assertEqual(len(self.topo.network_services), 2)
+        self.assertEqual(len(self.topo.network_services), 3)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 
