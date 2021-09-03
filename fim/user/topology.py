@@ -781,7 +781,8 @@ class AdvertizedTopology(Topology):
             edge_labels = dict()
             for k, v in graph_edges.items():
                 derived_graph.add_edge(v[0], v[1])
-                edge_labels[(v[0], v[1])] = k
+                #edge_labels[(v[0], v[1])] = k
+                edge_labels[(v[0], v[1])] = ""
 
             pos = layout(derived_graph)
             nx.draw_networkx(derived_graph, pos=pos)
