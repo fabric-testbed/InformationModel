@@ -27,7 +27,6 @@
 Neo4j implementation of CBM (Combined Broker Model) functionality.
 """
 import uuid
-import json
 
 from typing import List, Dict, Tuple
 
@@ -39,7 +38,7 @@ from .abc_cbm import ABCCBMPropertyGraph
 from .neo4j_adm import Neo4jADMGraph
 from fim.slivers.capacities_labels import StructuralInfo, StructuralInfoException
 from fim.slivers.delegations import DelegationType, Delegations
-from fim.slivers.attached_components import AttachedComponentsInfo
+from fim.slivers.attached_components import AttachedComponentsInfo, ComponentType
 
 from ...pluggable import PluggableRegistry, BrokerPluggable, PluggableType
 
@@ -284,18 +283,18 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
         # collect unique types, models and count them
         component_counts = defaultdict(int)
-        isset = False
         if comps is not None:
             for comp in comps.list_devices():
                 assert(comp.resource_model is not None or comp.resource_type is not None)
-                component_counts[(comp.resource_type, comp.resource_model)] = \
-                    component_counts[(comp.resource_type, comp.resource_model)] + 1
-                isset = True
+                # shared nic count should always be 1
+                if comp.resource_type != ComponentType.SharedNIC:
+                    component_counts[(comp.resource_type, comp.resource_model)] = \
+                        component_counts[(comp.resource_type, comp.resource_model)] + 1
         # unroll properties
         node_props = ", ".join([x + ": " + '"' + props[x] + '"' for x in props.keys()])
 
-        if not isset:
-            # simple query on the properties of the node
+        if len(component_counts.values()) == 0:
+            # simple query on the properties of the node (no components)
             query = f"MATCH(n:{label} {{GraphID: $graphId, {node_props} }}) RETURN collect(n.NodeID) as candidate_ids"
         else:
             # build a query list
@@ -313,8 +312,9 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                 component_clauses.append(f"size( (n) -[:has]- (:Component {{GraphID: $graphId, "
                                          f"{comp_props}}}))>={str(v)} ")
             query = node_query + " and ".join(component_clauses) + " RETURN collect(n.NodeID) as candidate_ids"
-        #print(f'QUERY= {query}')
-        #print(f'GraphID= {self.graph_id}')
+
+        print(f'Resulting query {query=}')
+
         with self.driver.session() as session:
 
             val = session.run(query, graphId=self.graph_id).single()
