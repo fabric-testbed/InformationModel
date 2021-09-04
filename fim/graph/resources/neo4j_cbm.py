@@ -290,6 +290,8 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                 if comp.resource_type != ComponentType.SharedNIC:
                     component_counts[(comp.resource_type, comp.resource_model)] = \
                         component_counts[(comp.resource_type, comp.resource_model)] + 1
+                else:
+                    component_counts[(comp.resource_type, comp.resource_model)] = 1
         # unroll properties
         node_props = ", ".join([x + ": " + '"' + props[x] + '"' for x in props.keys()])
 
@@ -313,7 +315,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                                          f"{comp_props}}}))>={str(v)} ")
             query = node_query + " and ".join(component_clauses) + " RETURN collect(n.NodeID) as candidate_ids"
 
-        print(f'Resulting query {query=}')
+        # print(f'Resulting query {query=}')
 
         with self.driver.session() as session:
 

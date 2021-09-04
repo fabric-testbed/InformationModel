@@ -210,7 +210,7 @@ class Neo4jTests(unittest.TestCase):
         ci.add_device(c4)
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props, comps=ci)
-        #print(f'Testing a mix of components #1 {list_of_nodes=}')
+        print(f'Testing a mix of components #1 {list_of_nodes=}')
         self.assertEqual(len(list_of_nodes), 1)
 
         c5 = ComponentSliver()
@@ -220,7 +220,7 @@ class Neo4jTests(unittest.TestCase):
         ci.add_device(c5)
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props, comps=ci)
-        #print(f'Testing a mix of components #2 {list_of_nodes=} (expected empty)')
+        print(f'Testing a mix of components #2 {list_of_nodes=} (expected empty)')
         self.assertEqual(len(list_of_nodes), 0)
 
         # test for SR-IOV shared cards
@@ -239,7 +239,7 @@ class Neo4jTests(unittest.TestCase):
 
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props, comps=ci)
-        #print(f'Testing a mix of components #3 {list_of_nodes=}')
+        print(f'Testing a mix of components #3 {list_of_nodes=}')
         self.assertEqual(len(list_of_nodes), 3)
 
         self.n4j_imp.delete_all_graphs()
