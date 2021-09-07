@@ -168,7 +168,6 @@ class Neo4jTests(unittest.TestCase):
             label=ABCPropertyGraphConstants.CLASS_NetworkNode,
             props={'Name': 'renc-w3'})
 
-
         print('Deleting ADM and ARM graphs')
         for adm in site_adms.values():
             adm.delete_graph()
@@ -185,7 +184,7 @@ class Neo4jTests(unittest.TestCase):
         node_props = { 'Site': 'RENC', 'Type': 'Server' }
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props)
-        assert len(list_of_nodes) == 3
+        self.assertEqual(len(list_of_nodes), 3)
 
         # construct some components
         c1 = ComponentSliver()
@@ -211,8 +210,8 @@ class Neo4jTests(unittest.TestCase):
         ci.add_device(c4)
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props, comps=ci)
-        print(list_of_nodes)
-        assert len(list_of_nodes) == 1
+        print(f'Testing a mix of components #1 {list_of_nodes=}')
+        self.assertEqual(len(list_of_nodes), 1)
 
         c5 = ComponentSliver()
         c5.resource_name = 'c5'
@@ -221,8 +220,27 @@ class Neo4jTests(unittest.TestCase):
         ci.add_device(c5)
         list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
                                                                props=node_props, comps=ci)
-        print(list_of_nodes)
-        assert len(list_of_nodes) == 0
+        print(f'Testing a mix of components #2 {list_of_nodes=} (expected empty)')
+        self.assertEqual(len(list_of_nodes), 0)
+
+        # test for SR-IOV shared cards
+        ci = AttachedComponentsInfo()
+        c6 = ComponentSliver()
+        c6.resource_name = 'c6'
+        c6.resource_type = ComponentType.SharedNIC
+        c6.resource_model = 'ConnectX-6'
+        ci.add_device(c6)
+
+        c7 = ComponentSliver()
+        c7.resource_name = 'c7'
+        c7.resource_type = ComponentType.SharedNIC
+        c7.resource_model = 'ConnectX-6'
+        ci.add_device(c7)
+
+        list_of_nodes = cbm.get_matching_nodes_with_components(label=ABCPropertyGraphConstants.CLASS_NetworkNode,
+                                                               props=node_props, comps=ci)
+        print(f'Testing a mix of components #3 {list_of_nodes=}')
+        self.assertEqual(len(list_of_nodes), 3)
 
         self.n4j_imp.delete_all_graphs()
 
