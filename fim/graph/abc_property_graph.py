@@ -45,7 +45,7 @@ from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
-from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
+from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
 
@@ -651,7 +651,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
     def link_sliver_from_graph_properties_dict(d: Dict[str, str]) -> NetworkLinkSliver:
         n = NetworkLinkSliver()
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(n, d)
-        n.set_properties(layer=d.get(ABCPropertyGraph.PROP_LAYER),
+        n.set_properties(layer=NSLayer.from_string(d.get(ABCPropertyGraph.PROP_LAYER)),
                          technology=d.get(ABCPropertyGraph.PROP_TECHNOLOGY),
                          )
         return n
@@ -676,7 +676,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         ns = NetworkServiceSliver()
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(ns, d)
-        ns.set_properties(layer=d.get(ABCPropertyGraph.PROP_LAYER),
+        ns.set_properties(layer=NSLayer.from_string(d.get(ABCPropertyGraph.PROP_LAYER)),
                           technology=d.get(ABCPropertyGraph.PROP_TECHNOLOGY),
                           allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                           ero=ERO.from_json(d.get(ABCPropertyGraph.PROP_ERO, None)),

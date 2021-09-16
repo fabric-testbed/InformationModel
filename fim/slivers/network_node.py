@@ -49,6 +49,13 @@ class NodeType(enum.Enum):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def from_string(cls, s: str):
+        for nt in NodeType:
+            if s == nt.name:
+                return cls(nt)
+        return None
+
 
 class NodeSliver(BaseSliver):
 
@@ -117,9 +124,7 @@ class NodeSliver(BaseSliver):
     def type_from_str(ntype: str) -> NodeType or None:
         if ntype is None:
             return None
-        for t in NodeType:
-            if ntype == str(t):
-                return t
+        return NodeType.from_string(ntype)
 
 
 class CompositeNodeSliver(NodeSliver):

@@ -43,6 +43,13 @@ class NSLayer(enum.Enum):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def from_string(cls, s: str):
+        for la in NSLayer:
+            if la.name == s:
+                return cls(la)
+        return None
+
 
 class ServiceType(enum.Enum):
     """
