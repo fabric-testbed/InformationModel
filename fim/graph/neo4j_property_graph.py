@@ -722,6 +722,11 @@ class Neo4jGraphImporter(ABCGraphImporter):
                 query_string = "MATCH (n {GraphID: $graphId }) " \
                                "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
                 session.run(query_string, graphId=graph_id)
+                # push class labels into class property on relationships
+                self.log.debug(f"Pushing label into Class property on all relationships")
+                query_string = "MATCH (n {GraphID: $graphId }) - [r] - (n1 {GraphID: $graphId }) " \
+                               "CALL apoc.create.setRelProperty(r, 'Class', TYPE(r)) yield rel return rel"
+                session.run(query_string, graphId=graph_id)
         except Exception as e:
             msg = f"Neo4j APOC import error {str(e)}"
             raise PropertyGraphImportException(graph_id=graph_id, msg=msg)
@@ -789,25 +794,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # get graph id
         graph_id = self.get_graph_id(graph_file=host_file_name)
 
-        # load file
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    'call apoc.import.graphml( $fileName, {batchSize: 10000, '
-                    'readLabels: true, storeNodeIds: true } ) ',
-                    fileName=mapped_file_name).single()
-                # force one common label on all imported nodes
-                self.log.debug(f"Adding GraphNode label to graph {graph_id}")
-                query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
-                session.run(query_string, graphId=graph_id)
-                # convert class property into a label as well
-                self.log.debug(f"Converting Class property into Neo4j label for all nodes")
-                query_string = "MATCH (n {GraphID: $graphId }) " \
-                               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
-                session.run(query_string, graphId=graph_id)
-        except Exception as e:
-            msg = f"Neo4j APOC import error {str(e)}"
-            raise PropertyGraphImportException(graph_id=None, msg=msg)
+        self._import_graph(mapped_file_name, graph_id)
 
         # unlink temp file
         self.log.debug(f"Unlinking temporary file {host_file_name}")
@@ -837,24 +824,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         graph_id = self.get_graph_id(graph_file=host_file_name)
 
         # load file
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    'call apoc.import.graphml( $fileName, {batchSize: 10000, '
-                    'readLabels: true, storeNodeIds: true } ) ',
-                    fileName=mapped_file_name).single()
-                # force one common label on all imported nodes
-                self.log.debug(f"Adding GraphNode label to graph {graph_id}")
-                query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
-                session.run(query_string, graphId=graph_id)
-                # convert class property into a label as well
-                self.log.debug(f"Converting Class property into Neo4j label for all nodes")
-                query_string = "MATCH (n {GraphID: $graphId }) " \
-                               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
-                session.run(query_string, graphId=graph_id)
-        except Exception as e:
-            msg = f"Neo4j APOC import error {str(e)}"
-            raise PropertyGraphImportException(graph_id=None, msg=msg)
+        self._import_graph(mapped_file_name, graph_id)
 
         # unlink copied file
         self.log.debug(f"Unlinking copied file {host_file_name}")

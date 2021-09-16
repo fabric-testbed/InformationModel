@@ -110,22 +110,17 @@ class CompositeNode(Node):
         """
         return tuple(self.__list_interfaces().values())
 
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'components' and 'interfaces' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
-        if item == 'components':
-            return self.__list_components()
-        if item == 'interfaces':
-            return self.__list_interfaces()
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def components(self):
+        return self.__list_components()
+
+    @property
+    def interfaces(self):
+        return self.__list_interfaces()
+
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

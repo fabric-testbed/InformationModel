@@ -80,6 +80,10 @@ class Interface(ModelElement):
                                                          label=ABCPropertyGraph.CLASS_ConnectionPoint):
                 raise RuntimeError(f"Interface with this id and name {name} doesn't exist")
 
+    @property
+    def itype(self):
+        return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
+
     def add_child_interface(self):
         raise RuntimeError("Not implemented")
 

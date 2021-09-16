@@ -40,6 +40,7 @@ from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType
 from ..slivers.component_catalog import ComponentModelType
+from ..slivers.capacities_labels import CapacityHints, Location
 
 
 class Node(ModelElement):
@@ -55,6 +56,7 @@ class Node(ModelElement):
     network_services - returns a dictionary of network_services (mostly relevant
     to switches, not servers or VMs)
     """
+    SETTABLE_PROPERTIES = ['site', 'name']
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,
                  ntype: NodeType = None, site: str = None, **kwargs):
@@ -102,6 +104,82 @@ class Node(ModelElement):
                                                                        label=str(ABCPropertyGraph.CLASS_NetworkNode))
             if existing_node_id != node_id:
                 raise RuntimeError(f'Node name {name} is not unique within the topology')
+
+    @property
+    def site(self):
+        return self.get_property('site') if self.__dict__.get('topo', None) is not None else None
+
+    @site.setter
+    def site(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('site', value)
+
+    @property
+    def ntype(self):
+        return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def image_type(self):
+        return self.get_property('image_type') if self.__dict__.get('topo', None) is not None else None
+
+    @image_type.setter
+    def image_type(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('image_type', value)
+
+    @property
+    def image_ref(self):
+        return self.get_property('image_ref') if self.__dict__.get('topo', None) is not None else None
+
+    @image_ref.setter
+    def image_ref(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            imtype = self.get_property('image_type')
+            # image ref and type have fate-sharing - neither can be null to be written into a graph
+            self.set_properties(image_ref=value, image_type=imtype)
+
+    @property
+    def management_ip(self):
+        # no user-facing setter for this one
+        return self.get_property('management_ip') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def capacity_hints(self):
+        return self.get_property('capacity_hints') if self.__dict__.get('topo', None) is not None else None
+
+    @capacity_hints.setter
+    def capacity_hints(self, value: CapacityHints):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('capacity_hints', value)
+
+    @property
+    def location(self):
+        return self.get_property('location') if self.__dict__.get('topo', None) is not None else None
+
+    @location.setter
+    def location(self, value: Location):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('location', value)
+
+    @property
+    def components(self):
+        return self.__list_components()
+
+    @property
+    def interfaces(self):
+        return self.__list_interfaces()
+
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
+
+    @property
+    def direct_interfaces(self):
+        return self.__list_direct_interfaces()
+
+    @property
+    def network_services(self):
+        return self.__list_network_services()
 
     def get_property(self, pname: str) -> Any:
         """
@@ -343,27 +421,6 @@ class Node(ModelElement):
         :return:
         """
         return self.__get_component_by_name(name)
-
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'components' and 'interfaces' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
-        if item == 'components':
-            return self.__list_components()
-        if item == 'interfaces':
-            return self.__list_interfaces()
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        if item == 'direct_interfaces':
-            return self.__list_direct_interfaces()
-        if item == 'network_services':
-            return self.__list_network_services()
-        raise RuntimeError(f'Attribute {item} not available')
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

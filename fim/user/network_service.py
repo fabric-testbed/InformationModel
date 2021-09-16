@@ -23,7 +23,7 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-from typing import Tuple, Any, List
+from typing import Tuple, Any, List, Set
 
 import uuid
 
@@ -34,7 +34,7 @@ from .model_element import ModelElement, ElementType
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface, InterfaceType
 from fim.user.link import Link, LinkType
-from fim.slivers.network_service import NetworkServiceSliver, ServiceType
+from fim.slivers.network_service import NetworkServiceSliver, ServiceType, NSLayer, ERO, PathInfo
 
 
 class NetworkService(ModelElement):
@@ -84,31 +84,10 @@ class NetworkService(ModelElement):
                                                                   not isinstance(interfaces, list)):
                     raise RuntimeError("When creating new services in ExperimentTopology you "
                                        "must specify the list of interfaces to connect.")
-                # check the number of instances of this service
-                if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
-                    services = topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
-                                                                                ntype=str(nstype))
-                    if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
-                        raise RuntimeError(f"Service type {nstype} cannot have {len(services) + 1} instances. "
-                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
-                # check the number of interfaces
-                if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
-                    if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
-                        raise RuntimeError(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
-                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
-                # check the number of sites spanned by this service
-                if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
-                    # trace ownership of each interface and count the sites involved
-                    sites = set()
-                    for interface in interfaces:
-                        owner = topo.get_owner_node(interface)
-                        sites.add(owner.get_property('site'))
-                    if len(sites) != NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
-                        raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
-                                           f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
-                    # set site property for  services that only are in one site
-                    if NetworkServiceSliver.ServiceConstraints[nstype].num_sites == 1:
-                        site = sites.pop()
+                sites = self.validate_service_constraints(nstype, interfaces)
+
+                if len(sites) == 1:
+                    site = sites.pop()
 
             sliver = NetworkServiceSliver()
             sliver.node_id = self.node_id
@@ -144,6 +123,89 @@ class NetworkService(ModelElement):
                 name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
             self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
+    @property
+    def nstype(self):
+        return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def site(self):
+        return self.get_property('site') if self.__dict__.get('topo', None) is not None else None
+
+    @site.setter
+    def site(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('site', value)
+
+    @property
+    def technology(self):
+        return self.get_property('technology') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def layer(self):
+        return self.get_property('layer') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def controller_url(self):
+        return self.get_property('controller_url') if self.__dict__.get('topo', None) is not None else None
+
+    @controller_url.setter
+    def controller_url(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('controller_url', value)
+
+    @property
+    def ero(self):
+        return self.get_property('ero') if self.__dict__.get('topo', None) is not None else None
+
+    @ero.setter
+    def ero(self, value: ERO):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('ero', value)
+
+    @property
+    def path_info(self):
+        return self.get_property('path_info') if self.__dict__.get('topo', None) is not None else None
+
+    @path_info.setter
+    def path_info(self, value: PathInfo):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('path_info', value)
+
+    def validate_service_constraints(self, nstype,  interfaces) -> Set[str]:
+        """
+        Validate service constraints as encoded for each services (number of interfaces, instances, sites).
+        Note that interfaces is a list of interfaces belonging to nodes!
+        :param nstype:
+        :param interfaces:
+        :return:
+        """
+        # check the number of instances of this service
+        if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
+            services = self.topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
+                                                                             ntype=str(nstype))
+            if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
+                raise RuntimeError(f"Service type {nstype} cannot have {len(services) + 1} instances. "
+                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
+        # check the number of interfaces
+        if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
+            if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
+                raise RuntimeError(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
+                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
+        sites = set()
+        # check the number of sites spanned by this service
+        if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
+            # trace ownership of each interface and count the sites involved
+            for interface in interfaces:
+                owner = self.topo.get_owner_node(interface)
+                if owner is None:
+                    print(f'Interface {interface=} has no owner')
+                sites.add(owner.site)
+            if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
+                raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
+                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
+
+        return sites
+
     @staticmethod
     def __service_guardrails(sliver: NetworkServiceSliver, interface: Interface):
         """
@@ -157,11 +219,11 @@ class NetworkService(ModelElement):
         # - L2P2P service does not work for shared ports
         # - L2S2S needs to warn that it may not work if the VMs with shared ports land on the same worker
         if sliver.get_type() == ServiceType.L2PTP and \
-            interface.get_property('type') == InterfaceType.SharedPort:
+            interface.itype == InterfaceType.SharedPort:
             raise RuntimeError(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
                                f"L2P2P service currently doesn't support shared interfaces")
         if sliver.get_type() == ServiceType.L2STS and \
-            interface.get_property('type') == InterfaceType.SharedPort:
+            interface.itype == InterfaceType.SharedPort:
             print('WARNING: Current implementation of L2STS service does not support hairpins (connections withing the '
                   'same physical port), if your VMs are assigned to the same worker node, communications between them '
                   'over this service will not be possible! We recommend not using L2STS with shared ports unless you '
@@ -177,7 +239,6 @@ class NetworkService(ModelElement):
         assert interface is not None
         assert isinstance(interface, Interface)
 
-        # FIXME: IMPORTANT need to check number of connected interfaces here, not just in service constructor
         # we can only connect interfaces connected to (compute or switch) nodes
         if self.topo.get_owner_node(interface) is None:
             raise RuntimeError(f'Interface {interface} is not owned by a node, as expected.')
@@ -189,7 +250,7 @@ class NetworkService(ModelElement):
         peer_if = Interface(name=self.name + '-' + interface.name, parent_node_id=self.node_id,
                             etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.ServicePort)
         # link type is determined by the type of interface = L2Path for shared, Patch for Dedicated
-        if interface.get_property('type') == InterfaceType.SharedPort:
+        if interface.itype == InterfaceType.SharedPort:
             ltype = LinkType.L2Path
         else:
             ltype = LinkType.Patch
@@ -342,25 +403,15 @@ class NetworkService(ModelElement):
         Return a list of all interfaces of network service
         :return:
         """
-
         return tuple(self._interfaces)
 
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'nodes' and 'links' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
 
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        if item == 'interfaces':
-            return self.__list_interfaces()
-
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def interfaces(self):
+        return self.__list_interfaces()
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

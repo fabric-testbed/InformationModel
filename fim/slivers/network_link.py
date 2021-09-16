@@ -48,6 +48,13 @@ class LinkType(enum.Enum):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def from_string(cls, s: str):
+        for lt in LinkType:
+            if s == lt.name:
+                return cls(lt)
+        return None
+
 
 LinkConstraintRecord = recordclass('LinkConstraintRecord',
                                    ['layer', 'desc',
@@ -95,15 +102,11 @@ class NetworkLinkSliver(BaseSliver):
     def type_from_str(ltype: str) -> LinkType or None:
         if ltype is None:
             return None
-        for t in LinkType:
-            if ltype == str(t):
-                return t
+        return LinkType.from_string(ltype)
 
     @staticmethod
     def layer_from_str(layer: str) -> NSLayer or None:
         if layer is None:
             return None
-        for t in NSLayer:
-            if layer == str(t):
-                return t
+        return NSLayer.from_string(layer)
 

@@ -46,6 +46,7 @@ from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImport
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 from fim.slivers.capacities_labels import Capacities, CapacityTuple
+from fim.slivers.interface_info import InterfaceType
 
 from .model_element import ElementType
 from .node import Node
@@ -238,6 +239,25 @@ class Topology(ABC):
         assert name is not None
         self.graph_model.remove_ns_with_cps_and_links(node_id=self.__get_ns_by_name(name=name).node_id)
 
+    def validate(self):
+        """
+        Validate the experiment topology. Throw an exception if
+        :return:
+        """
+        # check network services, interfaces, sites
+        for s in self.network_services.values():
+            service_interfaces = s.interface_list
+            node_interfaces = list()
+            # some services like OVS have node ports, others like Bridge, STS, PTP
+            # have ServicePorts which peer with node ports. Validation code needs
+            # owning nodes for each interface so we search for proper interfaces
+            for si in service_interfaces:
+                if si.itype == InterfaceType.ServicePort:
+                    node_interfaces.append(si.get_peer())
+                else:
+                    node_interfaces.append(si)
+            s.validate_service_constraints(s.nstype, node_interfaces)
+
     def __get_node_by_name(self, name: str) -> Node:
         """
         Find node by its name, return Node object
@@ -354,24 +374,21 @@ class Topology(ABC):
             ret.extend(n.interfaces.values())
         return tuple(ret)
 
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'nodes' and 'links' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
-        if item == 'nodes':
-            return self.__list_nodes()
-        if item == 'links':
-            return self.__list_links()
-        if item == 'network_services':
-            return self.__list_network_services()
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def nodes(self):
+        return self.__list_nodes()
+
+    @property
+    def links(self):
+        return self.__list_links()
+
+    @property
+    def network_services(self):
+        return self.__list_network_services()
+
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
 
     def serialize(self, file_name: str = None, fmt: GraphFormat = GraphFormat.GRAPHML) -> str or None:
         """
@@ -499,7 +516,8 @@ class Topology(ABC):
         """
         lines = list()
         for n in self.nodes.values():
-            lines.append(n.name + "[" + str(n.get_property("type")) + "]:  " +
+            lines.append(n.name + "[" + str(n.get_property("type")) + ", " +
+                         str(n.get_property("site")) + "]:  " +
                          self.__print_caplabs__(n.get_property("capacities")))
             for i in n.direct_interfaces.values():
                 lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
@@ -728,12 +746,13 @@ class AdvertizedTopology(Topology):
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
-    def __getattr__(self, item):
-        if item == 'sites':
-            return self.__list_sites()
-        if item == 'links':
-            return self.__list_links()
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def sites(self):
+        return self.__list_sites()
+
+    @property
+    def links(self):
+        return self.__list_links()
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,

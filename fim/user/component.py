@@ -114,6 +114,14 @@ class Component(ModelElement):
                                                          label=ABCPropertyGraph.CLASS_Component):
                 raise RuntimeError(f"Component with this id and name {name} doesn't exist")
 
+    @property
+    def ctype(self):
+        return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def model(self):
+        return self.get_property('model') if self.__dict__.get('topo', None) is not None else None
+
     def get_property(self, pname: str) -> Any:
         """
         Retrieve a component property
@@ -218,22 +226,17 @@ class Component(ModelElement):
             ret[c.name] = c
         return ViewOnlyDict(ret)
 
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'components' and 'interfaces' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
-        if item == 'interfaces':
-            return self.__list_interfaces()
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        if item == 'network_services':
-            return self.__list_network_services()
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def interfaces(self):
+        return self.__list_interfaces()
+
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
+
+    @property
+    def network_services(self):
+        return self.__list_network_services()
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

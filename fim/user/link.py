@@ -32,6 +32,7 @@ from .model_element import ModelElement, ElementType
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface
 from fim.slivers.network_link import NetworkLinkSliver, LinkType
+from fim.slivers.network_service import NSLayer
 
 
 class Link(ModelElement):
@@ -107,6 +108,18 @@ class Link(ModelElement):
                 name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
             self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
+    @property
+    def ltype(self):
+        return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def technology(self):
+        return self.get_property('technology') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def layer(self):
+        return self.get_property('layer') if self.__dict__.get('topo', None) is not None else None
+
     def get_property(self, pname: str) -> Any:
         """
         Retrieve a link property
@@ -155,19 +168,9 @@ class Link(ModelElement):
             return self._interfaces.copy()
         return None
 
-    def __getattr__(self, item):
-        """
-        Special handling for attributes like 'nodes' and 'links' -
-        which query into the model. They return dicts and list
-        containers. Modifying containers does not affect the underlying
-        graph mode, but modifying elements of lists or values of dicts does.
-        :param item:
-        :return:
-        """
-
-        if item == 'interface_list':
-            return self.__list_of_interfaces()
-        raise RuntimeError(f'Attribute {item} not available')
+    @property
+    def interface_list(self):
+        return self.__list_of_interfaces()
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
