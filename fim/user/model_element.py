@@ -29,6 +29,7 @@ from abc import ABC, abstractmethod
 import enum
 
 from ..graph.abc_property_graph import ABCPropertyGraph
+from ..slivers.capacities_labels import Capacities, Labels
 
 
 class ElementType(enum.Enum):
@@ -130,7 +131,7 @@ class ModelElement(ABC):
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str):
         self._name = value
         if self.__dict__.get('topo', None) is not None:
             self.set_property('name', value)
@@ -140,7 +141,7 @@ class ModelElement(ABC):
         return self.get_property('capacities') if self.__dict__.get('topo', None) is not None else None
 
     @capacities.setter
-    def capacities(self, value):
+    def capacities(self, value: Capacities):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('capacities', value)
 
@@ -149,7 +150,7 @@ class ModelElement(ABC):
         return self.get_property('labels') if self.__dict__.get('topo', None) is not None else None
 
     @labels.setter
-    def labels(self, value):
+    def labels(self, value: Labels):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('labels', value)
 
@@ -158,7 +159,7 @@ class ModelElement(ABC):
         return self.get_property('details') if self.__dict__.get('topo', None) is not None else None
 
     @details.setter
-    def details(self, value):
+    def details(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('details', value)
 

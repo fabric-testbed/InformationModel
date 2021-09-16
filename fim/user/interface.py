@@ -84,11 +84,6 @@ class Interface(ModelElement):
     def itype(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    @itype.setter
-    def itype(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('type', value)
-
     def add_child_interface(self):
         raise RuntimeError("Not implemented")
 

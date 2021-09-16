@@ -32,6 +32,7 @@ from .model_element import ModelElement, ElementType
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface
 from fim.slivers.network_link import NetworkLinkSliver, LinkType
+from fim.slivers.network_service import NSLayer
 
 
 class Link(ModelElement):
@@ -111,28 +112,13 @@ class Link(ModelElement):
     def ltype(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    @ltype.setter
-    def ltype(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('type', value)
-
     @property
     def technology(self):
         return self.get_property('technology') if self.__dict__.get('topo', None) is not None else None
 
-    @technology.setter
-    def technology(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('technology', value)
-            self.set_property('layer', NetworkLinkSliver.LinkConstraints[self.nstype].layer)
-
     @property
     def layer(self):
         return self.get_property('layer') if self.__dict__.get('topo', None) is not None else None
-
-    @layer.setter
-    def layer(self, value):
-        raise RuntimeError('Unable to set layer property directly - please set technology instead')
 
     def get_property(self, pname: str) -> Any:
         """

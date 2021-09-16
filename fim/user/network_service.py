@@ -34,7 +34,7 @@ from .model_element import ModelElement, ElementType
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface, InterfaceType
 from fim.user.link import Link, LinkType
-from fim.slivers.network_service import NetworkServiceSliver, ServiceType
+from fim.slivers.network_service import NetworkServiceSliver, ServiceType, NSLayer, ERO, PathInfo
 
 
 class NetworkService(ModelElement):
@@ -127,17 +127,12 @@ class NetworkService(ModelElement):
     def nstype(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    @nstype.setter
-    def nstype(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('type', value)
-
     @property
     def site(self):
         return self.get_property('site') if self.__dict__.get('topo', None) is not None else None
 
     @site.setter
-    def site(self, value):
+    def site(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('site', value)
 
@@ -145,26 +140,16 @@ class NetworkService(ModelElement):
     def technology(self):
         return self.get_property('technology') if self.__dict__.get('topo', None) is not None else None
 
-    @technology.setter
-    def technology(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('technology', value)
-            self.set_property('layer', NetworkServiceSliver.ServiceConstraints[self.nstype].layer)
-
     @property
     def layer(self):
         return self.get_property('layer') if self.__dict__.get('topo', None) is not None else None
-
-    @layer.setter
-    def layer(self, value):
-        raise RuntimeError('Unable to set layer property directly - please set technology instead')
 
     @property
     def controller_url(self):
         return self.get_property('controller_url') if self.__dict__.get('topo', None) is not None else None
 
     @controller_url.setter
-    def controller_url(self, value):
+    def controller_url(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('controller_url', value)
 
@@ -173,7 +158,7 @@ class NetworkService(ModelElement):
         return self.get_property('ero') if self.__dict__.get('topo', None) is not None else None
 
     @ero.setter
-    def ero(self, value):
+    def ero(self, value: ERO):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('ero', value)
 
@@ -182,7 +167,7 @@ class NetworkService(ModelElement):
         return self.get_property('path_info') if self.__dict__.get('topo', None) is not None else None
 
     @path_info.setter
-    def path_info(self, value):
+    def path_info(self, value: PathInfo):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('path_info', value)
 

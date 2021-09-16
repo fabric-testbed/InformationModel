@@ -40,6 +40,7 @@ from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType
 from ..slivers.component_catalog import ComponentModelType
+from ..slivers.capacities_labels import CapacityHints, Location
 
 
 class Node(ModelElement):
@@ -109,7 +110,7 @@ class Node(ModelElement):
         return self.get_property('site') if self.__dict__.get('topo', None) is not None else None
 
     @site.setter
-    def site(self, value):
+    def site(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('site', value)
 
@@ -117,17 +118,12 @@ class Node(ModelElement):
     def ntype(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    @ntype.setter
-    def ntype(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('type', value)
-
     @property
     def image_type(self):
         return self.get_property('image_type') if self.__dict__.get('topo', None) is not None else None
 
     @image_type.setter
-    def image_type(self, value):
+    def image_type(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('image_type', value)
 
@@ -136,7 +132,7 @@ class Node(ModelElement):
         return self.get_property('image_ref') if self.__dict__.get('topo', None) is not None else None
 
     @image_ref.setter
-    def image_ref(self, value):
+    def image_ref(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             imtype = self.get_property('image_type')
             # image ref and type have fate-sharing - neither can be null to be written into a graph
@@ -152,7 +148,7 @@ class Node(ModelElement):
         return self.get_property('capacity_hints') if self.__dict__.get('topo', None) is not None else None
 
     @capacity_hints.setter
-    def capacity_hints(self, value):
+    def capacity_hints(self, value: CapacityHints):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('capacity_hints', value)
 
@@ -161,7 +157,7 @@ class Node(ModelElement):
         return self.get_property('location') if self.__dict__.get('topo', None) is not None else None
 
     @location.setter
-    def location(self, value):
+    def location(self, value: Location):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('location', value)
 

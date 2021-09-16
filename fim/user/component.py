@@ -118,10 +118,9 @@ class Component(ModelElement):
     def ctype(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    @ctype.setter
-    def ctype(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('type', value)
+    @property
+    def model(self):
+        return self.get_property('model') if self.__dict__.get('topo', None) is not None else None
 
     def get_property(self, pname: str) -> Any:
         """
