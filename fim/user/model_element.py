@@ -40,6 +40,7 @@ class ModelElement(ABC):
     """
     Abstract element of a model
     """
+
     @abstractmethod
     def __init__(self, *, name: str, node_id: str, topo: Any):
         """
@@ -123,3 +124,49 @@ class ModelElement(ABC):
         :param kwargs:
         :return:
         """
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('name', value)
+
+    @property
+    def capacities(self):
+        return self.get_property('capacities') if self.__dict__.get('topo', None) is not None else None
+
+    @capacities.setter
+    def capacities(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('capacities', value)
+
+    @property
+    def labels(self):
+        return self.get_property('labels') if self.__dict__.get('topo', None) is not None else None
+
+    @labels.setter
+    def labels(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('labels', value)
+
+    @property
+    def details(self):
+        return self.get_property('details') if self.__dict__.get('topo', None) is not None else None
+
+    @details.setter
+    def details(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('details', value)
+
+    @property
+    def node_map(self):
+        return self.get_property('node_map') if self.__dict__.get('topo', None) is not None else None
+
+    @node_map.setter
+    def node_map(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('node_map', value)
