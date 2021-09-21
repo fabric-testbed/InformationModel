@@ -228,3 +228,6 @@ class NetworkServiceInfo:
     def get_network_service_names(self):
         return list(self.network_services.keys())
 
+    def list_services(self):
+        return list(self.network_services.values())
+
