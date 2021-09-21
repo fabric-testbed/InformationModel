@@ -109,7 +109,7 @@ class Link(ModelElement):
             self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
     @property
-    def ltype(self):
+    def type(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
     @property

@@ -115,7 +115,7 @@ class Node(ModelElement):
             self.set_property('site', value)
 
     @property
-    def ntype(self):
+    def type(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
     @property
@@ -180,6 +180,13 @@ class Node(ModelElement):
     @property
     def network_services(self):
         return self.__list_network_services()
+
+    def get_sliver(self) -> NodeSliver:
+        """
+        Get a deep sliver representation of this node from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_node_sliver(node_id=self.node_id)
 
     def get_property(self, pname: str) -> Any:
         """
