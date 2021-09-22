@@ -124,7 +124,7 @@ class NetworkService(ModelElement):
             self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
     @property
-    def nstype(self):
+    def type(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
     @property
@@ -170,6 +170,13 @@ class NetworkService(ModelElement):
     def path_info(self, value: PathInfo):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('path_info', value)
+
+    def get_sliver(self) -> NetworkServiceSliver:
+        """
+        Get a deep sliver representation of this node from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_ns_sliver(node_id=self.node_id)
 
     def validate_service_constraints(self, nstype,  interfaces) -> Set[str]:
         """
@@ -219,11 +226,11 @@ class NetworkService(ModelElement):
         # - L2P2P service does not work for shared ports
         # - L2S2S needs to warn that it may not work if the VMs with shared ports land on the same worker
         if sliver.get_type() == ServiceType.L2PTP and \
-            interface.itype == InterfaceType.SharedPort:
+            interface.type == InterfaceType.SharedPort:
             raise RuntimeError(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
                                f"L2P2P service currently doesn't support shared interfaces")
         if sliver.get_type() == ServiceType.L2STS and \
-            interface.itype == InterfaceType.SharedPort:
+            interface.type == InterfaceType.SharedPort:
             print('WARNING: Current implementation of L2STS service does not support hairpins (connections withing the '
                   'same physical port), if your VMs are assigned to the same worker node, communications between them '
                   'over this service will not be possible! We recommend not using L2STS with shared ports unless you '
@@ -250,7 +257,7 @@ class NetworkService(ModelElement):
         peer_if = Interface(name=self.name + '-' + interface.name, parent_node_id=self.node_id,
                             etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.ServicePort)
         # link type is determined by the type of interface = L2Path for shared, Patch for Dedicated
-        if interface.itype == InterfaceType.SharedPort:
+        if interface.type == InterfaceType.SharedPort:
             ltype = LinkType.L2Path
         else:
             ltype = LinkType.Patch

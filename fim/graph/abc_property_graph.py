@@ -42,7 +42,7 @@ from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, S
 from fim.slivers.delegations import Delegations, DelegationType
 from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.base_sliver import BaseSliver
-from fim.slivers.network_node import NodeSliver
+from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
@@ -589,6 +589,61 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         return prop_dict
 
     @staticmethod
+    def sliver_to_dict(sliver) -> Dict[str, Any]:
+        """
+        Convert sliver to a deep dictionary. .
+        :param sliver:
+        :return:
+        """
+        assert (issubclass(type(sliver), BaseSliver))
+
+        # convert to properties dict first
+        if type(sliver) == NodeSliver or type(sliver) == CompositeNodeSliver:
+            d = ABCPropertyGraph.node_sliver_to_graph_properties_dict(sliver)
+            # now add deep sliver stuff
+            # components and network services
+            if sliver.attached_components_info is not None:
+                ac = list()
+                for c in sliver.attached_components_info.list_devices():
+                    ac.append(ABCPropertyGraph.sliver_to_dict(c))
+                d['components'] = ac
+
+            if sliver.network_service_info is not None:
+                nss = list()
+                for ns in sliver.network_service_info.list_network_services():
+                    nss.append(ABCPropertyGraph.sliver_to_dict(ns))
+                d['network_services'] = nss
+
+        elif type(sliver) == NetworkServiceSliver:
+            d = ABCPropertyGraph.network_service_sliver_to_graph_properties_dict(sliver)
+            # now add deep sliver stuff
+            # interfaces
+            if sliver.interface_info is not None:
+                ii = list()
+                for i in sliver.interface_info.list_interfaces():
+                    ii.append(ABCPropertyGraph.sliver_to_dict(i))
+                d['interfaces'] = ii
+
+        elif type(sliver) == ComponentSliver:
+            d = ABCPropertyGraph.component_sliver_to_graph_properties_dict(sliver)
+            # now add deep sliver stuff
+            # network services
+            if sliver.network_service_info is not None:
+                nss = list()
+                for ns in sliver.network_service_info.list_services():
+                    nss.append(ABCPropertyGraph.sliver_to_dict(ns))
+                d['network_services'] = nss
+
+        elif type(sliver) == NetworkLinkSliver:
+            d = ABCPropertyGraph.link_sliver_to_graph_properties_dict(sliver)
+        elif type(sliver) == InterfaceSliver:
+            d = ABCPropertyGraph.interface_sliver_to_graph_properties_dict(sliver)
+        else:
+            raise RuntimeError(f'JSON Conversion for type {type(sliver)} is not supported.')
+
+        return d
+
+    @staticmethod
     def set_base_sliver_properties_from_graph_properties_dict(sliver: BaseSliver, d: Dict[str, str]):
         """
         Sets base sliver properties on existing sliver
@@ -731,6 +786,35 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         return ns
 
+    @staticmethod
+    def build_deep_node_sliver_from_dict(*, props: Dict[str, Any]) -> NodeSliver:
+        """
+        Build a deep NetworkNode or other similar (e.g.
+        network-attached storage) sliver from a deep dictionary
+        :param props:
+        :return:
+        """
+        # create top-level sliver
+        ns = ABCPropertyGraph.node_sliver_from_graph_properties_dict(props)
+        # find and build deep slivers of network services (if any) and components (if any)
+        comps = props.get('components', None)
+        if comps is not None and len(comps) > 0:
+            aci = AttachedComponentsInfo()
+            for c in comps:
+                cs = ABCPropertyGraph.build_deep_component_sliver_from_dict(props=c)
+                aci.add_device(cs)
+            ns.attached_components_info = aci
+
+        nss = props.get('network_services', None)
+        if nss is not None and len(nss) > 0:
+            nsi = NetworkServiceInfo()
+            for s in nss:
+                nssl = ABCPropertyGraph.build_deep_ns_sliver_from_dict(props=s)
+                nsi.add_network_service(nssl)
+            ns.network_service_info = nsi
+
+        return ns
+
     def build_deep_ns_sliver(self, *, node_id: str) -> NetworkServiceSliver:
         """
         Build a deep sliver for a NetworkService
@@ -755,7 +839,31 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             nss.interface_info = ifi
         return nss
 
+    @staticmethod
+    def build_deep_ns_sliver_from_dict(*, props: Dict[str, Any]) -> NetworkServiceSliver:
+        """
+        Build a deep sliver for a NetworkService from a deep dictionary
+        :param props:
+        :return:
+        """
+        # create top-level sliver
+        nss = ABCPropertyGraph.network_service_sliver_from_graph_properties_dict(props)
+        # find interfaces and attach
+        ifs = props.get('interfaces', None)
+        if ifs is not None and len(ifs) > 0:
+            ifi = InterfaceInfo()
+            for i in ifs:
+                ifsl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(i)
+                ifi.add_interface(ifsl)
+            nss.interface_info = ifi
+        return nss
+
     def build_deep_component_sliver(self, *, node_id: str) -> ComponentSliver:
+        """
+        Build a deep component slliver from graph
+        :param node_id:
+        :return:
+        """
         clazzes, props = self.get_node_properties(node_id=node_id)
         if ABCPropertyGraph.CLASS_Component not in clazzes:
             raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
@@ -769,6 +877,25 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             nsi = NetworkServiceInfo()
             for s in nss:
                 nssl = self.build_deep_ns_sliver(node_id=s)
+                nsi.add_network_service(nssl)
+            cs.network_service_info = nsi
+        return cs
+
+    @staticmethod
+    def build_deep_component_sliver_from_dict(*, props: Dict[str, Any]) -> ComponentSliver:
+        """
+        Build a deep component sliver from deep dictionary
+        :param props:
+        :return:
+        """
+        # create top-level sliver
+        cs = ABCPropertyGraph.component_sliver_from_graph_properties_dict(props)
+        # find any network services, build and attach
+        nss = props.get('network_services', None)
+        if nss is not None and len(nss) > 0:
+            nsi = NetworkServiceInfo()
+            for s in nss:
+                nssl = ABCPropertyGraph.build_deep_ns_sliver_from_dict(props=s)
                 nsi.add_network_service(nssl)
             cs.network_service_info = nsi
         return cs

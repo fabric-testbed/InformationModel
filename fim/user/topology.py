@@ -252,11 +252,11 @@ class Topology(ABC):
             # have ServicePorts which peer with node ports. Validation code needs
             # owning nodes for each interface so we search for proper interfaces
             for si in service_interfaces:
-                if si.itype == InterfaceType.ServicePort:
+                if si.type == InterfaceType.ServicePort:
                     node_interfaces.append(si.get_peer())
                 else:
                     node_interfaces.append(si)
-            s.validate_service_constraints(s.nstype, node_interfaces)
+            s.validate_service_constraints(s.type, node_interfaces)
 
     def __get_node_by_name(self, name: str) -> Node:
         """
