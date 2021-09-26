@@ -158,7 +158,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:14:ED', '04:3F:72:B7:14:EE', '04:3F:72:B7:14:EF', '04:3F:72:B7:14:F0']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         # Usually slot 7, second port not connected
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
@@ -182,7 +182,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:18:B5', '04:3F:72:B7:18:B6', '04:3F:72:B7:18:B7', '04:3F:72:B7:18:B8']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
@@ -200,7 +200,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:16:15', '04:3F:72:B7:16:16', '04:3F:72:B7:16:17', '04:3F:72:B7:16:18']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',
@@ -474,7 +474,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:a1:00.2', '0000:a1:00.3', '0000:a1:00.4', '0000:a1:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['0C:42:A1:EA:C7:61', '0C:42:A1:EA:C7:62', '0C:42:A1:EA:C7:63', '0C:42:A1:EA:C7:64']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         # Usually slot 7, second port not connected (Uky in slot 6)
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
@@ -490,7 +490,7 @@ class AdTest(unittest.TestCase):
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
         # test that labels propagated to the port
         ilabs = gpuw_shnic.interface_list[0].get_property('labels')
-        assert(ilabs.vlan == [1001, 1002, 1003, 1004])
+        assert(ilabs.vlan == ['1001', '1002', '1003', '1004'])
         assert(ilabs.mac == ['0C:42:A1:EA:C7:61', '0C:42:A1:EA:C7:62', '0C:42:A1:EA:C7:63', '0C:42:A1:EA:C7:64'])
 
         pf_id = '0000:e2:00.0' # we don't seem to need it, but I'd collect it anyway
@@ -498,7 +498,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['0C:42:A1:EA:C7:E9', '0C:42:A1:EA:C7:EA', '0C:42:A1:EA:C7:EB', '0C:42:A1:EA:C7:EC']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
@@ -517,7 +517,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['0C:42:A1:78:F8:1D', '0C:42:A1:78:F8:1E', '0C:42:A1:78:F8:1F', '0C:42:A1:78:F8:20']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',
@@ -794,7 +794,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:a1:00.2', '0000:a1:00.3', '0000:a1:00.4', '0000:a1:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:19:8D', '04:3F:72:B7:19:8E', '04:3F:72:B7:19:8F', '04:3F:72:B7:19:8A']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
                                         network_service_node_id=gpuw.node_id + '-shnic-sf',
@@ -813,7 +813,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:15:8D', '04:3F:72:B7:15:8E', '04:3F:72:B7:15:8F', '04:3F:72:B7:15:8A']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
@@ -832,7 +832,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:15:7D', '04:3F:72:B7:15:7E', '04:3F:72:B7:15:7F', '04:3F:72:B7:15:7A']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',
@@ -1256,7 +1256,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:14:ED', '04:3F:72:B7:14:EE', '04:3F:72:B7:14:EF', '04:3F:72:B7:14:F0']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         # Usually slot 7, second port not connected
         gpuw_shnic = gpuw.add_component(name=gpuw.name + '-shnic', model='ConnectX-6',
                                         node_id=gpuw.node_id + '-shnic',
@@ -1280,7 +1280,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:18:B5', '04:3F:72:B7:18:B6', '04:3F:72:B7:18:B7', '04:3F:72:B7:18:B8']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         fnw_shnic = fnw.add_component(name=fnw.name + '-shnic', model='ConnectX-6',
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
@@ -1298,7 +1298,7 @@ class AdTest(unittest.TestCase):
         vf_ids = ['0000:e2:00.2', '0000:e2:00.3', '0000:e2:00.4', '0000:e2:00.5']
         # i don't know how VF macs are allocated, this is made-up /ib
         vf_macs = ['04:3F:72:B7:16:15', '04:3F:72:B7:16:16', '04:3F:72:B7:16:17', '04:3F:72:B7:16:18']
-        vf_vlans = [1001, 1002, 1003, 1004]
+        vf_vlans = ['1001', '1002', '1003', '1004']
         snw_shnic = snw.add_component(name=snw.name + '-shnic', model='ConnectX-6',
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',

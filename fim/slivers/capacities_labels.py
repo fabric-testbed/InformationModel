@@ -25,6 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 from typing import List, Dict, Tuple
 import json
+import re
 
 from abc import ABC, abstractmethod
 
@@ -104,7 +105,11 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
-    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps', 'burst_size': 'Mbits'}
+    UNITS = {'cpu': '', 'unit': '',
+             'core': '', 'ram': 'G',
+             'disk': 'G', 'bw': 'Gbps',
+             'burst_size': 'Mbits',
+             'mtu': 'B'}
 
     def __init__(self, **kwargs):
         self.cpu = 0
@@ -114,6 +119,7 @@ class Capacities(JSONField):
         self.bw = 0
         self.burst_size = 0
         self.unit = 0
+        self.mtu = 0
         self.set_fields(**kwargs)
 
     def set_fields(self, **kwargs):
@@ -290,13 +296,33 @@ class Labels(JSONField):
     Class implementing various encodings of labels field, encoding
     and decoding from JSON dictionaries of properties
     """
+    VALIDATORS = {
+        'bdf': '[0-9a-fA-F]{1,4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}.[0-9a-fA-F]+',
+        'mac': '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}',
+        'ipv4': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+        'ipv4_range': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)-'
+                      r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+        'ipv4_subnet': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[\d]{1,2}',
+        'ipv6': r'(?:[a-fA-F0-9]{0,4}:){7}[a-fA-F0-9]{0,4}',
+        'ipv6_range': r'(?:[a-fA-F0-9]{0,4}:){7}[a-fA-F0-9]{0,4}-(?:[a-fA-F0-9]{0,4}:){7}[a-fA-F0-9]{0,4}',
+        # we allow fewer than 128 (and not necessarily 64) bits to be specified, unlike ipv6 address
+        # where we require the full 128 even if some of them are just ':::'
+        'ipv6_subnet': r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}/[\d]{1,2}',
+        'asn': r'[\d]+',
+        'vlan': r'[\d]{1,4}',
+        'vlan_range': r'[\d]{1,4}-[\d]{1,4}',
+        'inner_vlan': r'[\d]{1,4}'
+    }
+
     def __init__(self, **kwargs):
         self.bdf = None
         self.mac = None
         self.ipv4 = None
         self.ipv4_range = None
+        self.ipv4_subnet = None
         self.ipv6 = None
         self.ipv6_range = None
+        self.ipv6_subnet = None
         self.asn = None
         self.vlan = None
         self.vlan_range = None
@@ -321,6 +347,19 @@ class Labels(JSONField):
             try:
                 # will toss an exception if field is not defined
                 self.__getattribute__(k)
+                if self.VALIDATORS.get(k, None) is not None:
+                    if isinstance(v, list):
+                        for i in v:
+                            matches = re.match('^' + self.VALIDATORS[k] + '$', i)
+                            if matches is None:
+                                raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
+                                                     f'regular expression {self.VALIDATORS[k]}')
+                    else:
+                        matches = re.match('^' + self.VALIDATORS[k] + '$', v)
+                        if matches is None:
+                            raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
+                                                 f'regular expression {self.VALIDATORS[k]}')
+
                 self.__setattr__(k, v)
             except AttributeError:
                 raise LabelException(f"Unable to set field {k} of labels, no such field available "
