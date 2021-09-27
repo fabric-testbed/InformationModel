@@ -29,21 +29,38 @@ class Gateway:
 
     def __init__(self, lab: Labels or None):
         """
-        Labels specify IPv4 or IPv6 subnet and an optional MAC
+        Labels specify IPv4 or IPv6 subnet, IPv4 or IPv6 gateway address and an optional MAC.
+        Specify the following fields on Labels object:
+        - ipv4_subnet and ipv4
+        or
+        - ipv6_subnet and ipv6
+        and an optional mac
         :param lab:
         """
         if lab is None:
             self.lab = None
             return
         # labels must only specify IPv4 or v6 subnet and optional mac
-        if lab.ipv4_subnet is not None:
-            self.lab = Labels(ipv4_subnet=lab.ipv4_subnet)
-        elif lab.ipv6_subnet is not None:
-            self.lab = Labels(ipv6_subnet=lab.ipv6_subnet)
+        if lab.ipv4_subnet is not None and lab.ipv4 is not None:
+            self.lab = Labels(ipv4_subnet=lab.ipv4_subnet, ipv4=lab.ipv4)
+        elif lab.ipv6_subnet is not None and lab.ipv6 is not None:
+            self.lab = Labels(ipv6_subnet=lab.ipv6_subnet, ipv6=lab.ipv6)
         else:
-            raise GatewayException('Gateway must specify IPv4 or IPv6 subnet and an optional MAC')
+            raise GatewayException('Gateway must specify IPv4 or IPv6 subnet, gateway address and an optional MAC')
         if lab.mac is not None:
             self.lab.mac = lab.mac
+
+    @property
+    def gateway(self) -> str:
+        return self.lab.ipv4 if self.lab.ipv4 is not None else self.lab.ipv6
+
+    @property
+    def subnet(self) -> str:
+        return self.lab.ipv4_subnet if self.lab.ipv6_subnet is not None else self.lab.ipv6_subnet
+
+    @property
+    def mac(self) -> str:
+        return self.lab.mac
 
     def to_json(self) -> str:
         if self.lab is not None:
@@ -56,9 +73,9 @@ class Gateway:
     def __str__(self):
         ar = list()
         if self.lab.ipv4_subnet is not None:
-            ar.append("IPv4: " + self.lab.ipv4_subnet)
+            ar.append("IPv4 subnet: " + self.lab.ipv4_subnet + "GW: " + self.lab.ipv4)
         else:
-            ar.append("IPv6: " + self.lab.ipv6_subnet)
+            ar.append("IPv6: " + self.lab.ipv6_subnet + "GW: " + self.lab.ipv6)
 
         if self.lab.mac is not None:
             ar.append("(MAC: " + self.lab.mac + ")")
