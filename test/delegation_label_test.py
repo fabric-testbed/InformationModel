@@ -53,7 +53,7 @@ class DelegationTests(unittest.TestCase):
             d2.set_details(Capacities().set_fields(unit=1))
 
         with self.assertRaises(DelegationException) as de:
-            d3.set_details(Labels().set_fields(vlan_range='something'))
+            d3.set_details(Labels().set_fields(vlan_range='100-200'))
 
         ds.add_delegations(d1)
         ds.add_delegations(d2, d3)
@@ -91,7 +91,7 @@ class DelegationTests(unittest.TestCase):
 
         delegs = ps.generate_delegations_by_node_id()
         d1 = Delegation(atype=DelegationType.LABEL, delegation_id='del3', aformat=DelegationFormat.SinglePool)
-        d1.set_details(Labels().set_fields(ipv4='192.168.1.1-192.168.1.10'))
+        d1.set_details(Labels().set_fields(ipv4_range='192.168.1.1-192.168.1.10'))
         delegs['node1'].add_delegations(d1)
 
         print(delegs)
