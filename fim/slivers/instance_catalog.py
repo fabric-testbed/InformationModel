@@ -53,7 +53,7 @@ class InstanceCatalog:
             with open(catalog_file) as f:
                 catalog = json.load(f)
             assert isinstance(catalog, dict)
-            InstanceCatalog.__catalog_instance = {k: Capacities().set_fields(**v) for (k, v) in catalog.items()}
+            InstanceCatalog.__catalog_instance = {k: Capacities(**v) for (k, v) in catalog.items()}
         return ViewOnlyDict(InstanceCatalog.__catalog_instance)
 
     def get_instance_capacities(self, *, instance_type: str) -> Capacities or None:

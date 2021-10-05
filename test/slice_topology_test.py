@@ -100,19 +100,14 @@ class SliceTest(unittest.TestCase):
 
         self.assertTrue(len(gpu1.interfaces) == 0)
         self.assertTrue(len(nic1.interfaces) == 1)
-        cap = f.Capacities()
-        cap.set_fields(bw=50, unit=1)
-        #nic1.set_properties(capacities=cap)
-        nic1.capacities = cap
-        lab = f.Labels()
-        lab.set_fields(ipv4="192.168.1.12")
-        #nic1.set_properties(labels=lab)
-        nic1.labels = lab
-        self.assertEqual(nic1.get_property('capacities').bw, 50)
-        self.assertEqual(nic1.get_property('capacities').unit, 1)
-        self.assertEqual(nic1.get_property('capacities').disk, 0)
-        self.assertEqual(n1.components['nic1'].get_property('labels').ipv4, "192.168.1.12")
-        self.assertEqual(n1.components['nic1'].labels.ipv4, "192.168.1.12")
+        nic1.interface_list[0].update_capacities(bw=50, unit=1)
+        nic1.interface_list[0].update_labels(ipv4="192.168.1.12")
+        self.assertEqual(nic1.interface_list[0].get_property('capacities').bw, 50)
+        self.assertEqual(nic1.interface_list[0].capacities.unit, 1)
+        self.assertEqual(nic1.interface_list[0].capacities.disk, 0)
+        self.assertEqual(nic1.interface_list[0].labels.local_name, 'p1')
+        self.assertEqual(n1.components['nic1'].interface_list[0].get_property('labels').ipv4, "192.168.1.12")
+        self.assertEqual(n1.components['nic1'].interface_list[0].labels.ipv4, "192.168.1.12")
 
         # comparisons
         nic11 = n1.components['nic1']
@@ -203,14 +198,11 @@ class SliceTest(unittest.TestCase):
         p1 = nic2.interfaces['nic2-p1']
         p2 = nic2.interfaces['nic2-p2']
 
-        cap = f.Capacities()
-        cap.set_fields(bw=50, unit=1)
-        nic1.capacities=cap
-        lab = f.Labels()
-        lab.set_fields(ipv4="192.168.1.12")
+        cap = f.Capacities(bw=50, unit=1)
+        nic1.capacities = cap
+        lab = f.Labels(ipv4="192.168.1.12")
         nic1.labels = lab
-        caphints = f.CapacityHints()
-        caphints.set_fields(instance_type='blah')
+        caphints = f.CapacityHints(instance_type='blah')
         #n1.set_properties(capacity_hints=caphints)
         n1.capacity_hints = caphints
 

@@ -20,14 +20,9 @@ class AdTest(unittest.TestCase):
         loc = f.Location(postal='100 Europa Dr., Chapel Hill, NC 27517')
         head_model = 'R7515'
         worker_model = 'R7525'
-        hn_cap = f.Capacities()
-        hn_cap.set_fields(core=32, cpu=1, unit=1, ram=128, disk=100000)
-        network_worker_cap = f.Capacities()
-        # only internal storage
-        network_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=4800)
-        gpu_worker_cap = f.Capacities()
-        # has access to SAS NAS
-        gpu_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=100000)
+        hn_cap = f.Capacities(core=32, cpu=1, unit=1, ram=128, disk=100000)
+        network_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=4800)
+        gpu_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=100000)
         #hn = self.topo.add_node(name='headnode', model=head_model, site=site,
         #                        node_id='702C4409-6635-4051-91A0-9C5A45CA28EC',
         #                        ntype=f.NodeType.Server, capacities=hn_cap)
@@ -57,96 +52,96 @@ class AdTest(unittest.TestCase):
         # Disks
         #
 
-        nvme_cap = f.Capacities().set_fields(unit=1, disk=1000)
+        nvme_cap = f.Capacities(unit=1, disk=1000)
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ016004CC1P0FGN',
                                        ctype=f.ComponentType.NVME,
                                        capacities=nvme_cap,
-                                       labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                       labels=f.Labels(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ0160047K1P0FGN',
                                        ctype=f.ComponentType.NVME,
                                        capacities=nvme_cap,
-                                       labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                       labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301TU1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='000:21:00.0'))
+                                     labels=f.Labels(bdf='000:21:00.0'))
         fn_nvme2 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ016004CK1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme3 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016002P61P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         fn_nvme4 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004CL1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     labels=f.Labels(bdf='0000:24:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301V81P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                     labels=f.Labels(bdf='0000:21:00.0'))
         sn_nvme2 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160047L1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         sn_nvme3 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016004CJ1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         sn_nvme4 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004C91P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         #
         # GPUs (serial #s not available so made up of node serial # + uniq but
         # consistent string
         #
 
-        unit_cap = f.Capacities().set_fields(unit=1)
+        unit_cap = f.Capacities(unit=1)
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
                                       capacities=unit_cap,
-                                      labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                      labels=f.Labels(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
                                       capacities=unit_cap,
-                                      labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                      labels=f.Labels(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         #
         # NICs. Interface node ids are MAC addresses of the ports,
@@ -164,11 +159,11 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
-                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                                mac=vf_macs,
-                                                                                vlan=vf_vlans)],
-                                        capacities=f.Capacities().set_fields(unit=4),
-                                        labels=f.Labels().set_fields(bdf=vf_ids),
+                                        interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                  mac=vf_macs,
+                                                                                  vlan=vf_vlans)],
+                                        capacities=f.Capacities(unit=4),
+                                        labels=f.Labels(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -187,11 +182,11 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -205,11 +200,11 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -222,14 +217,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:74'),
                                                          mac_to_node_id('04:3F:72:B7:15:75')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:74',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:75',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:15:74',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:15:75',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_shnic_lab = fnw.components[fnw.name + '-nic1'].interfaces[fnw.name + '-nic1' + '-p1'].get_property('labels')
@@ -242,14 +237,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:5C'),
                                                          mac_to_node_id('04:3F:72:B7:19:5D')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:5C',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:19:5D',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:19:5C',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:19:5D',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -257,14 +252,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:D4'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:D5')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:D4',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:D5',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:D4',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:D5',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -272,21 +267,21 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:E8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:E9')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:E8',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:E9',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:E8',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:E9',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
         nas_model = 'ME4084'
         nas = self.topo.add_node(name=site.lower() + '-nas', model=nas_model, site=site, ntype=f.NodeType.NAS,
                                  node_id='BDXTQ53',
-                                 capacities=f.Capacities().set_fields(unit=1, disk=100000))
+                                 capacities=f.Capacities(unit=1, disk=100000))
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
         switch_ip = "192.168.11.3"
@@ -340,14 +335,9 @@ class AdTest(unittest.TestCase):
         loc = f.Location(postal='301 Hilltop Ave Lexington, KY 40506')
         head_model = 'R7515'
         worker_model = 'R7525'
-        hn_cap = f.Capacities()
-        hn_cap.set_fields(core=32, cpu=1, unit=1, ram=128, disk=100000)
-        network_worker_cap = f.Capacities()
-        # only internal storage
-        network_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=4800)
-        gpu_worker_cap = f.Capacities()
-        # has access to SAS NAS
-        gpu_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=100000)
+        hn_cap = f.Capacities(core=32, cpu=1, unit=1, ram=128, disk=100000)
+        network_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=4800)
+        gpu_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=100000)
         #hn = self.topo.add_node(name='headnode', model=head_model, site=site,
         #                        node_id='702C4409-6635-4051-91A0-9C5A45CA28EC',
         #                        ntype=f.NodeType.Server, capacities=hn_cap)
@@ -376,55 +366,55 @@ class AdTest(unittest.TestCase):
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ0160046A1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                       labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                       capacities=f.Capacities(unit=1, disk=1000),
+                                       labels=f.Labels(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ016003SU1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                       labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                       capacities=f.Capacities(unit=1, disk=1000),
+                                       labels=f.Labels(bdf='0000:22:00.0'))
 
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ0160047A1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='000:21:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='000:21:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160041X1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016100981P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ0161008L1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ016100951P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:21:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160046F1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ0161000L1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ015301VG1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         #
         # GPUs (serial #s not available so made up of node serial # + uniq but
@@ -434,35 +424,35 @@ class AdTest(unittest.TestCase):
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                      capacities=f.Capacities(unit=1),
+                                      labels=f.Labels(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                      capacities=f.Capacities(unit=1),
+                                      labels=f.Labels(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         #
         # NICs. Interface node ids are MAC addresses of the ports,
@@ -481,11 +471,11 @@ class AdTest(unittest.TestCase):
                                         network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         # there is one interface and we need one name
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
-                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                                mac=vf_macs,
-                                                                                vlan=vf_vlans)],
-                                        capacities=f.Capacities().set_fields(unit=4),
-                                        labels=f.Labels().set_fields(bdf=vf_ids),
+                                        interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                  mac=vf_macs,
+                                                                                  vlan=vf_vlans)],
+                                        capacities=f.Capacities(unit=4),
+                                        labels=f.Labels(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
         # test that labels propagated to the port
@@ -504,11 +494,11 @@ class AdTest(unittest.TestCase):
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -523,11 +513,11 @@ class AdTest(unittest.TestCase):
                                       network_service_node_id=snw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -540,14 +530,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:EA:C7:50'),
                                                          mac_to_node_id('0C:42:A1:EA:C7:51')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:EA:C7:50',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:EA:C7:51',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:EA:C7:50',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:EA:C7:51',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         ilabs = fnw_nic1.interface_list[0].get_property('labels')
@@ -562,14 +552,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:78:F8:04'),
                                                          mac_to_node_id('0C:42:A1:78:F8:05')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:78:F8:04',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:78:F8:05',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:78:F8:04',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:78:F8:05',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -577,14 +567,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:F8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:F9')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:F8',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:F9',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:F8',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:F9',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -592,21 +582,21 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:DC'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:DD')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:DC',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:DD',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:DC',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:DD',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
         nas_model = 'ME4084'
         nas = self.topo.add_node(name='nas', model=nas_model, site=site, ntype=f.NodeType.NAS,
                                  node_id='3DB3R53',
-                                 capacities=f.Capacities().set_fields(unit=1, disk=100000))
+                                 capacities=f.Capacities(unit=1, disk=100000))
 
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
@@ -659,14 +649,9 @@ class AdTest(unittest.TestCase):
         loc = f.Location(postal='1 Cyclotron Rd, Berkeley, CA 94720')
         head_model = 'R7515'
         worker_model = 'R7525'
-        hn_cap = f.Capacities()
-        hn_cap.set_fields(core=32, cpu=1, unit=1, ram=128, disk=100000)
-        network_worker_cap = f.Capacities()
-        # only internal storage
-        network_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=4800)
-        gpu_worker_cap = f.Capacities()
-        # has access to SAS NAS
-        gpu_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=100000)
+        hn_cap = f.Capacities(core=32, cpu=1, unit=1, ram=128, disk=100000)
+        network_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=4800)
+        gpu_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=100000)
         #hn = self.topo.add_node(name='headnode', model=head_model, site=site,
         #                        node_id='702C4409-6635-4051-91A0-9C5A45CA28EC',
         #                        ntype=f.NodeType.Server, capacities=hn_cap)
@@ -695,55 +680,55 @@ class AdTest(unittest.TestCase):
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ015301XE1P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                       labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                       capacities=f.Capacities(unit=1, disk=1000),
+                                       labels=f.Labels(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ015301K31P0FGN',
                                        ctype=f.ComponentType.NVME,
-                                       capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                       labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                       capacities=f.Capacities(unit=1, disk=1000),
+                                       labels=f.Labels(bdf='0000:22:00.0'))
 
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301LQ1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='000:21:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='000:21:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ015301LE1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ015301M31P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ015301LS1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301KV1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:21:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ015301RL1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ015301L91P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ015301SK1P0FGN',
                                      ctype=f.ComponentType.NVME,
-                                     capacities=f.Capacities().set_fields(unit=1, disk=1000),
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     capacities=f.Capacities(unit=1, disk=1000),
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         #
         # GPUs (serial #s not available so made up of node serial # + uniq but
@@ -753,35 +738,35 @@ class AdTest(unittest.TestCase):
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                      capacities=f.Capacities(unit=1),
+                                      labels=f.Labels(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
-                                      capacities=f.Capacities().set_fields(unit=1),
-                                      labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                      capacities=f.Capacities(unit=1),
+                                      labels=f.Labels(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
-                                    capacities=f.Capacities().set_fields(unit=1),
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    capacities=f.Capacities(unit=1),
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         #
         # NICs. Interface node ids are MAC addresses of the ports,
@@ -800,11 +785,11 @@ class AdTest(unittest.TestCase):
                                         network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         # there is one interface and we need one name
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
-                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                                mac=vf_macs,
-                                                                                vlan=vf_vlans)],
-                                        capacities=f.Capacities().set_fields(unit=4),
-                                        labels=f.Labels().set_fields(bdf=vf_ids),
+                                        interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                  mac=vf_macs,
+                                                                                  vlan=vf_vlans)],
+                                        capacities=f.Capacities(unit=4),
+                                        labels=f.Labels(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -819,11 +804,11 @@ class AdTest(unittest.TestCase):
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -838,11 +823,11 @@ class AdTest(unittest.TestCase):
                                       network_service_node_id=snw.node_id + '-shnic-sf',
                                       # there is one interface and we need one name
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -855,14 +840,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:6C'),
                                                          mac_to_node_id('04:3F:72:B7:15:6D')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:6C',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:6D',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:15:6C',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:15:6D',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_nic2 = fnw.add_component(name=fnw.name + '-nic2', model='ConnectX-6',
@@ -870,14 +855,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:18:AC'),
                                                          mac_to_node_id('04:3F:72:B7:18:AD')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:18:AC',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:18:AD',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:18:AC',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:18:AD',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -885,14 +870,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:12'),
                                                          mac_to_node_id('0C:42:A1:91:75:13')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:12',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:13',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:91:75:12',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:91:75:13',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -900,21 +885,21 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:91:75:0E'),
                                                          mac_to_node_id('0C:42:A1:91:75:0F')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:91:75:0E',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:91:75:0F',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:91:75:0E',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:91:75:0F',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
         nas_model = 'ME4084'
         nas = self.topo.add_node(name='nas', model=nas_model, site=site, ntype=f.NodeType.NAS,
                                  node_id='3DB2R53',
-                                 capacities=f.Capacities().set_fields(unit=1, disk=100000))
+                                 capacities=f.Capacities(unit=1, disk=100000))
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
         switch_ip = "192.168.13.3"
@@ -1079,14 +1064,14 @@ class AdTest(unittest.TestCase):
         # FIXME: fake ports towards UKY and RENC
         lbnl_renc = dp_ns.add_interface(name='HundredGigE0/0/0/26', itype=f.InterfaceType.TrunkPort,
                                         node_id=dp_port_id(switch.name, 'HundredGigE0/0/0/26'),
-                                        labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/26',
-                                                                     mac='20:00:00:00:00:10'),
+                                        labels=f.Labels(local_name='HundredGigE 0/0/0/26',
+                                                                       mac='20:00:00:00:00:10'),
                                         capacities=port_caps)
 
         lbnl_uky = dp_ns.add_interface(name='HundredGigE 0/0/0/27', itype=f.InterfaceType.TrunkPort,
                                        node_id=dp_port_id(switch.name, 'HundredGigE0/0/0/27'),
-                                       labels=f.Labels().set_fields(local_name='HundredGigE 0/0/0/27',
-                                                                    mac='20:00:00:00:00:11'),
+                                       labels=f.Labels(local_name='HundredGigE 0/0/0/27',
+                                                                      mac='20:00:00:00:00:11'),
                                        capacities=port_caps)
 
         # add 3 links
@@ -1118,14 +1103,9 @@ class AdTest(unittest.TestCase):
         site = 'RENC'
         head_model = 'R7515'
         worker_model = 'R7525'
-        hn_cap = f.Capacities()
-        hn_cap.set_fields(core=32, cpu=1, unit=1, ram=128, disk=100000)
-        network_worker_cap = f.Capacities()
-        # only internal storage
-        network_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=4800)
-        gpu_worker_cap = f.Capacities()
-        # has access to SAS NAS
-        gpu_worker_cap.set_fields(core=32, cpu=2, unit=1, ram=512, disk=100000)
+        hn_cap = f.Capacities(core=32, cpu=1, unit=1, ram=128, disk=100000)
+        network_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=4800)
+        gpu_worker_cap = f.Capacities(core=32, cpu=2, unit=1, ram=512, disk=100000)
         #hn = self.topo.add_node(name='headnode', model=head_model, site=site,
         #                        node_id='702C4409-6635-4051-91A0-9C5A45CA28EC',
         #                        ntype=f.NodeType.Server, capacities=hn_cap)
@@ -1155,96 +1135,96 @@ class AdTest(unittest.TestCase):
         # Disks
         #
 
-        nvme_cap = f.Capacities().set_fields(unit=1, disk=1000)
+        nvme_cap = f.Capacities(unit=1, disk=1000)
         gpu_nvme1 = gpuw.add_component(name=gpuw.name + '-nvme1', model='P4510',
                                        node_id='PHLJ016004CC1P0FGN',
                                        ctype=f.ComponentType.NVME,
                                        capacities=nvme_cap,
-                                       labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                       labels=f.Labels(bdf='0000:21:00.0'))
         gpu_nvme2 = gpuw.add_component(name=gpuw.name + '-nvme2', model='P4510',
                                        node_id='PHLJ0160047K1P0FGN',
                                        ctype=f.ComponentType.NVME,
                                        capacities=nvme_cap,
-                                       labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                       labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme1 = fnw.add_component(name=fnw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301TU1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='000:21:00.0'))
+                                     labels=f.Labels(bdf='000:21:00.0'))
         fn_nvme2 = fnw.add_component(name=fnw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ016004CK1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         fn_nvme3 = fnw.add_component(name=fnw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016002P61P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         fn_nvme4 = fnw.add_component(name=fnw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004CL1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     labels=f.Labels(bdf='0000:24:00.0'))
         sn_nvme1 = snw.add_component(name=snw.name + '-nvme1', model='P4510',
                                      node_id='PHLJ015301V81P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:21:00.0'))
+                                     labels=f.Labels(bdf='0000:21:00.0'))
         sn_nvme2 = snw.add_component(name=snw.name + '-nvme2', model='P4510',
                                      node_id='PHLJ0160047L1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:22:00.0'))
+                                     labels=f.Labels(bdf='0000:22:00.0'))
         sn_nvme3 = snw.add_component(name=snw.name + '-nvme3', model='P4510',
                                      node_id='PHLJ016004CJ1P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:23:00.0'))
+                                     labels=f.Labels(bdf='0000:23:00.0'))
         sn_nvme4 = snw.add_component(name=snw.name + '-nvme4', model='P4510',
                                      node_id='PHLJ016004C91P0FGN',
                                      ctype=f.ComponentType.NVME,
                                      capacities=nvme_cap,
-                                     labels=f.Labels().set_fields(bdf='0000:24:00.0'))
+                                     labels=f.Labels(bdf='0000:24:00.0'))
 
         #
         # GPUs (serial #s not available so made up of node serial # + uniq but
         # consistent string
         #
 
-        unit_cap = f.Capacities().set_fields(unit=1)
+        unit_cap = f.Capacities(unit=1)
         gpu_gpu1 = gpuw.add_component(name=gpuw.name + '-gpu1', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu1',
                                       ctype=f.ComponentType.GPU,
                                       capacities=unit_cap,
-                                      labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                      labels=f.Labels(bdf='0000:25:00.0'))
         gpu_gpu2 = gpuw.add_component(name=gpuw.name + '-gpu2', model='RTX6000',
                                       node_id=gpuw.node_id + '-gpu2',
                                       ctype=f.ComponentType.GPU,
                                       capacities=unit_cap,
-                                      labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                      labels=f.Labels(bdf='0000:81:00.0'))
 
         fn_gpu1 = fnw.add_component(name=fnw.name + '-gpu1', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         fn_gpu2 = fnw.add_component(name=fnw.name + '-gpu2', model='Tesla T4',
                                     node_id=fnw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         sn_gpu1 = snw.add_component(name=snw.name + '-gpu1', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu1',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:25:00.0'))
+                                    labels=f.Labels(bdf='0000:25:00.0'))
         sn_gpu2 = snw.add_component(name=snw.name + '-gpu2', model='Tesla T4',
                                     node_id=snw.node_id + '-gpu2',
                                     ctype=f.ComponentType.GPU,
                                     capacities=unit_cap,
-                                    labels=f.Labels().set_fields(bdf='0000:81:00.0'))
+                                    labels=f.Labels(bdf='0000:81:00.0'))
 
         #
         # NICs. Interface node ids are MAC addresses of the ports,
@@ -1262,11 +1242,11 @@ class AdTest(unittest.TestCase):
                                         node_id=gpuw.node_id + '-shnic',
                                         network_service_node_id=gpuw.node_id + '-shnic-sf',
                                         interface_node_ids=[mac_to_node_id(pf_mac)],
-                                        interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                                mac=vf_macs,
-                                                                                vlan=vf_vlans)],
-                                        capacities=f.Capacities().set_fields(unit=4),
-                                        labels=f.Labels().set_fields(bdf=vf_ids),
+                                        interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                  mac=vf_macs,
+                                                                                  vlan=vf_vlans)],
+                                        capacities=f.Capacities(unit=4),
+                                        labels=f.Labels(bdf=vf_ids),
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -1285,11 +1265,11 @@ class AdTest(unittest.TestCase):
                                       node_id=fnw.node_id + '-shnic',
                                       network_service_node_id=fnw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -1303,11 +1283,11 @@ class AdTest(unittest.TestCase):
                                       node_id=snw.node_id + '-shnic',
                                       network_service_node_id=snw.node_id + '-shnic-sf',
                                       interface_node_ids=[mac_to_node_id(pf_mac)],
-                                      interface_labels=[f.Labels().set_fields(bdf=vf_ids,
-                                                                              mac=vf_macs,
-                                                                              vlan=vf_vlans)],
-                                      capacities=f.Capacities().set_fields(unit=4),
-                                      labels=f.Labels().set_fields(bdf=vf_ids),
+                                      interface_labels=[f.Labels(bdf=vf_ids,
+                                                                                mac=vf_macs,
+                                                                                vlan=vf_vlans)],
+                                      capacities=f.Capacities(unit=4),
+                                      labels=f.Labels(bdf=vf_ids),
                                       ctype=f.ComponentType.SharedNIC,
                                       details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
@@ -1320,14 +1300,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:15:74'),
                                                          mac_to_node_id('04:3F:72:B7:15:75')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:15:74',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:15:75',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:15:74',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:15:75',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         fnw_shnic_lab = fnw.components[fnw.name + '-nic1'].interfaces[fnw.name + '-nic1' + '-p1'].get_property('labels')
@@ -1340,14 +1320,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=fnw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('04:3F:72:B7:19:5C'),
                                                          mac_to_node_id('04:3F:72:B7:19:5D')],
-                                     interface_labels=[f.Labels().set_fields(mac='04:3F:72:B7:19:5C',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='04:3F:72:B7:19:5D',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='04:3F:72:B7:19:5C',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='04:3F:72:B7:19:5D',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT28908 Family [ConnectX-6]')
 
         snw_nic1 = snw.add_component(name=snw.name + '-nic1', model='ConnectX-5',
@@ -1355,14 +1335,14 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic1-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:D4'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:D5')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:D4',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:D5',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:D4',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:D5',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:41:00.0', '0000:41:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:41:00.0', '0000:41:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         snw_nic2 = snw.add_component(name=snw.name + '-nic2', model='ConnectX-5',
@@ -1370,21 +1350,21 @@ class AdTest(unittest.TestCase):
                                      network_service_node_id=snw.node_id + '-nic2-sf',
                                      interface_node_ids=[mac_to_node_id('0C:42:A1:BE:8F:E8'),
                                                          mac_to_node_id('0C:42:A1:BE:8F:E9')],
-                                     interface_labels=[f.Labels().set_fields(mac='0C:42:A1:BE:8F:E8',
-                                                                             vlan_range='1-4096'),
-                                                       f.Labels().set_fields(mac='0C:42:A1:BE:8F:E9',
-                                                                             vlan_range='1-4096')
+                                     interface_labels=[f.Labels(mac='0C:42:A1:BE:8F:E8',
+                                                                               vlan_range='1-4096'),
+                                                       f.Labels(mac='0C:42:A1:BE:8F:E9',
+                                                                               vlan_range='1-4096')
                                                        ],
                                      ctype=f.ComponentType.SmartNIC,
-                                     capacities=f.Capacities().set_fields(unit=1),
-                                     labels=f.Labels().set_fields(bdf=['0000:a1:00.0', '0000:a1:00.1']),
+                                     capacities=f.Capacities(unit=1),
+                                     labels=f.Labels(bdf=['0000:a1:00.0', '0000:a1:00.1']),
                                      details='Mellanox Technologies MT27800 Family [ConnectX-5]')
 
         # NAS
         nas_model = 'ME4084'
         nas = self.topo.add_node(name=site.lower() + '-nas', model=nas_model, site=site, ntype=f.NodeType.NAS,
                                  node_id='BDXTQ53',
-                                 capacities=f.Capacities().set_fields(unit=1, disk=100000))
+                                 capacities=f.Capacities(unit=1, disk=100000))
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
         switch_ip = "192.168.11.3"
@@ -1429,8 +1409,8 @@ class AdTest(unittest.TestCase):
                              defined_for=[switch.interfaces['HundredGigE0/0/0/5'].node_id,
                                           switch.interfaces['HundredGigE0/0/0/13'].node_id,
                                           switch.interfaces['HundredGigE0/0/0/21'].node_id])
-        shared_pool.set_pool_details(f.Labels().set_fields(vlan_range='100-200',
-                                                           ipv4_range='192.168.1.1-192.168.10.255'))
+        shared_pool.set_pool_details(f.Labels(vlan_range='100-200',
+                                                             ipv4_range='192.168.1.1-192.168.10.255'))
         pools.add_pool(pool=shared_pool)
 
         datanic_pool = f.Pool(atype=f.DelegationType.LABEL, pool_id='datanic_pool', delegation_id=delegation1,
@@ -1445,7 +1425,7 @@ class AdTest(unittest.TestCase):
                                            switch.interfaces['HundredGigE0/0/0/25.4'].node_id
                                            ]
                               )
-        datanic_pool.set_pool_details(f.Labels().set_fields(vlan_range='1500-2000'))
+        datanic_pool.set_pool_details(f.Labels(vlan_range='1500-2000'))
         pools.add_pool(pool=datanic_pool)
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()

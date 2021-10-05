@@ -278,10 +278,10 @@ class Delegations:
                     pool_id = v[ABCPropertyGraphConstants.FIELD_POOL_ID]
                 if atype == DelegationType.CAPACITY:
                     caporlabdict = v[ABCPropertyGraphConstants.FIELD_CAPACITIES]
-                    caporlab = Capacities().set_fields(**caporlabdict)
+                    caporlab = Capacities(**caporlabdict)
                 else:
                     caporlabdict = v[ABCPropertyGraphConstants.FIELD_LABELS]
-                    caporlab = Labels().set_fields(**caporlabdict)
+                    caporlab = Labels(**caporlabdict)
             elif ABCPropertyGraphConstants.FIELD_POOL in v.keys():
                 # pool reference
                 format = DelegationFormat.PoolReference
