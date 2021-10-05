@@ -119,7 +119,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
         # clone ADM with temporary ID - we will be changing its properties
         temp_adm_graph_id = str(uuid.uuid4())
-        self.log.info('CREATED TEMPORARY ADM GRAPH ID ' + temp_adm_graph_id +
+        self.log.debug('CREATED TEMPORARY ADM GRAPH ID ' + temp_adm_graph_id +
                       ' when merging graph ' + adm.graph_id + ' into ' + self.graph_id)
         temp_graph = adm.clone_graph(new_graph_id=temp_adm_graph_id)
         # crude typecasting
