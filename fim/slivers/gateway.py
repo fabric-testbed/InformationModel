@@ -56,7 +56,7 @@ class Gateway:
 
     @property
     def subnet(self) -> str:
-        return self.lab.ipv4_subnet if self.lab.ipv6_subnet is not None else self.lab.ipv6_subnet
+        return self.lab.ipv4_subnet if self.lab.ipv4_subnet is not None else self.lab.ipv6_subnet
 
     @property
     def mac(self) -> str:

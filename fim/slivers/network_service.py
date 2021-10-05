@@ -29,6 +29,7 @@ from recordclass import recordclass
 
 from .base_sliver import BaseSliver
 from .path_info import PathRepresentationType, ERO, PathInfo
+from .gateway import Gateway
 
 
 class NSLayer(enum.Enum):
@@ -143,6 +144,7 @@ class NetworkServiceSliver(BaseSliver):
         self.path_info = None
         self.controller_url = None
         self.site = None
+        self.gateway = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -188,6 +190,12 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_site(self) -> str:
         return self.site
+
+    def set_gateway(self, gw: Gateway):
+        self.gateway = gw
+
+    def get_gateway(self) -> Gateway:
+        return self.gateway
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:
