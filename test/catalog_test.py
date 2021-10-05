@@ -31,7 +31,7 @@ class CatalogTest(unittest.TestCase):
 
     def testInstanceCatalog(self):
         cata = InstanceCatalog()
-        cap = Capacities().set_fields(ram=20, cpu=1, core=9, disk=110)
+        cap = Capacities(ram=20, cpu=1, core=9, disk=110)
         c = cata.map_capacities_to_instance(cap=cap)
         cap1 = cata.get_instance_capacities(instance_type=c)
         self.assertTrue(cap1.core > cap.core and cap1.ram > cap.ram and cap1.disk > cap.disk)

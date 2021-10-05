@@ -53,7 +53,7 @@ class TupleTests(unittest.TestCase):
         p.set_defined_on(node_id="node1")
         p.set_defined_for(node_id_list=["node4"])
         p.add_defined_for(node_ids=["node2", "node3", "node1"])
-        p.set_pool_details(caporlab=Capacities().set_fields(cpu=2, ram=1024))
+        p.set_pool_details(caporlab=Capacities(cpu=2, ram=1024))
 
         pp = Pools(atype=DelegationType.LABEL)
         pp.add_pool(pool=p)

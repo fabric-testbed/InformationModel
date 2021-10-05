@@ -37,10 +37,28 @@ from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
 class JSONField(ABC):
 
-    @abstractmethod
-    def set_fields(self, **kwargs):
+    @classmethod
+    def update(cls, lab, **kwargs):
         """
-        Set the fields of this object
+        quasi-copy constructor if kwargs are ommitted,
+        otherwise also sets additional fields. Creates a new
+        instance of appropriate subclass and returns it.
+        DOES NOT UPDATE IN PLACE!
+        :param lab:
+        :param kwargs:
+        :return:
+        """
+        assert isinstance(lab, JSONField)
+        inst = lab.__class__()
+        for k, v in lab.__dict__.items():
+            inst.__setattr__(k, v)
+        inst._set_fields(**kwargs)
+        return inst
+
+    @abstractmethod
+    def _set_fields(self, **kwargs):
+        """
+        Abstract private set_fields method
         :param kwargs:
         :return:
         """
@@ -71,7 +89,7 @@ class JSONField(ABC):
             return None
         d = json.loads(json_string)
         ret = cls()
-        ret.set_fields(**d)
+        ret._set_fields(**d)
         return ret
 
     def to_dict(self) -> Dict[str, str] or None:
@@ -120,9 +138,9 @@ class Capacities(JSONField):
         self.burst_size = 0
         self.unit = 0
         self.mtu = 0
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal integer setter for all fields.
         Values should be non-negative integers. Throws a CapacityException
@@ -192,17 +210,20 @@ class Capacities(JSONField):
 
         return ret
 
-    def positive_fields(self, fields: List[str]) -> bool:
+    def positive_fields(self, fields: List[str] or str) -> bool:
         """
         Return true if indicated fields are positive >0
-        :param fields:
+        :param fields: string or list of strings
         :return:
         """
         assert fields is not None
+        if isinstance(fields, str):
+            fields = [fields]
         for f in fields:
             if self.__dict__[f] <= 0:
                 return False
         return True
+
 
     def __str__(self):
         d = self.__dict__.copy()
@@ -253,9 +274,9 @@ class CapacityHints(JSONField):
     """
     def __init__(self, **kwargs):
         self.instance_type = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -332,9 +353,9 @@ class Labels(JSONField):
         self.local_name = None
         self.local_type = None
         self.device_name = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -393,9 +414,9 @@ class ReservationInfo(JSONField):
     def __init__(self, **kwargs):
         self.reservation_id = None
         self.reservation_state = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a ReservationInfoException if you try to set a non-existent field.
@@ -421,12 +442,13 @@ class StructuralInfo(JSONField):
     Structural info on the for sliver objects (things like - is it a stitching node,
     what is parent graph or subgraph)
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.sub_graph_id = None
         self.parent_graph_id = None
         self.adm_graph_ids = None
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values are strings or boolean.
         Throws a
@@ -452,9 +474,9 @@ class Location(JSONField):
     """
     def __init__(self, **kwargs):
         self.postal = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for location fields. Values are strings.
         :param kwargs:

@@ -171,3 +171,27 @@ class ModelElement(ABC):
     def node_map(self, value):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('node_map', value)
+
+    def update_labels(self, **kwargs):
+        """
+        Take current labels field (even empty) and add/overwrite additional values into it
+        :param kwargs:
+        :return:
+        """
+        if self.labels is None:
+            self.set_property('labels', Labels(**kwargs))
+        else:
+            new_lab = Labels.update(self.labels, **kwargs)
+            self.set_property('labels', new_lab)
+
+    def update_capacities(self, **kwargs):
+        """
+        Take current capacities field (even empty) and add/overwrite additional values into it
+        :param kwargs:
+        :return:
+        """
+        if self.capacities is None:
+            self.set_property('capacities', Capacities(**kwargs))
+        else:
+            new_cap = Capacities.update(self.capacities, **kwargs)
+            self.set_property('capacities', new_cap)
