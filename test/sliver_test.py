@@ -6,6 +6,7 @@ from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.slivers.path_info import ERO, PathInfo, Path
 from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location
+from fim.slivers.gateway import Gateway, GatewayException
 
 
 class TestSlivers(unittest.TestCase):
@@ -80,4 +81,19 @@ class TestSlivers(unittest.TestCase):
         self.assertGreater(lat, 35.00)
         self.assertLess(lon, -79.00)
         #print(f'{lat=} {lon=}')
+
+    def testGateway(self):
+
+        gw = Gateway(Labels(ipv4="192.168.1.1", ipv4_subnet="192.168.1.0/24", mac="00:11:22:33:44:55"))
+
+        self.assertEqual(gw.gateway, "192.168.1.1")
+        self.assertEqual(gw.subnet, "192.168.1.0/24")
+        self.assertEqual(gw.mac, "00:11:22:33:44:55")
+
+        with self.assertRaises(GatewayException):
+            Gateway(Labels(ipv4="192.168.1.1"))
+
+
+
+
 
