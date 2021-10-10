@@ -28,7 +28,7 @@ from typing import Any, List, Tuple
 
 import uuid
 
-from .model_element import ModelElement, ElementType
+from .model_element import ModelElement, ElementType, TopologyException
 
 from ..slivers.interface_info import InterfaceType, InterfaceSliver
 from ..graph.abc_property_graph import ABCPropertyGraph
@@ -60,11 +60,11 @@ class Interface(ModelElement):
             # node id myst be specified for new nodes in substrate topologies
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     node_id is None:
-                raise RuntimeError("When adding new nodes to substrate topology nodes you must specify static Node ID")
+                raise TopologyException("When adding new nodes to substrate topology nodes you must specify static Node ID")
             if node_id is None:
                 node_id = str(uuid.uuid4())
             if itype is None:
-                raise RuntimeError("When creating interfaces you must specify InterfaceType")
+                raise TopologyException("When creating interfaces you must specify InterfaceType")
             super().__init__(name=name, node_id=node_id, topo=topo)
             sliver = InterfaceSliver()
             sliver.node_id = self.node_id
@@ -78,14 +78,14 @@ class Interface(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
                                                          label=ABCPropertyGraph.CLASS_ConnectionPoint):
-                raise RuntimeError(f"Interface with this id and name {name} doesn't exist")
+                raise TopologyException(f"Interface with this id {node_id} and name {name} doesn't exist")
 
     @property
     def type(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
     def add_child_interface(self):
-        raise RuntimeError("Not implemented")
+        raise TopologyException("Not implemented")
 
     def get_property(self, pname: str) -> Any:
         """
@@ -126,19 +126,29 @@ class Interface(ModelElement):
     def list_properties() -> Tuple[str]:
         return InterfaceSliver.list_properties()
 
-    def get_peer(self):
+    def get_peers(self, itype: InterfaceType = None):
         """
-        Find a 'peer' interface connected across a Link. Returns Interface object.
+        Find 'peer' interfaces connected across a Link. Returns a list of Interface objects
+        (matching optional itype if specified, otherwise all).
+        :parm itype: optional type of peer interface we are looking for
         :return: peer Interface object or None
         """
-        peer_id = self.topo.graph_model.find_peer_connection_point(node_id=self.node_id)
-        if peer_id is None:
+        peer_ids = self.topo.graph_model.find_peer_connection_points(node_id=self.node_id)
+        if peer_ids is None:
             return None
-        clazzes, node_props = self.topo.graph_model.get_node_properties(node_id=peer_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        assert ABCPropertyGraph.CLASS_ConnectionPoint in clazzes
-        return Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=peer_id,
-                         topo=self.topo)
+        ret = list()
+        for peer_id in peer_ids:
+            clazzes, node_props = self.topo.graph_model.get_node_properties(node_id=peer_id)
+            assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
+            assert ABCPropertyGraph.CLASS_ConnectionPoint in clazzes
+            i = Interface(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=peer_id,
+                          topo=self.topo)
+            if itype is not None:
+                if i.type == itype:
+                    ret.append(i)
+            else:
+                ret.append(i)
+        return ret
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

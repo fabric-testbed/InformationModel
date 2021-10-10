@@ -956,9 +956,18 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=dp_switch_name_id(site, switch_ip)[0], model=switch_model,
                                     node_id=dp_switch_name_id(site, switch_ip)[1], site=site,
                                     ntype=f.NodeType.Switch, stitch_node=True)
+        # stitch node is true here because MPLS service shares definition with site
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
-                                           nstype=f.ServiceType.MPLS, stitch_node=True)
+                                           nstype=f.ServiceType.MPLS,
+                                           labels=f.Labels(vlan_range='1-100'),
+                                           stitch_node=True)
+        # stitch node is false here because L3 service is not shared with site definition of switch
+        dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
+                                             node_id=switch.node_id + '-l3ns',
+                                             nstype=f.ServiceType.FABNetv4, stitch_node=False,
+                                             labels=f.Labels(ipv4_range='192.168.1.1-192.168.1.255',
+                                                             vlan_range='100-200'))
 
         # add ports
         port_caps = f.Capacities(bw=100)
@@ -975,6 +984,11 @@ class AdTest(unittest.TestCase):
                                      node_id=dp_port_id(switch.name, dp),
                                      labels=port_labs, capacities=port_caps)
 
+        stitch_port_facing_port = dp_ns.add_interface(name='HundredDigE0/0/0/99', itype=f.InterfaceType.TrunkPort,
+                                                      node_id=dp_port_id(switch.name, 'HundredDigE0/0/0/99'),
+                                                      labels=port_labs, capacities=port_caps)
+
+
         for dp in dp_ports_25g:
             sp = dp_ns.add_interface(name=dp, itype=f.InterfaceType.TrunkPort,
                                      node_id=dp_port_id(switch.name, dp),
@@ -989,6 +1003,9 @@ class AdTest(unittest.TestCase):
                                         node_id=dp_port_id(switch.name, 'HundredGigE0/0/0/27'),
                                         capacities=port_caps)
 
+        # a FacilityPort
+
+
         site = 'UKY'
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
@@ -998,7 +1015,14 @@ class AdTest(unittest.TestCase):
                                     ntype=f.NodeType.Switch, stitch_node=True)
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
-                                           nstype=f.ServiceType.MPLS, stitch_node=True)
+                                           nstype=f.ServiceType.MPLS,
+                                           labels=f.Labels(vlan_range='1-100'),
+                                           stitch_node=True)
+        dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
+                                             node_id=switch.node_id + '-l3ns',
+                                             nstype=f.ServiceType.FABNetv4, stitch_node=False,
+                                             labels=f.Labels(ipv4_range='192.168.2.1-192.168.2.255',
+                                                             vlan_range='100-200'))
 
         # add ports
         port_caps = f.Capacities(bw=100)
@@ -1039,7 +1063,14 @@ class AdTest(unittest.TestCase):
                                     ntype=f.NodeType.Switch, stitch_node=True)
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
-                                           nstype=f.ServiceType.MPLS, stitch_node=True)
+                                           nstype=f.ServiceType.MPLS,
+                                           labels=f.Labels(vlan_range='1-100'),
+                                           stitch_node=True)
+        dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
+                                             node_id=switch.node_id + '-l3ns',
+                                             nstype=f.ServiceType.FABNetv4, stitch_node=False,
+                                             labels=f.Labels(ipv4_range='192.168.2.1-192.168.2.255',
+                                                             vlan_range='100-200'))
 
         # add ports
         port_caps = f.Capacities(bw=100)
@@ -1086,6 +1117,18 @@ class AdTest(unittest.TestCase):
         l3 = self.topo.add_link(name='l3', ltype=f.LinkType.L2Path,
                                 interfaces=[renc_lbnl, lbnl_renc],
                                 node_id=renc_lbnl.node_id + '-Wave')
+
+
+        # add a facility port at RENCI
+        self.topo.add_facility_port(name='RENCI-DC', node_id='RENCI-DC-id', peer=stitch_port_facing_port,
+                                    labels=f.Labels(vlan_range='1-10', ipv4_range='192.168.1.1-192.168.1.20',
+                                                  local_name='name-of-port-on-facility-switch'),
+                                    capacities=f.Capacities(mtu=1500, bw=10000))
+
+        self.topo.add_facility_port(name='RENCI-DC1', node_id='RENCI-DC1-id', peer=stitch_port_facing_port,
+                                    labels=f.Labels(vlan_range='11-20', ipv4_range='192.168.2.1-192.168.2.20',
+                                                    local_name='name-of-port-on-facility-switch'),
+                                    capacities=f.Capacities(mtu=1500, bw=10000))
 
         delegation1 = 'primary'
         self.topo.single_delegation(delegation_id=delegation1,

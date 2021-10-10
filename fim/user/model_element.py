@@ -195,3 +195,9 @@ class ModelElement(ABC):
         else:
             new_cap = Capacities.update(self.capacities, **kwargs)
             self.set_property('capacities', new_cap)
+
+
+class TopologyException(Exception):
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
