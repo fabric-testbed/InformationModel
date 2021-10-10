@@ -5,7 +5,7 @@ from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.slivers.path_info import ERO, PathInfo, Path
-from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location
+from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location, LabelException
 from fim.slivers.gateway import Gateway, GatewayException
 
 
@@ -70,6 +70,18 @@ class TestSlivers(unittest.TestCase):
         assert(ns.get_capacity_hints().instance_type == 'blah')
         assert(ns.get_labels().vlan_range == '1-4096')
         assert(ns.get_capacities().core == 2)
+
+        with self.assertRaises(LabelException):
+            Labels(vlan_range='1-8000')
+
+        with self.assertRaises(LabelException):
+            Labels(asn='600000')
+
+        with self.assertRaises(LabelException):
+            Labels(vlan='4098')
+
+        with self.assertRaises(LabelException):
+            Labels(inner_vlan='6000')
 
     def testLocation(self):
         ns = NodeSliver()

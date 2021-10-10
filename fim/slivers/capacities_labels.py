@@ -334,6 +334,14 @@ class Labels(JSONField):
         'vlan_range': r'[\d]{1,4}-[\d]{1,4}',
         'inner_vlan': r'[\d]{1,4}'
     }
+    LAMBDA_VALIDATORS = {
+        'vlan': (lambda v: True if 0 < int(v) <= 4096 else False),
+        'inner_vlan': (lambda v: True if 0 < int(v) <= 4096 else False),
+        'vlan_range': (lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
+                                         0 < int(v.split('-')[1]) <= 4096 and
+                                         int(v.split('-')[0]) < int(v.split('-')[1]) else False),
+        'asn': (lambda a: True if 0 < int(a) < 65536 else False)
+    }
 
     def __init__(self, **kwargs):
         self.bdf = None
@@ -373,13 +381,23 @@ class Labels(JSONField):
                         for i in v:
                             matches = re.match('^' + self.VALIDATORS[k] + '$', i)
                             if matches is None:
-                                raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
+                                raise LabelException(f'Provided label value {i} for {k} does not match the allowed '
                                                      f'regular expression {self.VALIDATORS[k]}')
                     else:
                         matches = re.match('^' + self.VALIDATORS[k] + '$', v)
                         if matches is None:
                             raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
                                                  f'regular expression {self.VALIDATORS[k]}')
+                if self.LAMBDA_VALIDATORS.get(k, None) is not None:
+                    if isinstance(v, list):
+                        for i in v:
+                            res = self.LAMBDA_VALIDATORS[k](i)
+                            if res is False:
+                                raise LabelException(f'Provided label value {i} for {k} does is not valid.')
+                    else:
+                        res = self.LAMBDA_VALIDATORS[k](v)
+                        if res is False:
+                            raise LabelException(f'Provided label value {v} for {k} does is not valid.')
 
                 self.__setattr__(k, v)
             except AttributeError:
