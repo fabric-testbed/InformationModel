@@ -189,24 +189,3 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                           msg=f"Unable to find ConnectionPoint with name {iname}")
 
-    def find_peer_connection_point(self, *, node_id: str) -> str or None:
-        """
-        Find the id of the peer connection point to this one (connected over a Link)
-        if it exists
-        :param node_id: id of the interface/connection point
-        :return:
-        """
-        assert node_id is not None
-
-        # find id of connection point over a Link
-        candidates = self.get_first_and_second_neighbor(node_id=node_id, rel1=ABCPropertyGraph.REL_CONNECTS,
-                                                        node1_label=ABCPropertyGraph.CLASS_Link,
-                                                        rel2=ABCPropertyGraph.REL_CONNECTS,
-                                                        node2_label=ABCPropertyGraph.CLASS_ConnectionPoint)
-        if len(candidates) == 0:
-            return None
-        if len(candidates) != 1:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=node_id,
-                                              msg=f"Connection point is only expected to connect to one other"
-                                                  f"connection point, instead connects to {len(candidates)}")
-        return candidates[0][1]

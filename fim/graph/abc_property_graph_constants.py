@@ -66,11 +66,12 @@ class ABCPropertyGraphConstants(ABC):
     PROP_ERO = "ERO"
     PROP_PATH_INFO = "PathInfo"
     PROP_CONTROLLER_URL = "ControllerURL"
+    PROP_GATEWAY = "Gateway"
     # these properties get validated to be valid JSON objects whenever someone validates the graph
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
                            PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO, PROP_STRUCTURAL_INFO,
-                           PROP_ERO, PROP_PATH_INFO, PROP_CAPACITY_HINTS]
+                           PROP_ERO, PROP_PATH_INFO, PROP_CAPACITY_HINTS, PROP_GATEWAY]
     # these properties cannot be unset
     NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS]
 

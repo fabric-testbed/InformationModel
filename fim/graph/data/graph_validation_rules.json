@@ -20,8 +20,8 @@
     "msg": "All Components must be of type SharedNIC, SmartNIC, GPU, FPGA or NVME"
   },
   {
-    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"AccessPort\", \"TrunkPort\", \"ServicePort\", \"DedicatedPort\", \"SharedPort\", \"vInt\"])",
-    "msg": "All ConnectionPoints must be of type AccessPort, TrunkPort, ServicePort, DedicatedPort, SharedPort or vInt"
+    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"AccessPort\", \"TrunkPort\", \"ServicePort\", \"DedicatedPort\", \"SharedPort\", \"vInt\", \"FacilityPort\", \"StitchPort\"])",
+    "msg": "All ConnectionPoints must be of type AccessPort, TrunkPort, ServicePort, DedicatedPort, SharedPort, vInt, FacilityPort or StitchPort"
   },
   {
     "rule": "MATCH (n:NetworkService {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [ \"P4\", \"OVS\", \"MPLS\", \"L2Path\", \"L2Bridge\", \"L2PTP\", \"L2STS\", \"FABNetv4\", \"FABNetv6\", \"L3VPN\", \"PortMirror\"])",
