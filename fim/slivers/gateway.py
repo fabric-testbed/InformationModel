@@ -52,34 +52,46 @@ class Gateway:
 
     @property
     def gateway(self) -> str:
-        return self.lab.ipv4 if self.lab.ipv4 is not None else self.lab.ipv6
+        if self.lab is not None:
+            return self.lab.ipv4 if self.lab.ipv4 is not None else self.lab.ipv6
+        return None
 
     @property
     def subnet(self) -> str:
-        return self.lab.ipv4_subnet if self.lab.ipv4_subnet is not None else self.lab.ipv6_subnet
+        if self.lab is not None:
+            return self.lab.ipv4_subnet if self.lab.ipv4_subnet is not None else self.lab.ipv6_subnet
+        return None
 
     @property
     def mac(self) -> str:
-        return self.lab.mac
+        if self.lab is not None:
+            return self.lab.mac
+        return None
 
     def to_json(self) -> str:
         if self.lab is not None:
             return self.lab.to_json()
         return None
 
-    def from_json(self, json_string: str) -> None:
-        self.lab = Labels.from_json(json_string)
+    @classmethod
+    def from_json(cls, json_string: str):
+        return Gateway(Labels.from_json(json_string))
 
     def __str__(self):
         ar = list()
+        if self.lab is None:
+            return ""
         if self.lab.ipv4_subnet is not None:
-            ar.append("IPv4 subnet: " + self.lab.ipv4_subnet + "GW: " + self.lab.ipv4)
+            ar.append("IPv4 subnet: " + self.lab.ipv4_subnet + " GW: " + self.lab.ipv4)
         else:
-            ar.append("IPv6: " + self.lab.ipv6_subnet + "GW: " + self.lab.ipv6)
+            ar.append("IPv6: " + self.lab.ipv6_subnet + " GW: " + self.lab.ipv6)
 
         if self.lab.mac is not None:
             ar.append("(MAC: " + self.lab.mac + ")")
         return " ".join(ar)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class GatewayException(Exception):

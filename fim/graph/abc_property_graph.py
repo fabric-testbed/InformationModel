@@ -47,6 +47,7 @@ from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
+from fim.slivers.gateway import Gateway
 
 
 class GraphFormat(Enum):
@@ -574,6 +575,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_CONTROLLER_URL] = sliver.controller_url
         if sliver.site is not None:
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
+        if sliver.gateway is not None:
+            prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
 
         return prop_dict
 
@@ -639,7 +642,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         elif type(sliver) == InterfaceSliver:
             d = ABCPropertyGraph.interface_sliver_to_graph_properties_dict(sliver)
         else:
-            raise RuntimeError(f'JSON Conversion for type {type(sliver)} is not supported.')
+            raise PropertyGraphQueryException(msg=f'JSON Conversion for type {type(sliver)} is not supported.',
+                                              graph_id=None, node_id=None)
 
         return d
 
@@ -737,7 +741,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           ero=ERO.from_json(d.get(ABCPropertyGraph.PROP_ERO, None)),
                           path_info=PathInfo.from_json(d.get(ABCPropertyGraph.PROP_PATH_INFO, None)),
                           controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None),
-                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None)
+                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
+                          gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None))
                           )
         return ns
 
@@ -1024,7 +1029,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         if not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode,
                                       name=sliver.resource_name):
-            raise RuntimeError(f'Node name {sliver.resource_name} must be unique.')
+            raise PropertyGraphQueryException(msg=f'Node name {sliver.resource_name} must be unique.',
+                                              graph_id=self.graph_id, node_id=None)
 
         props = self.node_sliver_to_graph_properties_dict(sliver)
         self.add_node(node_id=sliver.node_id, label=ABCPropertyGraph.CLASS_NetworkNode, props=props)
@@ -1083,7 +1089,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         if parent_node_id is None and not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                  name=network_service.resource_name):
             # slice-wide network services must have unique names
-            raise RuntimeError(f'Network service name {network_service.resource_name} must be unique.')
+            raise PropertyGraphQueryException(msg=f'Network service name {network_service.resource_name} must be unique.',
+                                              graph_id=self.graph_id, node_id=parent_node_id)
 
         props = self.network_service_sliver_to_graph_properties_dict(network_service)
         self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)
@@ -1097,17 +1104,21 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
     def add_interface_sliver(self, *, parent_node_id: str, interface: InterfaceSliver):
         """
-        Add interface to a network service, linking back to parent.
-        :param parent_node_id: network service id
+        Add interface to a network service, linking back to parent (node or network service),
+        if provided.
+        For most interface slivers there should be a parent with the exception
+        of FacilityPorts/StitchPorts.
+
+        :param parent_node_id: network service id or other parent if available
         :param interface: interface sliver description
         :return:
         """
         assert interface.node_id is not None
-        assert parent_node_id is not None
 
         props = self.interface_sliver_to_graph_properties_dict(interface)
         self.add_node(node_id=interface.node_id, label=ABCPropertyGraph.CLASS_ConnectionPoint, props=props)
-        self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=interface.node_id)
+        if parent_node_id is not None:
+            self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=interface.node_id)
 
     def get_all_ns_or_link_connection_points(self, link_id: str) -> List[str]:
         """
@@ -1173,6 +1184,25 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         set to 'true' (in JSON).
         :return:
         """
+
+    def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:
+        """
+        Find the ids of the peer connection points to this one (connected over a Link)
+        if they exist
+        :param node_id: id of the interface/connection point
+        :return:
+        """
+        assert node_id is not None
+
+        # find id of connection point over a Link
+        candidates = self.get_first_and_second_neighbor(node_id=node_id, rel1=ABCPropertyGraph.REL_CONNECTS,
+                                                        node1_label=ABCPropertyGraph.CLASS_Link,
+                                                        rel2=ABCPropertyGraph.REL_CONNECTS,
+                                                        node2_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        if len(candidates) == 0:
+            return None
+
+        return [x[1] for x in candidates]
 
 
 class ABCGraphImporter(ABC):

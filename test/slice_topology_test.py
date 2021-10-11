@@ -4,6 +4,9 @@ import fim.user as f
 
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
+from fim.slivers.gateway import Gateway
+from fim.slivers.capacities_labels import Labels
+from fim.user.model_element import TopologyException
 
 
 class SliceTest(unittest.TestCase):
@@ -117,7 +120,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.interface_list), 4)
 
         # no peers yet
-        service_port = self.topo.interface_list[0].get_peer()
+        service_port = self.topo.interface_list[0].get_peers()
         self.assertEqual(service_port, None)
 
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
@@ -125,11 +128,11 @@ class SliceTest(unittest.TestCase):
         assert(self.topo.network_services['s1'].get_property('site') == 'RENC')
 
         # test peer code
-        service_port = self.topo.interface_list[0].get_peer()
+        service_port = self.topo.interface_list[0].get_peers()[0]
         print(f'This is a service port {service_port}')
         self.assertEqual(service_port.get_property('type'), f.InterfaceType.ServicePort)
         # back to self
-        self_port = service_port.get_peer()
+        self_port = service_port.get_peers()[0]
         self.assertEqual(self_port, self.topo.interface_list[0])
 
         # disabled - replaced with RuntimeError
@@ -203,7 +206,6 @@ class SliceTest(unittest.TestCase):
         lab = f.Labels(ipv4="192.168.1.12")
         nic1.labels = lab
         caphints = f.CapacityHints(instance_type='blah')
-        #n1.set_properties(capacity_hints=caphints)
         n1.capacity_hints = caphints
 
         # check capacities, hints labels on the graph
@@ -219,6 +221,13 @@ class SliceTest(unittest.TestCase):
 
         self.assertEqual(s1.layer, f.Layer.L2)
 
+        s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
+
+        print(f'{s1=}')
+
+        self.assertEqual(s1.gateway.gateway, "192.168.1.1")
+        self.assertEqual(s1.gateway.subnet, "192.168.1.0/24")
+
         print(f'S1 has these interfaces: {s1.interface_list}')
         self.assertEqual(len(s1.interface_list), 6)
         self.topo.validate()
@@ -231,9 +240,35 @@ class SliceTest(unittest.TestCase):
 
         print(f'S1 has these interfaces: {s1.interface_list}')
         self.assertEqual(len(s1.interface_list), 5)
+
+        # validate the topology
         self.topo.validate()
 
         self.topo.remove_network_service('s1')
+
+        # stitch ports
+        self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[1])
+        self.topo.add_stitch_port(name='my-other-stitch-port', peer=self.topo.interface_list[2])
+        self.assertEqual(len(self.topo.stitch_ports), 2)
+        with self.assertRaises(TopologyException):
+            # name collision
+            self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[0])
+        with self.assertRaises(TopologyException):
+            # port collision
+            self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[2])
+
+        with self.assertRaises(TopologyException):
+            # connection conflict
+            s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
+                                               interfaces=self.topo.interface_list[2:4])
+        # remove malformed service
+        self.topo.remove_network_service(name='s2')
+
+        # remove conflicting stitch ports
+        self.topo.remove_stitch_port(name='my-stitch-port')
+        self.topo.remove_stitch_port(name='my-other-stitch-port')
+
+        self.assertEqual(len(self.topo.stitch_ports), 0)
 
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
                                            interfaces=self.topo.interface_list[2:4])

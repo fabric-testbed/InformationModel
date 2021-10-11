@@ -23,18 +23,20 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
+import logging
 from typing import Tuple, Any, List, Set
 
 import uuid
 
 from fim.view_only_dict import ViewOnlyDict
 
-from .model_element import ModelElement, ElementType
+from .model_element import ModelElement, ElementType, TopologyException
 
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface, InterfaceType
 from fim.user.link import Link, LinkType
 from fim.slivers.network_service import NetworkServiceSliver, ServiceType, NSLayer, ERO, PathInfo
+from fim.slivers.gateway import Gateway
 
 
 class NetworkService(ModelElement):
@@ -76,14 +78,14 @@ class NetworkService(ModelElement):
                 node_id = str(uuid.uuid4())
             super().__init__(name=name, node_id=node_id, topo=topo)
             if nstype is None:
-                raise RuntimeError("When creating new services you must specify ServiceType")
+                raise TopologyException("When creating new services you must specify ServiceType")
             # cant use isinstance as it would create circular import dependencies
             # We do more careful checks for ExperimentTopologies, but for substrate we let things loose
             if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
                 if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
                                                                   not isinstance(interfaces, list)):
-                    raise RuntimeError("When creating new services in ExperimentTopology you "
-                                       "must specify the list of interfaces to connect.")
+                    raise TopologyException("When creating new services in ExperimentTopology you "
+                                            "must specify the list of interfaces to connect.")
                 sites = self.validate_service_constraints(nstype, interfaces)
 
                 if len(sites) == 1:
@@ -113,7 +115,7 @@ class NetworkService(ModelElement):
                 graph_model.find_node_by_name(node_name=name,
                                               label=ABCPropertyGraph.CLASS_NetworkService)
             if existing_node_id != node_id:
-                raise RuntimeError(f'Service name {name} node id does not match the expected node id.')
+                raise TopologyException(f'Service name {name} node id does not match the expected node id.')
             # collect a list of interface nodes it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()
@@ -171,6 +173,15 @@ class NetworkService(ModelElement):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('path_info', value)
 
+    @property
+    def gateway(self):
+        return self.get_property('gateway') if self.__dict__.get('topo', None) is not None else None
+
+    @gateway.setter
+    def gateway(self, gateway: Gateway):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('gateway', gateway)
+
     def get_sliver(self) -> NetworkServiceSliver:
         """
         Get a deep sliver representation of this node from graph
@@ -191,24 +202,28 @@ class NetworkService(ModelElement):
             services = self.topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                              ntype=str(nstype))
             if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
-                raise RuntimeError(f"Service type {nstype} cannot have {len(services) + 1} instances. "
+                raise TopologyException(f"Service type {nstype} cannot have {len(services) + 1} instances. "
                                    f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
         # check the number of interfaces
         if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
             if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
-                raise RuntimeError(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
+                raise TopologyException(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
                                    f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
         sites = set()
         # check the number of sites spanned by this service
         if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
             # trace ownership of each interface and count the sites involved
             for interface in interfaces:
-                owner = self.topo.get_owner_node(interface)
-                if owner is None:
-                    print(f'Interface {interface=} has no owner')
-                sites.add(owner.site)
+                if interface.type != InterfaceType.StitchPort:
+                    owner = self.topo.get_owner_node(interface)
+                    if owner is None:
+                        print(f'Interface {interface=} has no owner')
+                    sites.add(owner.site)
+                else:
+                    sites.add(interface.name)
+
             if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
-                raise RuntimeError(f"Service of type {nstype} cannot span {len(sites)} sites. "
+                raise TopologyException(f"Service of type {nstype} cannot span {len(sites)} sites. "
                                    f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
 
         return sites
@@ -227,7 +242,7 @@ class NetworkService(ModelElement):
         # - L2S2S needs to warn that it may not work if the VMs with shared ports land on the same worker
         if sliver.get_type() == ServiceType.L2PTP and \
             interface.type == InterfaceType.SharedPort:
-            raise RuntimeError(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
+            raise TopologyException(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
                                f"L2P2P service currently doesn't support shared interfaces")
         if sliver.get_type() == ServiceType.L2STS and \
             interface.type == InterfaceType.SharedPort:
@@ -246,13 +261,14 @@ class NetworkService(ModelElement):
         assert interface is not None
         assert isinstance(interface, Interface)
 
-        # we can only connect interfaces connected to (compute or switch) nodes
-        if self.topo.get_owner_node(interface) is None:
-            raise RuntimeError(f'Interface {interface} is not owned by a node, as expected.')
+        # we can only connect interfaces connected to (compute or switch) nodes,
+        # unless they are stitch ports
+        if interface.type != InterfaceType.StitchPort and self.topo.get_owner_node(interface) is None:
+            raise TopologyException(f'Interface {interface} is not owned by a node, as expected.')
         # we can only connect interfaces that aren't already connected
-        peer_id = self.topo.graph_model.find_peer_connection_point(node_id=interface.node_id)
-        if peer_id is not None:
-            raise RuntimeError(f'Interface {interface} is already connected to another service.')
+        peer_ids = self.topo.graph_model.find_peer_connection_points(node_id=interface.node_id)
+        if peer_ids is not None:
+            raise TopologyException(f'Interface {interface} is already connected to another service.')
         # create a peer interface, create a link between them
         peer_if = Interface(name=self.name + '-' + interface.name, parent_node_id=self.node_id,
                             etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.ServicePort)
@@ -275,23 +291,16 @@ class NetworkService(ModelElement):
         """
         assert interface is not None
 
-        # find parent network service
-        owner = self.topo.get_parent_element(interface)
-        # find id of the interface node
-        interface_node_id = self.topo.graph_model.find_connection_point_by_name(parent_node_id=owner.node_id,
-                                                                                iname=interface.name)
-        node_id = self.topo.graph_model.find_peer_connection_point(node_id=interface_node_id)
-        if node_id is None:
+        peers = interface.get_peers()
+        if peers is None or len(peers) == 0:
             return
 
-        self.topo.graph_model.remove_cp_and_links(node_id=node_id)
-        # remove from interfaces list as well
-        to_remove = None
-        for i in self._interfaces:
-            if i.node_id == node_id:
-                to_remove = i
-        if to_remove is not None:
-            self._interfaces.remove(to_remove)
+        if len(peers) > 1:
+            raise TopologyException(f'List of ServicePort peers for interface {interface} is more than one')
+
+        self.topo.graph_model.remove_cp_and_links(node_id=peers[0].node_id)
+        # remove from interface list as well
+        self._interfaces = list(filter((lambda x: x.node_id != peers[0].node_id), self._interfaces))
 
     def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort,
                       **kwargs):
@@ -306,11 +315,11 @@ class NetworkService(ModelElement):
         assert name is not None
         # cant use isinstance as it would create circular import dependencies
         if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
-            raise RuntimeError("Do not need to add interface to NetworkService in Experiment topology")
+            raise TopologyException("Do not need to add interface to NetworkService in Experiment topology")
 
         # check uniqueness
         if name in self.__list_interfaces().keys():
-            raise RuntimeError('Interface names must be unique within a switch fabric')
+            raise TopologyException('Interface names must be unique within a switch fabric')
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=itype,
                         **kwargs)
@@ -318,15 +327,14 @@ class NetworkService(ModelElement):
 
     def remove_interface(self, *, name: str) -> None:
         """
-        Remove an interface from the switch fabric, disconnect from links (in substrate topologies). Remove links
-        if they have nothing else connecting to them.
+        Remove an ServicePort interface from the network service.
         :param name:
         :return:
         """
         assert name is not None
         # cant use isinstance as it would create circular import dependencies
         if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
-            raise RuntimeError("Cannot remove interface from NetworkService in Experiment topology")
+            raise TopologyException("Cannot remove interface from NetworkService in Experiment topology")
         node_id = self.topo.graph_model.find_connection_point_by_name(parent_node_id=self.node_id,
                                                                       iname=name)
         self.topo.graph_model.remove_cp_and_links(node_id=node_id)
