@@ -852,6 +852,7 @@ class SubstrateTopology(Topology):
             ret.append(Interface(name=iname, node_id=i, topo=self))
         return ret
 
+
 class AdvertizedTopology(Topology):
     """
     Topology object to operate on BQM (Query) models returned from e.g.
@@ -951,6 +952,22 @@ class AdvertizedTopology(Topology):
     def links(self):
         return self._list_links()
 
+    @property
+    def facility_ports(self) -> List[Interface] or None:
+        """
+        Return facility ports of this topology
+        :return:
+        """
+        sp_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_ConnectionPoint,
+                                                                  ntype=str(InterfaceType.FacilityPort))
+        if sp_ids is None:
+            return None
+        ret = list()
+        for sp_id in sp_ids:
+            _, sp_props = self.graph_model.get_node_properties(node_id=sp_id)
+            ret.append(Interface(name=sp_props[ABCPropertyGraph.PROP_NAME], node_id=sp_id, topo=self))
+        return ret
+
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
@@ -975,7 +992,6 @@ class AdvertizedTopology(Topology):
 
             # collect all network nodes and links, draw edges between them
             network_sites = self.graph_model.get_all_composite_nodes()
-            links = self.graph_model.get_all_network_links()
 
             derived_graph = nx.Graph()
             for n in network_sites:
@@ -993,6 +1009,11 @@ class AdvertizedTopology(Topology):
                         if nint in l.interface_list:
                             graph_edges[l.name].append(n.name)
                             #derived_graph.add_edge(n.name, l.name)
+                # add facility ports into the mix
+                for fp in self.facility_ports:
+                    for l in self.links.values():
+                        if fp in l.interface_list:
+                            graph_edges[l.name].append(fp.name)
 
             edge_labels = dict()
             for k, v in graph_edges.items():
@@ -1056,13 +1077,19 @@ class AdvertizedTopology(Topology):
                              c.model + " " + str(ccp))
             lines.append("\tSite Interfaces:")
             for i in n.interfaces.values():
-                icp = CapacityTuple(total=i.capacities,
-                                    allocated=i.get_property("capacity_allocations"))
-                lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                             str(icp))
+                if i.capacities is not None:
+                    icp = CapacityTuple(total=i.capacities,
+                                        allocated=i.get_property("capacity_allocations"))
+                    lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                str(icp))
+        lines.append("Facility Ports:")
+        for fp in self.facility_ports:
+            lines.append("\t" + fp.name + " " + str(fp.labels) + " " +
+                         str(fp.capacities))
         lines.append("Links:")
         for l in self.links.values():
             interface_names = [iff.name for iff in l.interface_list]
             lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
                          str(interface_names))
+
         return "\n".join(lines)
