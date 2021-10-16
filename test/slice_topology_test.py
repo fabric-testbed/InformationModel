@@ -203,6 +203,16 @@ class SliceTest(unittest.TestCase):
         n1.tags = None
         self.assertEqual(n1.tags, None)
 
+        #boot script on nodes only
+        n1.boot_script = """
+        #!/bin/bash
+        
+        echo *
+        """
+        self.assertTrue("bash" in n1.boot_script)
+        n1.boot_script = None
+        self.assertIsNone(n1.boot_script)
+
         # measurement data on model elements (nodes, links, components, interfaces, network services)
         # can be set simply as json string (string not to exceed 1M)
         n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
