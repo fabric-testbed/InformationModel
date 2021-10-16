@@ -201,11 +201,14 @@ class Node(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a node property
+        Set a node property or unset if pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         node_sliver = NodeSliver()
         node_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

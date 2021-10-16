@@ -30,6 +30,7 @@ import enum
 
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..slivers.capacities_labels import Capacities, Labels
+from ..slivers.measurement_data import MeasurementData
 
 
 class ElementType(enum.Enum):
@@ -104,7 +105,7 @@ class ModelElement(ABC):
     @abstractmethod
     def set_property(self, pname: str, pval):
         """
-        Set a property of a model element
+        Set a property of a model element or unset if pval is None
         :param pname:
         :param paval:
         :return:
@@ -171,6 +172,27 @@ class ModelElement(ABC):
     def node_map(self, value):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('node_map', value)
+
+    @property
+    def tags(self):
+        return self.get_property('tags') if self.__dict__.get('topo', None) is not None else None
+
+    @tags.setter
+    def tags(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('tags', value)
+
+    @property
+    def mf_data(self):
+        return self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
+
+    @mf_data.setter
+    def mf_data(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            if value is None or isinstance(value, MeasurementData):
+                self.set_property('mf_data', value)
+            elif isinstance(value, str):
+                self.set_property('mf_data', MeasurementData(value))
 
     def update_labels(self, **kwargs):
         """

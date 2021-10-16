@@ -134,11 +134,14 @@ class Component(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a component property
+        Set a component property or unset of pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         comp_sliver = ComponentSliver()
         comp_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph
