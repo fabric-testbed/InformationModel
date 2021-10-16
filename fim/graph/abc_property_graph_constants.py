@@ -69,6 +69,7 @@ class ABCPropertyGraphConstants(ABC):
     PROP_GATEWAY = "Gateway"
     PROP_TAGS = "Tags"
     PROP_MEAS_DATA = "MeasurementData"
+    PROP_BOOT_SCRIPT = "BootScript"
     # these properties get validated to be valid JSON objects whenever someone validates the graph
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,

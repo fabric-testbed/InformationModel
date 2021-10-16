@@ -97,7 +97,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
-        "tags": ABCPropertyGraphConstants.PROP_TAGS
+        "tags": ABCPropertyGraphConstants.PROP_TAGS,
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
     }
 
     @abstractmethod
@@ -533,6 +534,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
+        if sliver.boot_script is not None:
+            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -716,7 +719,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
+                         boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                          )
         return n
 

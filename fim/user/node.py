@@ -181,6 +181,15 @@ class Node(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
+
     def get_sliver(self) -> NodeSliver:
         """
         Get a deep sliver representation of this node from graph
