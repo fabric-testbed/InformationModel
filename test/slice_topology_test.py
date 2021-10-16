@@ -1,4 +1,5 @@
 import unittest
+import json
 
 import fim.user as f
 
@@ -7,6 +8,7 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.gateway import Gateway
 from fim.slivers.capacities_labels import Labels
 from fim.user.model_element import TopologyException
+from fim.slivers.measurement_data import MeasurementDataError
 
 
 class SliceTest(unittest.TestCase):
@@ -194,6 +196,36 @@ class SliceTest(unittest.TestCase):
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
         n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
 
+        #tags on model elements (nodes, links, components, interfaces, network services)
+        n1.tags = f.Tags('blue', 'heavy')
+        self.assertTrue('blue' in n1.tags)
+        # unset the tags
+        n1.tags = None
+        self.assertEqual(n1.tags, None)
+
+        # measurement data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string not to exceed 1M)
+        n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
+        # you are guaranteed that whatever is on mf_data is JSON parsable if it isn't None
+        mf_object1 = json.loads(n1.mf_data.data)
+        self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.mf_data, None)
+        # you can also set it as MeasurementData object, not string
+        my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
+        n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.mf_data = None
+        self.assertIsNone(n1.mf_data)
+
+        with self.assertRaises(MeasurementDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.mf_data = f.MeasurementData("not parsable json")
+        with self.assertRaises(MeasurementDataError):
+            # or directly as string
+            n1.mf_data = 'random string'
+
         gpu1 = n1.components['gpu1']
         nic1 = n1.components['nic1']
         nic2 = n2.components['nic2']
@@ -221,9 +253,8 @@ class SliceTest(unittest.TestCase):
 
         self.assertEqual(s1.layer, f.Layer.L2)
 
+        # this is typically done by orchestrator
         s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
-
-        print(f'{s1=}')
 
         self.assertEqual(s1.gateway.gateway, "192.168.1.1")
         self.assertEqual(s1.gateway.subnet, "192.168.1.0/24")
