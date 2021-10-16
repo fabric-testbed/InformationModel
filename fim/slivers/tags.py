@@ -89,7 +89,7 @@ class Tags:
             raise TagException(f'Tag {tag} does not match expected pattern {Tags.TAG_PATTERN}')
 
     def __iter__(self):
-        return iter(self.tags)
+        return iter(list(self.tags))
 
 
 class TagException(Exception):
