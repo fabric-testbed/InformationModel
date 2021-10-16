@@ -31,6 +31,8 @@ from abc import ABC, abstractmethod
 
 from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, ReservationInfo, StructuralInfo
 from fim.slivers.delegations import Delegations
+from fim.slivers.tags import Tags
+from fim.slivers.measurement_data import MeasurementData
 
 
 class BaseSliver(ABC):
@@ -55,6 +57,8 @@ class BaseSliver(ABC):
         self.details = None
         self.node_map = None
         self.stitch_node = False
+        self.tags = None # list of strings, limited in length
+        self.mf_data = None # opaque JSON object limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -63,18 +67,21 @@ class BaseSliver(ABC):
         return self.resource_type
 
     def set_name(self, resource_name: str):
+        assert(resource_name is None or isinstance(resource_name, str))
         self.resource_name = resource_name
 
     def get_name(self):
         return self.resource_name
 
     def set_model(self, resource_model: str):
+        assert(resource_model is None or isinstance(resource_model, str))
         self.resource_model = resource_model
 
     def get_model(self):
         return self.resource_model
 
     def set_capacities(self, cap: Capacities) -> None:
+        assert (cap is None or isinstance(cap, Capacities))
         assert(cap is None or isinstance(cap, Capacities))
         self.capacities = cap
 
@@ -144,7 +151,12 @@ class BaseSliver(ABC):
         return self.details
 
     def set_node_map(self, node_map: Tuple[str, str]) -> None:
-        self.node_map = node_map
+        assert(node_map is None or isinstance(node_map, tuple) or
+               isinstance(node_map, list))
+        if node_map is not None:
+            self.node_map = tuple(node_map)
+        else:
+            self.node_map = None
 
     def get_node_map(self) -> Tuple[str, str] or None:
         return tuple(self.node_map) if self.node_map is not None else None
@@ -154,6 +166,21 @@ class BaseSliver(ABC):
 
     def get_stitch_node(self) -> bool:
         return self.stitch_node
+
+    def set_tags(self, tags: Tags) -> None:
+        assert(tags is None or isinstance(tags, Tags))
+        self.tags = tags
+
+    def get_tags(self) -> Tags or None:
+        return self.tags
+
+    def set_mf_data(self, mf_data: MeasurementData or None) -> None:
+        assert(mf_data is None or
+               isinstance(mf_data, MeasurementData))
+        self.mf_data = mf_data
+
+    def get_mf_data(self) -> MeasurementData or None:
+        return self.mf_data
 
     def set_properties(self, **kwargs):
         """
