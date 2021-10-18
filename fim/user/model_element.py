@@ -184,7 +184,8 @@ class ModelElement(ABC):
 
     @property
     def mf_data(self):
-        return self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
+        d = self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
+        return d.data if d is not None else None
 
     @mf_data.setter
     def mf_data(self, value):

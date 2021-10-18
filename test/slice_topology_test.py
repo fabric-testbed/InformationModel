@@ -218,7 +218,7 @@ class SliceTest(unittest.TestCase):
         n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
         # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
         # an object
-        mf_object1 = n1.mf_data.data
+        mf_object1 = n1.mf_data
         self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
         # when nothing is set, it is None
         self.assertEqual(n2.mf_data, None)
@@ -237,11 +237,9 @@ class SliceTest(unittest.TestCase):
         my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
         n1.mf_data = my_meas_data_object
 
-        # *** regardless of how you set it, what you get back is a MeasurementData object ***
-        self.assertTrue(isinstance(n1.mf_data, f.MeasurementData))
-        # and to get to the object inside of it, reference .data property (in this case it's a dict)
-        self.assertTrue(isinstance(n1.mf_data.data, dict))
-        mf_object2 = n1.mf_data.data
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.mf_data, dict))
+        mf_object2 = n1.mf_data
         self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
 
         class MyClass:
