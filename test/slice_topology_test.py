@@ -470,3 +470,26 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.graphml')
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+
+    def testL3Service(self):
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n2', site='RENC')
+        self.topo.add_node(name='n3', site='UKY')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+
+        # one L3 service per site
+        s1 = self.topo.add_network_service(name='v4UKY', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=self.topo.nodes['n3'].interface_list)
+        s2 = self.topo.add_network_service(name='v4RENC', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=[self.topo.nodes['n1'].interface_list[0],
+                                                  self.topo.nodes['n2'].interface_list[0]])
+        # adding interfaces belonging to nodes from diffeerent sites is a no no
+        with self.assertRaises(TopologyException):
+            self.topo.add_network_service(name='bad_service', nstype=f.ServiceType.FABNetv4,
+                                          interfaces=self.topo.interface_list)
+        # site property is set automagically
+        self.assertEqual(s1.site, 'UKY')
+        self.assertEqual(s2.site, 'RENC')
+
