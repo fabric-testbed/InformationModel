@@ -99,11 +99,14 @@ class Interface(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a interface property
+        Set a interface property or unset if pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         if_sliver = InterfaceSliver()
         if_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

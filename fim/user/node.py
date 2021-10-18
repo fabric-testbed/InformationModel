@@ -181,6 +181,15 @@ class Node(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
+
     def get_sliver(self) -> NodeSliver:
         """
         Get a deep sliver representation of this node from graph
@@ -201,11 +210,14 @@ class Node(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a node property
+        Set a node property or unset if pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         node_sliver = NodeSliver()
         node_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

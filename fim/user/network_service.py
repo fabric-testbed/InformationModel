@@ -351,11 +351,14 @@ class NetworkService(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a service property
+        Set a service property or unset of pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         service_sliver = NetworkServiceSliver()
         service_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

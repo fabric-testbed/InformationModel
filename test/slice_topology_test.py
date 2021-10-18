@@ -1,4 +1,5 @@
 import unittest
+import json
 
 import fim.user as f
 
@@ -7,6 +8,7 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.gateway import Gateway
 from fim.slivers.capacities_labels import Labels
 from fim.user.model_element import TopologyException
+from fim.slivers.measurement_data import MeasurementDataError
 
 
 class SliceTest(unittest.TestCase):
@@ -194,6 +196,73 @@ class SliceTest(unittest.TestCase):
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
         n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
 
+        #tags on model elements (nodes, links, components, interfaces, network services)
+        n1.tags = f.Tags('blue', 'heavy')
+        self.assertTrue('blue' in n1.tags)
+        # unset the tags
+        n1.tags = None
+        self.assertEqual(n1.tags, None)
+
+        #boot script on nodes only
+        n1.boot_script = """
+        #!/bin/bash
+        
+        echo *
+        """
+        self.assertTrue("bash" in n1.boot_script)
+        n1.boot_script = None
+        self.assertIsNone(n1.boot_script)
+
+        # measurement data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string length not to exceed 1M)
+        n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
+        # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
+        # an object
+        mf_object1 = n1.mf_data
+        self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.mf_data, None)
+
+        # you can also set it as MeasurementData object
+        my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
+        n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
+
+        # you can also just pass a JSON serializable object to MeasurementData constructor:
+        n1.mf_data = f.MeasurementData(my_meas_data_object)
+        # or even an serializable object itself. Either way the limit of 1M on the JSON string
+        # length is enforced
+        n1.mf_data = my_meas_data_object
+
+        # for most uses, just set the object
+        my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
+        n1.mf_data = my_meas_data_object
+
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.mf_data, dict))
+        mf_object2 = n1.mf_data
+        self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_meas_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(MeasurementDataError):
+            n1.mf_data = bad_meas_data_object
+
+        # also cannot use bad strings
+        with self.assertRaises(MeasurementDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.mf_data = f.MeasurementData("not parsable json")
+        with self.assertRaises(MeasurementDataError):
+            # or directly as string
+            n1.mf_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.mf_data = None
+        self.assertIsNone(n1.mf_data)
+
         gpu1 = n1.components['gpu1']
         nic1 = n1.components['nic1']
         nic2 = n2.components['nic2']
@@ -221,9 +290,8 @@ class SliceTest(unittest.TestCase):
 
         self.assertEqual(s1.layer, f.Layer.L2)
 
+        # this is typically done by orchestrator
         s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
-
-        print(f'{s1=}')
 
         self.assertEqual(s1.gateway.gateway, "192.168.1.1")
         self.assertEqual(s1.gateway.subnet, "192.168.1.0/24")

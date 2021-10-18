@@ -45,6 +45,8 @@ from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
+from fim.slivers.tags import Tags
+from fim.slivers.measurement_data import MeasurementData
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
@@ -92,7 +94,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "structural_info": ABCPropertyGraphConstants.PROP_STRUCTURAL_INFO,
         "ero": ABCPropertyGraphConstants.PROP_ERO,
         "path_info": ABCPropertyGraphConstants.PROP_PATH_INFO,
-        "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL
+        "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
+        "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
+        "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
+        "tags": ABCPropertyGraphConstants.PROP_TAGS,
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
     }
 
     @abstractmethod
@@ -499,6 +505,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_NODE_MAP] = json.dumps(sliver.node_map)
         # boolean is always there. use json dumps for simplicity
         prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
+        # this is already a JSON dict
+        if sliver.mf_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
+        if sliver.tags is not None:
+            prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
 
         return prop_dict
 
@@ -523,6 +534,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
+        if sliver.boot_script is not None:
+            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -684,7 +697,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
                               d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
                               stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]) if
-                              d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False
+                              d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False,
+                              tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
+                              mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
+                                                      if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
+                                                         is not None else None
                               )
 
     @staticmethod
@@ -702,7 +719,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
+                         boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                          )
         return n
 
