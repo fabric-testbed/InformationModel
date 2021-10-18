@@ -24,36 +24,47 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 from abc import ABC
+from typing import Any
 
 import json
 
 
 class MeasurementData:
     """
-    Measurement data attaches as a property on any node and is an opaque JSON blob
+    Measurement data attaches as a property on any graph node and is represented as an opaque JSON blob
     """
-    def __init__(self, data: str or None):
+    def __init__(self, data: Any or None):
         """
         data has to be a valid JSON string
         :param data:
         """
-        try:
-            if data is not None and len(data) > 0:
-                if len(data) > 1024*1024:
-                    raise MeasurementDataError(f'MeasurementData JSON string is too long ({len(data)} > 1024*1024')
+
+        if data is not None and isinstance(data, str):
+            if len(data) > 1024*1024:
+                raise MeasurementDataError(f'MeasurementData JSON string is too long ({len(data)} > 1024*1024')
+            try:
                 json.loads(data)
-                self._data = data
-            else:
-                self._data = "{}"
-        except json.JSONDecodeError:
-            raise MeasurementDataError(f'Unable to decode measurement data {data} as valid JSON ')
+            except json.JSONDecodeError:
+                raise MeasurementDataError(f'Unable to decode measurement data {data} as valid JSON ')
+            self._data = data
+        elif data is not None:
+            try:
+                self._data = json.dumps(data)
+                if len(self._data) > 1024*1024:
+                    raise MeasurementDataError(f'MeasurementData object is too large: {len(self._data)} > 1024*1024')
+            except TypeError:
+                raise MeasurementDataError(f'Unable to encode data as valid JSON')
+        else:
+            self._data = "{}"
 
     @property
     def data(self):
+        if self._data is not None:
+            return json.loads(self._data)
         return self._data
 
     def __str__(self):
-        return self._data or ""
+        return str(self._data)
 
     def __repr(self):
         return str(self)

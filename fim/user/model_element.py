@@ -191,7 +191,7 @@ class ModelElement(ABC):
         if self.__dict__.get('topo', None) is not None:
             if value is None or isinstance(value, MeasurementData):
                 self.set_property('mf_data', value)
-            elif isinstance(value, str):
+            else:
                 self.set_property('mf_data', MeasurementData(value))
 
     def update_labels(self, **kwargs):

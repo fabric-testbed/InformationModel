@@ -214,27 +214,56 @@ class SliceTest(unittest.TestCase):
         self.assertIsNone(n1.boot_script)
 
         # measurement data on model elements (nodes, links, components, interfaces, network services)
-        # can be set simply as json string (string not to exceed 1M)
+        # can be set simply as json string (string length not to exceed 1M)
         n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
-        # you are guaranteed that whatever is on mf_data is JSON parsable if it isn't None
-        mf_object1 = json.loads(n1.mf_data.data)
+        # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
+        # an object
+        mf_object1 = n1.mf_data.data
         self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
         # when nothing is set, it is None
         self.assertEqual(n2.mf_data, None)
-        # you can also set it as MeasurementData object, not string
+
+        # you can also set it as MeasurementData object
         my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
         n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
 
-        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
-        n1.mf_data = None
-        self.assertIsNone(n1.mf_data)
+        # you can also just pass a JSON serializable object to MeasurementData constructor:
+        n1.mf_data = f.MeasurementData(my_meas_data_object)
+        # or even an serializable object itself. Either way the limit of 1M on the JSON string
+        # length is enforced
+        n1.mf_data = my_meas_data_object
 
+        # for most uses, just set the object
+        my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
+        n1.mf_data = my_meas_data_object
+
+        # *** regardless of how you set it, what you get back is a MeasurementData object ***
+        self.assertTrue(isinstance(n1.mf_data, f.MeasurementData))
+        # and to get to the object inside of it, reference .data property (in this case it's a dict)
+        self.assertTrue(isinstance(n1.mf_data.data, dict))
+        mf_object2 = n1.mf_data.data
+        self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_meas_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(MeasurementDataError):
+            n1.mf_data = bad_meas_data_object
+
+        # also cannot use bad strings
         with self.assertRaises(MeasurementDataError):
             # you cannot assign non-json string to measurement data either as MeasurementData object
             n1.mf_data = f.MeasurementData("not parsable json")
         with self.assertRaises(MeasurementDataError):
             # or directly as string
             n1.mf_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.mf_data = None
+        self.assertIsNone(n1.mf_data)
 
         gpu1 = n1.components['gpu1']
         nic1 = n1.components['nic1']
