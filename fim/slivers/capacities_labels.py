@@ -318,29 +318,36 @@ class Labels(JSONField):
     and decoding from JSON dictionaries of properties
     """
     VALIDATORS = {
-        'bdf': '[0-9a-fA-F]{1,4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}.[0-9a-fA-F]+',
-        'mac': '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}',
-        'ipv4': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
-        'ipv4_range': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)-'
+        'bdf': ('[0-9a-fA-F]{1,4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}.[0-9a-fA-F]+', "0000:00:00.0"),
+        'mac': ('([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', "00:11:22:33:44:55"),
+        'ipv4': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+                 "192.168.1.1"),
+        'ipv4_range': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)-'
                       r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
-        'ipv4_subnet': r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[\d]{1,2}',
-        'ipv6': r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
-        'ipv6_range': r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}-(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
+                       "192.168.1.1-192.168.1.10"),
+        'ipv4_subnet': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[\d]{1,2}',
+                        "192.168.1.0/24"),
+        'ipv6': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
+                 "2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
+        'ipv6_range': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}-(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
+                      "2001:0db8:85a3:0000:0000:8a2e:0370:7334-2001:0db8:85a3:0000:0000:8a2e:0370:8334"),
         # we allow fewer than 128 (and not necessarily 64) bits to be specified, unlike ipv6 address
         # where we require the full 128 even if some of them are just ':::'
-        'ipv6_subnet': r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}/[\d]{1,2}',
-        'asn': r'[\d]+',
-        'vlan': r'[\d]{1,4}',
-        'vlan_range': r'[\d]{1,4}-[\d]{1,4}',
-        'inner_vlan': r'[\d]{1,4}'
+        'ipv6_subnet': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}/[\d]{1,2}',
+                        "2001:0db8:85a3:0000:0000/48"),
+        'asn': (r'[\d]+', "12345"),
+        'vlan': (r'[\d]{1,4}', "1234"),
+        'vlan_range': (r'[\d]{1,4}-[\d]{1,4}', "100-200"),
+        'inner_vlan': (r'[\d]{1,4}', "1234")
     }
     LAMBDA_VALIDATORS = {
-        'vlan': (lambda v: True if 0 < int(v) <= 4096 else False),
-        'inner_vlan': (lambda v: True if 0 < int(v) <= 4096 else False),
-        'vlan_range': (lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
+        'vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
+        'inner_vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
+        'vlan_range': ((lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
                                          0 < int(v.split('-')[1]) <= 4096 and
                                          int(v.split('-')[0]) < int(v.split('-')[1]) else False),
-        'asn': (lambda a: True if 0 < int(a) < 65536 else False)
+                       "1-4096"),
+        'asn': ((lambda a: True if 0 < int(a) < 65536 else False), "1-65535")
     }
 
     def __init__(self, **kwargs):
@@ -379,25 +386,29 @@ class Labels(JSONField):
                 if self.VALIDATORS.get(k, None) is not None:
                     if isinstance(v, list):
                         for i in v:
-                            matches = re.match('^' + self.VALIDATORS[k] + '$', i)
+                            matches = re.match('^' + self.VALIDATORS[k][0] + '$', i)
                             if matches is None:
                                 raise LabelException(f'Provided label value {i} for {k} does not match the allowed '
-                                                     f'regular expression {self.VALIDATORS[k]}')
+                                                     f'regular expression {self.VALIDATORS[k][0]}, valid example is '
+                                                     f'{self.VALIDATORS[k][1]}')
                     else:
-                        matches = re.match('^' + self.VALIDATORS[k] + '$', v)
+                        matches = re.match('^' + self.VALIDATORS[k][0] + '$', v)
                         if matches is None:
                             raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
-                                                 f'regular expression {self.VALIDATORS[k]}')
+                                                 f'regular expression {self.VALIDATORS[k][0]}, valid example is '
+                                                 f'{self.VALIDATORS[k][1]}')
                 if self.LAMBDA_VALIDATORS.get(k, None) is not None:
                     if isinstance(v, list):
                         for i in v:
-                            res = self.LAMBDA_VALIDATORS[k](i)
+                            res = self.LAMBDA_VALIDATORS[k][0](i)
                             if res is False:
-                                raise LabelException(f'Provided label value {i} for {k} does is not valid.')
+                                raise LabelException(f'Provided label value {i} for {k} must be in a valid '
+                                                     f'range {self.LAMBDA_VALIDATORS[k][1]}')
                     else:
-                        res = self.LAMBDA_VALIDATORS[k](v)
+                        res = self.LAMBDA_VALIDATORS[k][0](v)
                         if res is False:
-                            raise LabelException(f'Provided label value {v} for {k} does is not valid.')
+                            raise LabelException(f'Provided label value {v} for {k} must be in a valid '
+                                                 f'range {self.LAMBDA_VALIDATORS[k][1]}')
 
                 self.__setattr__(k, v)
             except AttributeError:

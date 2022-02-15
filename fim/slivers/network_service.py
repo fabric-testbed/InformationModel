@@ -70,6 +70,7 @@ class ServiceType(enum.Enum):
     FABNetv6 = enum.auto() # FABRIC IPv6 routed network
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
+    VLAN = enum.auto() # a local VLAN (internal to site)
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -103,6 +104,9 @@ class NetworkServiceSliver(BaseSliver):
         ServiceType.OVS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                  num_instances=NO_LIMIT,
                                                  desc='An OVS generic service.'),
+        ServiceType.VLAN: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
+                                                 num_instances=NO_LIMIT,
+                                                 desc='An local VLAN service in a site.'),
         ServiceType.MPLS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                   num_instances=NO_LIMIT, desc='An MPLS generic service'),
         ServiceType.L2Path: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=2,

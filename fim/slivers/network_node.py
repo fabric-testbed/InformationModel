@@ -39,6 +39,7 @@ class NodeType(enum.Enum):
     Container = enum.auto()
     Switch = enum.auto()
     NAS = enum.auto()
+    Facility = enum.auto()
 
     def help(self) -> str:
         return 'A ' + self.name

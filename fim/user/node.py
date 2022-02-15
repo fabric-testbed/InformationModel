@@ -38,7 +38,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryExcep
 
 from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
-from ..slivers.network_service import ServiceType
+from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
 from ..slivers.capacities_labels import CapacityHints, Location
 
@@ -56,10 +56,9 @@ class Node(ModelElement):
     network_services - returns a dictionary of network_services (mostly relevant
     to switches, not servers or VMs)
     """
-    SETTABLE_PROPERTIES = ['site', 'name']
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,
-                 ntype: NodeType = None, site: str = None, **kwargs):
+                 ntype: NodeType = None, site: str = None, ns_info: NetworkServiceInfo = None, **kwargs):
         """
         Don't call this method yourself, call topology.add_node()
         node_id will be generated if not provided for experiment topologies
@@ -70,6 +69,7 @@ class Node(ModelElement):
         :param etype: is this supposed to exist or new should be created
         :param ntype: node type if it is new
         :param site: node site
+        :param ns_info: NetworkServiceInfo structure
         :param kwargs: any additional properties
         """
         assert name is not None
@@ -94,6 +94,7 @@ class Node(ModelElement):
             sliver.set_name(self.name)
             sliver.set_type(ntype)
             sliver.set_site(site)
+            sliver.network_service_info = ns_info
             sliver.set_properties(**kwargs)
             self.topo.graph_model.add_network_node_sliver(sliver=sliver)
         else:
@@ -272,7 +273,7 @@ class Node(ModelElement):
 
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType, **kwargs) -> NetworkService:
         """
-        Add a network service to node (mostly needed in substrate topologies)
+        Add a network service to node ( needed in substrate topologies)
         :param name:
         :param node_id:
         :param layer:
