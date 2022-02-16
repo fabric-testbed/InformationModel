@@ -81,13 +81,10 @@ class NetworkService(ModelElement):
                 raise TopologyException("When creating new services you must specify ServiceType")
             # cant use isinstance as it would create circular import dependencies
             # We do more careful checks for ExperimentTopologies, but for substrate we let things loose
-            if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
-                if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
-                                                                  not isinstance(interfaces, list)):
-                    raise TopologyException("When creating new services in ExperimentTopology you "
-                                            "must specify the list of interfaces to connect.")
+            if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>" and interfaces:
                 sites = self.validate_service_constraints(nstype, interfaces)
 
+                # if a single-site service
                 if len(sites) == 1:
                     site = sites.pop()
 
@@ -195,7 +192,7 @@ class NetworkService(ModelElement):
         Note that interfaces is a list of interfaces belonging to nodes!
         :param nstype:
         :param interfaces:
-        :return:
+        :return: a list of sites the service covers
         """
         # check the number of instances of this service
         if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
@@ -203,28 +200,25 @@ class NetworkService(ModelElement):
                                                                              ntype=str(nstype))
             if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
                 raise TopologyException(f"Service type {nstype} cannot have {len(services) + 1} instances. "
-                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
+                                        f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
         # check the number of interfaces
         if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
             if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
                 raise TopologyException(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
-                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
+                                        f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
         sites = set()
         # check the number of sites spanned by this service
         if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:
             # trace ownership of each interface and count the sites involved
             for interface in interfaces:
-                if interface.type != InterfaceType.StitchPort:
-                    owner = self.topo.get_owner_node(interface)
-                    if owner is None:
-                        print(f'Interface {interface=} has no owner')
-                    sites.add(owner.site)
-                else:
-                    sites.add(interface.name)
+                owner = self.topo.get_owner_node(interface)
+                if owner is None:
+                    print(f'Interface {interface=} has no owner')
+                sites.add(owner.site)
 
             if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
                 raise TopologyException(f"Service of type {nstype} cannot span {len(sites)} sites. "
-                                   f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
+                                        f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
 
         return sites
 
@@ -243,7 +237,7 @@ class NetworkService(ModelElement):
         if sliver.get_type() == ServiceType.L2PTP and \
             interface.type == InterfaceType.SharedPort:
             raise TopologyException(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
-                               f"L2P2P service currently doesn't support shared interfaces")
+                                    f"L2P2P service currently doesn't support shared interfaces")
         if sliver.get_type() == ServiceType.L2STS and \
             interface.type == InterfaceType.SharedPort:
             print('WARNING: Current implementation of L2STS service does not support hairpins (connections withing the '
@@ -262,8 +256,7 @@ class NetworkService(ModelElement):
         assert isinstance(interface, Interface)
 
         # we can only connect interfaces connected to (compute or switch) nodes,
-        # unless they are stitch ports
-        if interface.type != InterfaceType.StitchPort and self.topo.get_owner_node(interface) is None:
+        if self.topo.get_owner_node(interface) is None:
             raise TopologyException(f'Interface {interface} is not owned by a node, as expected.')
         # we can only connect interfaces that aren't already connected
         peer_ids = self.topo.graph_model.find_peer_connection_points(node_id=interface.node_id)
@@ -305,7 +298,7 @@ class NetworkService(ModelElement):
     def add_interface(self, *, name: str, node_id: str = None, itype: InterfaceType = InterfaceType.TrunkPort,
                       **kwargs):
         """
-        Add an interface to node (mostly needed in substrate topologies)
+        Add an interface to network service
         :param name:
         :param node_id:
         :param itype: interface type e.g. TrunkPort, AccessPort or VINT
@@ -313,9 +306,6 @@ class NetworkService(ModelElement):
         :return:
         """
         assert name is not None
-        # cant use isinstance as it would create circular import dependencies
-        if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
-            raise TopologyException("Do not need to add interface to NetworkService in Experiment topology")
 
         # check uniqueness
         if name in self.__list_interfaces().keys():

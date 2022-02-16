@@ -286,7 +286,15 @@ class SliceTest(unittest.TestCase):
 
         #s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
 
-        s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=self.topo.interface_list)
+        s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=[n1.interface_list[0],
+                                                                                              n2.interface_list[0],
+                                                                                              n3.interface_list[0]])
+
+        # facilities
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10))
+        sfac = self.topo.add_network_service(name='s-fac', nstype=f.ServiceType.L2STS,
+                                             interfaces=[fac1.interface_list[0],
+                                             n1.interface_list[1]])
 
         self.assertEqual(s1.layer, f.Layer.L2)
 
@@ -297,7 +305,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(s1.gateway.subnet, "192.168.1.0/24")
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 6)
+        self.assertEqual(len(s1.interface_list), 3)
         self.topo.validate()
 
         s1p = self.topo.network_services['s1']
@@ -307,36 +315,19 @@ class SliceTest(unittest.TestCase):
         s1.disconnect_interface(interface=p1)
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 5)
+        self.assertEqual(len(s1.interface_list), 2)
 
         # validate the topology
         self.topo.validate()
 
         self.topo.remove_network_service('s1')
 
-        # stitch ports
-        self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[1])
-        self.topo.add_stitch_port(name='my-other-stitch-port', peer=self.topo.interface_list[2])
-        self.assertEqual(len(self.topo.stitch_ports), 2)
-        with self.assertRaises(TopologyException):
-            # name collision
-            self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[0])
-        with self.assertRaises(TopologyException):
-            # port collision
-            self.topo.add_stitch_port(name='my-stitch-port', peer=self.topo.interface_list[2])
-
         with self.assertRaises(TopologyException):
             # connection conflict
             s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                               interfaces=self.topo.interface_list[2:4])
+                                               interfaces=[self.topo.interface_list[0]])
         # remove malformed service
         self.topo.remove_network_service(name='s2')
-
-        # remove conflicting stitch ports
-        self.topo.remove_stitch_port(name='my-stitch-port')
-        self.topo.remove_stitch_port(name='my-other-stitch-port')
-
-        self.assertEqual(len(self.topo.stitch_ports), 0)
 
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
                                            interfaces=self.topo.interface_list[2:4])
@@ -344,14 +335,14 @@ class SliceTest(unittest.TestCase):
         print(f'S2 has these interfaces: {s2.interface_list}')
 
         print(f'There are {self.topo.links} left in topology')
-        self.assertEqual(len(self.topo.links), 2)
+        self.assertEqual(len(self.topo.links), 4)
         print(f'Network services {self.topo.network_services}')
-        self.assertEqual(len(self.topo.network_services), 5)
+        self.assertEqual(len(self.topo.network_services), 7)
         self.topo.remove_network_service('s2')
         self.topo.validate()
-        self.assertEqual(len(self.topo.network_services), 4)
+        self.assertEqual(len(self.topo.network_services), 6)
         n1.remove_component('nic1')
-        self.assertEqual(len(self.topo.network_services), 3)
+        self.assertEqual(len(self.topo.network_services), 5)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 

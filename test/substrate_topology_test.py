@@ -983,9 +983,9 @@ class AdTest(unittest.TestCase):
                                      node_id=dp_port_id(switch.name, dp),
                                      labels=port_labs, capacities=port_caps)
 
-        stitch_port_facing_port = dp_ns.add_interface(name='HundredDigE0/0/0/99', itype=f.InterfaceType.TrunkPort,
-                                                      node_id=dp_port_id(switch.name, 'HundredDigE0/0/0/99'),
-                                                      labels=port_labs, capacities=port_caps)
+        facility_port_facing_port = dp_ns.add_interface(name='HundredDigE0/0/0/99', itype=f.InterfaceType.TrunkPort,
+                                                        node_id=dp_port_id(switch.name, 'HundredDigE0/0/0/99'),
+                                                        labels=port_labs, capacities=port_caps)
 
 
         for dp in dp_ports_25g:
@@ -1001,9 +1001,6 @@ class AdTest(unittest.TestCase):
         renc_lbnl = dp_ns.add_interface(name='HundredGigE0/0/0/27', itype=f.InterfaceType.TrunkPort,
                                         node_id=dp_port_id(switch.name, 'HundredGigE0/0/0/27'),
                                         capacities=port_caps)
-
-        # a FacilityPort
-
 
         site = 'UKY'
         # DP switch
@@ -1115,17 +1112,20 @@ class AdTest(unittest.TestCase):
                                 interfaces=[renc_lbnl, lbnl_renc],
                                 node_id=renc_lbnl.node_id + '-Wave')
 
+        # add two separate facility nodes (and associated network services and interfaces)
+        fac1 = self.topo.add_facility(name='RENCI-DTN', node_id='RENCI-DTN-id', site='RENC',
+                                      capacities=f.Capacities(mtu=1500, bw=10))
+        fac2 = self.topo.add_facility(name='RENCI-BEN', node_id='RENCI-BEN-id', site='RENC',
+                                      labels=f.Labels(ipv4_range='192.168.1.1-192.168.1.10',
+                                                      vlan_range='1-100'),
+                                      capacities=f.Capacities(mtu=9000))
 
-        # add a facility port at RENCI
-        self.topo.add_facility_port(name='RENCI-DC', node_id='RENCI-DC-id', peer=stitch_port_facing_port,
-                                    labels=f.Labels(vlan_range='1-10', ipv4_range='192.168.1.1-192.168.1.20',
-                                                  local_name='name-of-port-on-facility-switch'),
-                                    capacities=f.Capacities(mtu=1500, bw=10000))
-
-        self.topo.add_facility_port(name='RENCI-DC1', node_id='RENCI-DC1-id', peer=stitch_port_facing_port,
-                                    labels=f.Labels(vlan_range='11-20', ipv4_range='192.168.2.1-192.168.2.20',
-                                                    local_name='name-of-port-on-facility-switch'),
-                                    capacities=f.Capacities(mtu=1500, bw=10000))
+        # connect them to a common link along with the port facing the facility
+        fac_port_link = self.topo.add_link(name='RENCI-DC-link', node_id='RENCI-DC-link-id',
+                                           ltype=f.LinkType.L2Path,
+                                           interfaces=[fac1.interface_list[0], # only one interface available
+                                                       fac2.interface_list[0], # only one interface available
+                                                       facility_port_facing_port])
 
         delegation1 = 'primary'
         print('RUNNING NETWORK AD DELEGATIONS')
