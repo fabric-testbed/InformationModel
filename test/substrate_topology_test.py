@@ -1120,12 +1120,15 @@ class AdTest(unittest.TestCase):
                                                       vlan_range='1-100'),
                                       capacities=f.Capacities(mtu=9000))
 
-        # connect them to a common link along with the port facing the facility
-        fac_port_link = self.topo.add_link(name='RENCI-DC-link', node_id='RENCI-DC-link-id',
-                                           ltype=f.LinkType.L2Path,
-                                           interfaces=[fac1.interface_list[0], # only one interface available
-                                                       fac2.interface_list[0], # only one interface available
-                                                       facility_port_facing_port])
+        # connect them to links along with the port facing the facility
+        fac1_port_link = self.topo.add_link(name='RENCI-DC-link1', node_id='RENCI-DC-link1-id',
+                                            ltype=f.LinkType.L2Path,
+                                            interfaces=[fac1.interface_list[0], # only one interface available
+                                                        facility_port_facing_port])
+        fac2_port_link = self.topo.add_link(name='RENCI-DC-link2', node_id='RENCI-DC-link2-id',
+                                            ltype=f.LinkType.L2Path,
+                                            interfaces=[fac2.interface_list[0], # only one interface available
+                                                        facility_port_facing_port])
 
         delegation1 = 'primary'
         print('RUNNING NETWORK AD DELEGATIONS')

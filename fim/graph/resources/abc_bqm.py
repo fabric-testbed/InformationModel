@@ -39,18 +39,28 @@ class ABCBQMPropertyGraph(ABCPropertyGraph):
     def __init__(self, *, graph_id: str, importer, logger=None):
         super().__init__(graph_id=graph_id, importer=importer, logger=logger)
 
+    def __get_node_components(self, parent_node_id: str, claz: str) -> List[str]:
+        assert parent_node_id is not None
+        # check that parent is a NetworkNode
+        labels, parent_props = self.get_node_properties(node_id=parent_node_id)
+        if claz not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
+                                              msg=f"Parent node type is not {claz}")
+        return self.get_first_neighbor(node_id=parent_node_id, rel=ABCPropertyGraph.REL_HAS,
+                                       node_label=ABCPropertyGraph.CLASS_Component)
+
     def get_all_composite_node_components(self, parent_node_id: str) -> List[str]:
         """
         Return a list of components, children of a prent (presumably composite node)
         :param parent_node_id:
         :return:
         """
-        assert parent_node_id is not None
-        # check that parent is a NetworkNode
-        labels, parent_props = self.get_node_properties(node_id=parent_node_id)
-        if ABCPropertyGraph.CLASS_CompositeNode not in labels:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
-                                              msg="Parent node type is not Composite")
-        return self.get_first_neighbor(node_id=parent_node_id, rel=ABCPropertyGraph.REL_HAS,
-                                       node_label=ABCPropertyGraph.CLASS_Component)
+        return self.__get_node_components(parent_node_id, ABCPropertyGraph.CLASS_CompositeNode)
 
+    def get_all_network_node_components(self, parent_node_id: str) -> List[str]:
+        """
+        Return a list of components, children of a prent (presumably composite node)
+        :param parent_node_id:
+        :return:
+        """
+        return self.__get_node_components(parent_node_id, ABCPropertyGraph.CLASS_NetworkNode)

@@ -1162,9 +1162,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         assert parent_node_id is not None
         labels, parent_props = self.get_node_properties(node_id=parent_node_id)
         if ABCPropertyGraph.CLASS_NetworkNode not in labels and \
-                ABCPropertyGraph.CLASS_Component not in labels:
+                ABCPropertyGraph.CLASS_Component not in labels and \
+                ABCPropertyGraph.CLASS_CompositeNode not in labels:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
-                                              msg="Parent node type is not NetworkNode or Component")
+                                              msg="Parent node type is not NetworkNode, CompositeNode or Component")
         nss_ifs = self.get_first_and_second_neighbor(node_id=parent_node_id, rel1=ABCPropertyGraph.REL_HAS,
                                                      node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                      rel2=ABCPropertyGraph.REL_CONNECTS,
