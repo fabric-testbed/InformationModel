@@ -706,8 +706,10 @@ class AdvertizedTopology(Topology):
     Topology object to operate on BQM (Query) models returned from e.g.
     listResources etc.
     In addition to publicly visible methods the following calls can be made:
-    topology.sites - a read-only dictionary of nodes in the topology
+    topology.sites - a read-only dictionary of sites in the topology
+    topology.nodes - a read-only dictionary of nodes
     topology.links - a read-only dictionary of links in the topology
+    topology.facilities - a read-only dictionary of facilities
     """
 
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
@@ -744,14 +746,17 @@ class AdvertizedTopology(Topology):
 
     def _get_node_by_id(self, node_id: str) -> Node:
         """
-        Get node by its node_id, return Node object
+        Get node by its node_id, return Node or CompositeNode object
         :param node_id:
         :return:
         """
         assert node_id is not None
-        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
+        claz, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        if claz[0] == ABCPropertyGraph.CLASS_CompositeNode:
+            return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        elif claz[0] == ABCPropertyGraph.CLASS_NetworkNode:
+            return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def _get_link_by_id(self, node_id: str) -> Link:
         """
@@ -813,7 +818,8 @@ class AdvertizedTopology(Topology):
         ret = dict()
         for nid in fac_ids:
             n = self._get_node_by_id(nid)
-            ret[n.name] = n
+            if n.type == NodeType.Facility:
+                ret[n.name] = n
         return ViewOnlyDict(ret)
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
@@ -849,19 +855,15 @@ class AdvertizedTopology(Topology):
             # build two-element lists of which nodes should be connected by edges
             # indexed by link name
             graph_edges = defaultdict(list)
-            for n in self.sites.values():
+            all_node_like = list(self.sites.values())
+            all_node_like.extend(self.facilities.values())
+            for n in all_node_like:
                 node_ints = n.interfaces.values()
                 for nint in node_ints:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
                         if nint in l.interface_list:
                             graph_edges[l.name].append(n.name)
-                            #derived_graph.add_edge(n.name, l.name)
-                # add facilities into the mix
-                for fac in self.facilities.values():
-                    # find how they link to other nodes
-                    # FIXME: how do they look in ABQM?
-                    pass
 
             edge_labels = dict()
             for k, v in graph_edges.items():
@@ -906,37 +908,47 @@ class AdvertizedTopology(Topology):
         :return:
         """
         lines = list()
-        for n in self.sites.values():
-            tot_cap = n.capacities
-            alloc_cap = n.get_property('capacity_allocations')
-            if alloc_cap is None:
-                # if nothing is allocated, just zero out
-                alloc_cap = Capacities()
-            if tot_cap is not None:
-                ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
-                lines.append(n.name + ": " + str(ncp))
-            else:
-                lines.append(n.name)
-            lines.append("\tComponents:")
-            for c in n.components.values():
-                ccp = CapacityTuple(total=c.capacities,
-                                    allocated=c.get_property("capacity_allocations"))
-                lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
-                             c.model + " " + str(ccp))
-            lines.append("\tSite Interfaces:")
-            for i in n.interfaces.values():
-                if i.capacities is not None:
-                    icp = CapacityTuple(total=i.capacities,
-                                        allocated=i.get_property("capacity_allocations"))
-                    lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                                str(icp))
-        lines.append("Facilities:")
-        for fp in self.facilities.values():
-            lines.append("\t" + fp.name)
-        lines.append("Links:")
-        for l in self.links.values():
-            interface_names = [iff.name for iff in l.interface_list]
-            lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
-                         str(interface_names))
+        if self.sites:
+            for n in self.sites.values():
+                tot_cap = n.capacities
+                alloc_cap = n.get_property('capacity_allocations')
+                if alloc_cap is None:
+                    # if nothing is allocated, just zero out
+                    alloc_cap = Capacities()
+                if tot_cap is not None:
+                    ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
+                    lines.append(n.name + " [Site] : " + str(ncp))
+                else:
+                    lines.append(n.name + " [Site]")
+                lines.append("\tComponents:")
+                for c in n.components.values():
+                    ccp = CapacityTuple(total=c.capacities,
+                                        allocated=c.get_property("capacity_allocations"))
+                    lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
+                                 c.model + " " + str(ccp))
+                lines.append("\tSite Interfaces:")
+                for i in n.interfaces.values():
+                    if i.capacities is not None:
+                        icp = CapacityTuple(total=i.capacities,
+                                            allocated=i.get_property("capacity_allocations"))
+                        lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                    str(icp))
+        if self.facilities:
+            for fp in self.facilities.values():
+                lines.append(fp.name + " [Facility]")
+                lines.append("\tFacility Interfaces:")
+                for i in fp.interfaces.values():
+                    if i.capacities is not None:
+                        icp = CapacityTuple(total=i.capacities,
+                                            allocated=i.get_property("capacity_allocations"))
+                        lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                    str(icp) + " " + self.__print_caplabs__(i.labels))
+
+        if self.links:
+            lines.append("Links:")
+            for l in self.links.values():
+                interface_names = [iff.name for iff in l.interface_list]
+                lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
+                             str(interface_names))
 
         return "\n".join(lines)
