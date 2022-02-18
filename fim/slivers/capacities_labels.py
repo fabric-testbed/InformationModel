@@ -25,6 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 from typing import List, Dict, Tuple
 import json
+import re
 
 from abc import ABC, abstractmethod
 
@@ -36,10 +37,28 @@ from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 
 class JSONField(ABC):
 
-    @abstractmethod
-    def set_fields(self, **kwargs):
+    @classmethod
+    def update(cls, lab, **kwargs):
         """
-        Set the fields of this object
+        quasi-copy constructor if kwargs are ommitted,
+        otherwise also sets additional fields. Creates a new
+        instance of appropriate subclass and returns it.
+        DOES NOT UPDATE IN PLACE!
+        :param lab:
+        :param kwargs:
+        :return:
+        """
+        assert isinstance(lab, JSONField)
+        inst = lab.__class__()
+        for k, v in lab.__dict__.items():
+            inst.__setattr__(k, v)
+        inst._set_fields(**kwargs)
+        return inst
+
+    @abstractmethod
+    def _set_fields(self, **kwargs):
+        """
+        Abstract private set_fields method
         :param kwargs:
         :return:
         """
@@ -70,7 +89,7 @@ class JSONField(ABC):
             return None
         d = json.loads(json_string)
         ret = cls()
-        ret.set_fields(**d)
+        ret._set_fields(**d)
         return ret
 
     def to_dict(self) -> Dict[str, str] or None:
@@ -104,7 +123,11 @@ class Capacities(JSONField):
     Implements basic capacity field handling - encoding and decoding
     from JSON dictionaries of properties
     """
-    UNITS = {'cpu': '', 'unit': '', 'core': '', 'ram': 'G', 'disk': 'G', 'bw': 'Gbps', 'burst_size': 'Mbits'}
+    UNITS = {'cpu': '', 'unit': '',
+             'core': '', 'ram': 'G',
+             'disk': 'G', 'bw': 'Gbps',
+             'burst_size': 'Mbits',
+             'mtu': 'B'}
 
     def __init__(self, **kwargs):
         self.cpu = 0
@@ -114,9 +137,10 @@ class Capacities(JSONField):
         self.bw = 0
         self.burst_size = 0
         self.unit = 0
-        self.set_fields(**kwargs)
+        self.mtu = 0
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal integer setter for all fields.
         Values should be non-negative integers. Throws a CapacityException
@@ -186,17 +210,20 @@ class Capacities(JSONField):
 
         return ret
 
-    def positive_fields(self, fields: List[str]) -> bool:
+    def positive_fields(self, fields: List[str] or str) -> bool:
         """
         Return true if indicated fields are positive >0
-        :param fields:
+        :param fields: string or list of strings
         :return:
         """
         assert fields is not None
+        if isinstance(fields, str):
+            fields = [fields]
         for f in fields:
             if self.__dict__[f] <= 0:
                 return False
         return True
+
 
     def __str__(self):
         d = self.__dict__.copy()
@@ -247,9 +274,9 @@ class CapacityHints(JSONField):
     """
     def __init__(self, **kwargs):
         self.instance_type = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -290,13 +317,48 @@ class Labels(JSONField):
     Class implementing various encodings of labels field, encoding
     and decoding from JSON dictionaries of properties
     """
+    VALIDATORS = {
+        'bdf': ('[0-9a-fA-F]{1,4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}.[0-9a-fA-F]+', "0000:00:00.0"),
+        'mac': ('([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', "00:11:22:33:44:55"),
+        'ipv4': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+                 "192.168.1.1"),
+        'ipv4_range': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)-'
+                      r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+                       "192.168.1.1-192.168.1.10"),
+        'ipv4_subnet': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[\d]{1,2}',
+                        "192.168.1.0/24"),
+        'ipv6': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
+                 "2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
+        'ipv6_range': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}-(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
+                      "2001:0db8:85a3:0000:0000:8a2e:0370:7334-2001:0db8:85a3:0000:0000:8a2e:0370:8334"),
+        # we allow fewer than 128 (and not necessarily 64) bits to be specified, unlike ipv6 address
+        # where we require the full 128 even if some of them are just ':::'
+        'ipv6_subnet': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}/[\d]{1,2}',
+                        "2001:0db8:85a3:0000:0000/48"),
+        'asn': (r'[\d]+', "12345"),
+        'vlan': (r'[\d]{1,4}', "1234"),
+        'vlan_range': (r'[\d]{1,4}-[\d]{1,4}', "100-200"),
+        'inner_vlan': (r'[\d]{1,4}', "1234")
+    }
+    LAMBDA_VALIDATORS = {
+        'vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
+        'inner_vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
+        'vlan_range': ((lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
+                                         0 < int(v.split('-')[1]) <= 4096 and
+                                         int(v.split('-')[0]) < int(v.split('-')[1]) else False),
+                       "1-4096"),
+        'asn': ((lambda a: True if 0 < int(a) < 65536 else False), "1-65535")
+    }
+
     def __init__(self, **kwargs):
         self.bdf = None
         self.mac = None
         self.ipv4 = None
         self.ipv4_range = None
+        self.ipv4_subnet = None
         self.ipv6 = None
         self.ipv6_range = None
+        self.ipv6_subnet = None
         self.asn = None
         self.vlan = None
         self.vlan_range = None
@@ -306,9 +368,9 @@ class Labels(JSONField):
         self.local_name = None
         self.local_type = None
         self.device_name = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -321,6 +383,33 @@ class Labels(JSONField):
             try:
                 # will toss an exception if field is not defined
                 self.__getattribute__(k)
+                if self.VALIDATORS.get(k, None) is not None:
+                    if isinstance(v, list):
+                        for i in v:
+                            matches = re.match('^' + self.VALIDATORS[k][0] + '$', i)
+                            if matches is None:
+                                raise LabelException(f'Provided label value {i} for {k} does not match the allowed '
+                                                     f'regular expression {self.VALIDATORS[k][0]}, valid example is '
+                                                     f'{self.VALIDATORS[k][1]}')
+                    else:
+                        matches = re.match('^' + self.VALIDATORS[k][0] + '$', v)
+                        if matches is None:
+                            raise LabelException(f'Provided label value {v} for {k} does not match the allowed '
+                                                 f'regular expression {self.VALIDATORS[k][0]}, valid example is '
+                                                 f'{self.VALIDATORS[k][1]}')
+                if self.LAMBDA_VALIDATORS.get(k, None) is not None:
+                    if isinstance(v, list):
+                        for i in v:
+                            res = self.LAMBDA_VALIDATORS[k][0](i)
+                            if res is False:
+                                raise LabelException(f'Provided label value {i} for {k} must be in a valid '
+                                                     f'range {self.LAMBDA_VALIDATORS[k][1]}')
+                    else:
+                        res = self.LAMBDA_VALIDATORS[k][0](v)
+                        if res is False:
+                            raise LabelException(f'Provided label value {v} for {k} must be in a valid '
+                                                 f'range {self.LAMBDA_VALIDATORS[k][1]}')
+
                 self.__setattr__(k, v)
             except AttributeError:
                 raise LabelException(f"Unable to set field {k} of labels, no such field available "
@@ -354,9 +443,9 @@ class ReservationInfo(JSONField):
     def __init__(self, **kwargs):
         self.reservation_id = None
         self.reservation_state = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a ReservationInfoException if you try to set a non-existent field.
@@ -382,12 +471,13 @@ class StructuralInfo(JSONField):
     Structural info on the for sliver objects (things like - is it a stitching node,
     what is parent graph or subgraph)
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.sub_graph_id = None
         self.parent_graph_id = None
         self.adm_graph_ids = None
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for all fields. Values are strings or boolean.
         Throws a
@@ -413,9 +503,9 @@ class Location(JSONField):
     """
     def __init__(self, **kwargs):
         self.postal = None
-        self.set_fields(**kwargs)
+        self._set_fields(**kwargs)
 
-    def set_fields(self, **kwargs):
+    def _set_fields(self, **kwargs):
         """
         Universal setter for location fields. Values are strings.
         :param kwargs:

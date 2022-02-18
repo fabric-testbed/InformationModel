@@ -1,9 +1,14 @@
 import unittest
+import json
 
 import fim.user as f
 
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
+from fim.slivers.gateway import Gateway
+from fim.slivers.capacities_labels import Labels
+from fim.user.model_element import TopologyException
+from fim.slivers.measurement_data import MeasurementDataError
 
 
 class SliceTest(unittest.TestCase):
@@ -100,19 +105,14 @@ class SliceTest(unittest.TestCase):
 
         self.assertTrue(len(gpu1.interfaces) == 0)
         self.assertTrue(len(nic1.interfaces) == 1)
-        cap = f.Capacities()
-        cap.set_fields(bw=50, unit=1)
-        #nic1.set_properties(capacities=cap)
-        nic1.capacities = cap
-        lab = f.Labels()
-        lab.set_fields(ipv4="192.168.1.12")
-        #nic1.set_properties(labels=lab)
-        nic1.labels = lab
-        self.assertEqual(nic1.get_property('capacities').bw, 50)
-        self.assertEqual(nic1.get_property('capacities').unit, 1)
-        self.assertEqual(nic1.get_property('capacities').disk, 0)
-        self.assertEqual(n1.components['nic1'].get_property('labels').ipv4, "192.168.1.12")
-        self.assertEqual(n1.components['nic1'].labels.ipv4, "192.168.1.12")
+        nic1.interface_list[0].update_capacities(bw=50, unit=1)
+        nic1.interface_list[0].update_labels(ipv4="192.168.1.12")
+        self.assertEqual(nic1.interface_list[0].get_property('capacities').bw, 50)
+        self.assertEqual(nic1.interface_list[0].capacities.unit, 1)
+        self.assertEqual(nic1.interface_list[0].capacities.disk, 0)
+        self.assertEqual(nic1.interface_list[0].labels.local_name, 'p1')
+        self.assertEqual(n1.components['nic1'].interface_list[0].get_property('labels').ipv4, "192.168.1.12")
+        self.assertEqual(n1.components['nic1'].interface_list[0].labels.ipv4, "192.168.1.12")
 
         # comparisons
         nic11 = n1.components['nic1']
@@ -122,7 +122,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.interface_list), 4)
 
         # no peers yet
-        service_port = self.topo.interface_list[0].get_peer()
+        service_port = self.topo.interface_list[0].get_peers()
         self.assertEqual(service_port, None)
 
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
@@ -130,19 +130,12 @@ class SliceTest(unittest.TestCase):
         assert(self.topo.network_services['s1'].get_property('site') == 'RENC')
 
         # test peer code
-        service_port = self.topo.interface_list[0].get_peer()
+        service_port = self.topo.interface_list[0].get_peers()[0]
         print(f'This is a service port {service_port}')
         self.assertEqual(service_port.get_property('type'), f.InterfaceType.ServicePort)
         # back to self
-        self_port = service_port.get_peer()
+        self_port = service_port.get_peers()[0]
         self.assertEqual(self_port, self.topo.interface_list[0])
-
-        # disabled - replaced with RuntimeError
-        #with self.assertRaises(AssertionError) as e:
-        #    self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge,
-        #                                  interfaces=self.topo.interface_list[0:2])
-
-        #print(self.topo)
 
         # nodemap and unset
         n1.set_properties(node_map=('dead-beef-graph', 'dead-beef-node'))
@@ -196,6 +189,73 @@ class SliceTest(unittest.TestCase):
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
         n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
 
+        #tags on model elements (nodes, links, components, interfaces, network services)
+        n1.tags = f.Tags('blue', 'heavy')
+        self.assertTrue('blue' in n1.tags)
+        # unset the tags
+        n1.tags = None
+        self.assertEqual(n1.tags, None)
+
+        #boot script on nodes only
+        n1.boot_script = """
+        #!/bin/bash
+        
+        echo *
+        """
+        self.assertTrue("bash" in n1.boot_script)
+        n1.boot_script = None
+        self.assertIsNone(n1.boot_script)
+
+        # measurement data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string length not to exceed 1M)
+        n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
+        # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
+        # an object
+        mf_object1 = n1.mf_data
+        self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.mf_data, None)
+
+        # you can also set it as MeasurementData object
+        my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
+        n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
+
+        # you can also just pass a JSON serializable object to MeasurementData constructor:
+        n1.mf_data = f.MeasurementData(my_meas_data_object)
+        # or even an serializable object itself. Either way the limit of 1M on the JSON string
+        # length is enforced
+        n1.mf_data = my_meas_data_object
+
+        # for most uses, just set the object
+        my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
+        n1.mf_data = my_meas_data_object
+
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.mf_data, dict))
+        mf_object2 = n1.mf_data
+        self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_meas_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(MeasurementDataError):
+            n1.mf_data = bad_meas_data_object
+
+        # also cannot use bad strings
+        with self.assertRaises(MeasurementDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.mf_data = f.MeasurementData("not parsable json")
+        with self.assertRaises(MeasurementDataError):
+            # or directly as string
+            n1.mf_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.mf_data = None
+        self.assertIsNone(n1.mf_data)
+
         gpu1 = n1.components['gpu1']
         nic1 = n1.components['nic1']
         nic2 = n2.components['nic2']
@@ -203,15 +263,11 @@ class SliceTest(unittest.TestCase):
         p1 = nic2.interfaces['nic2-p1']
         p2 = nic2.interfaces['nic2-p2']
 
-        cap = f.Capacities()
-        cap.set_fields(bw=50, unit=1)
-        nic1.capacities=cap
-        lab = f.Labels()
-        lab.set_fields(ipv4="192.168.1.12")
+        cap = f.Capacities(bw=50, unit=1)
+        nic1.capacities = cap
+        lab = f.Labels(ipv4="192.168.1.12")
         nic1.labels = lab
-        caphints = f.CapacityHints()
-        caphints.set_fields(instance_type='blah')
-        #n1.set_properties(capacity_hints=caphints)
+        caphints = f.CapacityHints(instance_type='blah')
         n1.capacity_hints = caphints
 
         # check capacities, hints labels on the graph
@@ -223,12 +279,27 @@ class SliceTest(unittest.TestCase):
 
         #s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
 
-        s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=self.topo.interface_list)
+        s1 = self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=[n1.interface_list[0],
+                                                                                              n2.interface_list[0],
+                                                                                              n3.interface_list[0]])
+
+        # facilities
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10))
+        sfac = self.topo.add_network_service(name='s-fac', nstype=f.ServiceType.L2STS,
+                                             interfaces=[fac1.interface_list[0],
+                                             n1.interface_list[1]])
 
         self.assertEqual(s1.layer, f.Layer.L2)
+        self.assertEqual(sfac.layer, f.Layer.L2)
+
+        # this is typically done by orchestrator
+        s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
+
+        self.assertEqual(s1.gateway.gateway, "192.168.1.1")
+        self.assertEqual(s1.gateway.subnet, "192.168.1.0/24")
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 6)
+        self.assertEqual(len(s1.interface_list), 3)
         self.topo.validate()
 
         s1p = self.topo.network_services['s1']
@@ -238,25 +309,33 @@ class SliceTest(unittest.TestCase):
         s1.disconnect_interface(interface=p1)
 
         print(f'S1 has these interfaces: {s1.interface_list}')
-        self.assertEqual(len(s1.interface_list), 5)
+        self.assertEqual(len(s1.interface_list), 2)
+
+        # validate the topology
         self.topo.validate()
 
         self.topo.remove_network_service('s1')
 
+        with self.assertRaises(TopologyException):
+            # connection conflict because we have an interface connecting to s-fac
+            s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
+                                               interfaces=self.topo.interface_list)
+
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                           interfaces=self.topo.interface_list[2:4])
+                                           interfaces=[n1.components['nic4'].interfaces['nic4-p1'],
+                                                       n2.components['nic2'].interfaces['nic2-p1']])
         self.assertEqual(len(s2.interface_list), 2)
         print(f'S2 has these interfaces: {s2.interface_list}')
 
-        print(f'There are {self.topo.links} left in topology')
-        self.assertEqual(len(self.topo.links), 2)
-        print(f'Network services {self.topo.network_services}')
-        self.assertEqual(len(self.topo.network_services), 5)
+        print(f'There are {self.topo.links}  links left in topology')
+        self.assertEqual(len(self.topo.links), 4)
+        print(f'There are {self.topo.network_services} Network services  in topology')
+        self.assertEqual(len(self.topo.network_services), 7)
         self.topo.remove_network_service('s2')
         self.topo.validate()
-        self.assertEqual(len(self.topo.network_services), 4)
+        self.assertEqual(len(self.topo.network_services), 6)
         n1.remove_component('nic1')
-        self.assertEqual(len(self.topo.network_services), 3)
+        self.assertEqual(len(self.topo.network_services), 5)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
 
@@ -375,3 +454,26 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.graphml')
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+
+    def testL3Service(self):
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n2', site='RENC')
+        self.topo.add_node(name='n3', site='UKY')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+
+        # one L3 service per site
+        s1 = self.topo.add_network_service(name='v4UKY', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=self.topo.nodes['n3'].interface_list)
+        s2 = self.topo.add_network_service(name='v4RENC', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=[self.topo.nodes['n1'].interface_list[0],
+                                                  self.topo.nodes['n2'].interface_list[0]])
+        # adding interfaces belonging to nodes from diffeerent sites is a no no
+        with self.assertRaises(TopologyException):
+            self.topo.add_network_service(name='bad_service', nstype=f.ServiceType.FABNetv4,
+                                          interfaces=self.topo.interface_list)
+        # site property is set automagically
+        self.assertEqual(s1.site, 'UKY')
+        self.assertEqual(s2.site, 'RENC')
+

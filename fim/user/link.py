@@ -27,7 +27,7 @@ from typing import Tuple, Any, List
 
 import uuid
 
-from .model_element import ModelElement, ElementType
+from .model_element import ModelElement, ElementType, TopologyException
 
 from fim.graph.abc_property_graph import ABCPropertyGraph
 from fim.user.interface import Interface
@@ -67,16 +67,16 @@ class Link(ModelElement):
             # node id myst be specified for new nodes in substrate topologies
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     node_id is None:
-                raise RuntimeError("When adding new links to substrate topology nodes you must specify static Node ID")
+                raise TopologyException("When adding new links to substrate topology nodes you must specify static Node ID")
             if node_id is None:
                 node_id = str(uuid.uuid4())
             super().__init__(name=name, node_id=node_id, topo=topo)
             if ltype is None:
-                raise RuntimeError("When creating new links you must specify LinkType")
+                raise TopologyException("When creating new links you must specify LinkType")
             # FIXME isinstance
             if interfaces is None or len(interfaces) == 0 or (not isinstance(interfaces, tuple) and
                                                               not isinstance(interfaces, list)):
-                raise RuntimeError("When creating new links you must specify the list of interfaces to connect.")
+                raise TopologyException("When creating new links you must specify the list of interfaces to connect.")
             self._interfaces = interfaces
             sliver = NetworkLinkSliver()
             sliver.node_id = self.node_id
@@ -98,7 +98,7 @@ class Link(ModelElement):
                 graph_model.find_node_by_name(node_name=name,
                                               label=ABCPropertyGraph.CLASS_Link)
             if existing_node_id != node_id:
-                raise RuntimeError(f'Link name {name} is not unique within the topology.')
+                raise TopologyException(f'Link name {name} is not unique within the topology.')
             # collect a list of interfaces it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()
@@ -132,11 +132,14 @@ class Link(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a link property
+        Set a link property or unset if pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         link_sliver = NetworkLinkSliver()
         link_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

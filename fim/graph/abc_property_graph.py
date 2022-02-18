@@ -45,8 +45,11 @@ from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
+from fim.slivers.tags import Tags
+from fim.slivers.measurement_data import MeasurementData
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
+from fim.slivers.gateway import Gateway
 
 
 class GraphFormat(Enum):
@@ -91,7 +94,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "structural_info": ABCPropertyGraphConstants.PROP_STRUCTURAL_INFO,
         "ero": ABCPropertyGraphConstants.PROP_ERO,
         "path_info": ABCPropertyGraphConstants.PROP_PATH_INFO,
-        "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL
+        "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
+        "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
+        "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
+        "tags": ABCPropertyGraphConstants.PROP_TAGS,
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
     }
 
     @abstractmethod
@@ -498,6 +505,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_NODE_MAP] = json.dumps(sliver.node_map)
         # boolean is always there. use json dumps for simplicity
         prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
+        # this is already a JSON dict
+        if sliver.mf_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
+        if sliver.tags is not None:
+            prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
 
         return prop_dict
 
@@ -522,6 +534,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
+        if sliver.boot_script is not None:
+            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -574,6 +588,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_CONTROLLER_URL] = sliver.controller_url
         if sliver.site is not None:
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
+        if sliver.gateway is not None:
+            prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
 
         return prop_dict
 
@@ -639,7 +655,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         elif type(sliver) == InterfaceSliver:
             d = ABCPropertyGraph.interface_sliver_to_graph_properties_dict(sliver)
         else:
-            raise RuntimeError(f'JSON Conversion for type {type(sliver)} is not supported.')
+            raise PropertyGraphQueryException(msg=f'JSON Conversion for type {type(sliver)} is not supported.',
+                                              graph_id=None, node_id=None)
 
         return d
 
@@ -680,7 +697,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               node_map=json.loads(d[ABCPropertyGraph.PROP_NODE_MAP]) if
                               d.get(ABCPropertyGraph.PROP_NODE_MAP, None) is not None else None,
                               stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]) if
-                              d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False
+                              d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False,
+                              tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
+                              mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
+                                                      if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
+                                                         is not None else None
                               )
 
     @staticmethod
@@ -698,7 +719,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
+                         boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                          )
         return n
 
@@ -737,7 +759,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           ero=ERO.from_json(d.get(ABCPropertyGraph.PROP_ERO, None)),
                           path_info=PathInfo.from_json(d.get(ABCPropertyGraph.PROP_PATH_INFO, None)),
                           controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None),
-                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None)
+                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
+                          gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None))
                           )
         return ns
 
@@ -1024,7 +1047,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         if not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkNode,
                                       name=sliver.resource_name):
-            raise RuntimeError(f'Node name {sliver.resource_name} must be unique.')
+            raise PropertyGraphQueryException(msg=f'Node name {sliver.resource_name} must be unique.',
+                                              graph_id=self.graph_id, node_id=None)
 
         props = self.node_sliver_to_graph_properties_dict(sliver)
         self.add_node(node_id=sliver.node_id, label=ABCPropertyGraph.CLASS_NetworkNode, props=props)
@@ -1083,7 +1107,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         if parent_node_id is None and not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                  name=network_service.resource_name):
             # slice-wide network services must have unique names
-            raise RuntimeError(f'Network service name {network_service.resource_name} must be unique.')
+            raise PropertyGraphQueryException(msg=f'Network service name {network_service.resource_name} must be unique.',
+                                              graph_id=self.graph_id, node_id=parent_node_id)
 
         props = self.network_service_sliver_to_graph_properties_dict(network_service)
         self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)
@@ -1097,17 +1122,21 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
     def add_interface_sliver(self, *, parent_node_id: str, interface: InterfaceSliver):
         """
-        Add interface to a network service, linking back to parent.
-        :param parent_node_id: network service id
+        Add interface to a network service, linking back to parent (node or network service),
+        if provided.
+        For most interface slivers there should be a parent with the exception
+        of FacilityPorts/StitchPorts.
+
+        :param parent_node_id: network service id or other parent if available
         :param interface: interface sliver description
         :return:
         """
         assert interface.node_id is not None
-        assert parent_node_id is not None
 
         props = self.interface_sliver_to_graph_properties_dict(interface)
         self.add_node(node_id=interface.node_id, label=ABCPropertyGraph.CLASS_ConnectionPoint, props=props)
-        self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=interface.node_id)
+        if parent_node_id is not None:
+            self.add_link(node_a=parent_node_id, rel=ABCPropertyGraph.REL_CONNECTS, node_b=interface.node_id)
 
     def get_all_ns_or_link_connection_points(self, link_id: str) -> List[str]:
         """
@@ -1133,9 +1162,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         assert parent_node_id is not None
         labels, parent_props = self.get_node_properties(node_id=parent_node_id)
         if ABCPropertyGraph.CLASS_NetworkNode not in labels and \
-                ABCPropertyGraph.CLASS_Component not in labels:
+                ABCPropertyGraph.CLASS_Component not in labels and \
+                ABCPropertyGraph.CLASS_CompositeNode not in labels:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
-                                              msg="Parent node type is not NetworkNode or Component")
+                                              msg="Parent node type is not NetworkNode, CompositeNode or Component")
         nss_ifs = self.get_first_and_second_neighbor(node_id=parent_node_id, rel1=ABCPropertyGraph.REL_HAS,
                                                      node1_label=ABCPropertyGraph.CLASS_NetworkService,
                                                      rel2=ABCPropertyGraph.REL_CONNECTS,
@@ -1173,6 +1203,25 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         set to 'true' (in JSON).
         :return:
         """
+
+    def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:
+        """
+        Find the ids of the peer connection points to this one (connected over a Link)
+        if they exist
+        :param node_id: id of the interface/connection point
+        :return:
+        """
+        assert node_id is not None
+
+        # find id of connection point over a Link
+        candidates = self.get_first_and_second_neighbor(node_id=node_id, rel1=ABCPropertyGraph.REL_CONNECTS,
+                                                        node1_label=ABCPropertyGraph.CLASS_Link,
+                                                        rel2=ABCPropertyGraph.REL_CONNECTS,
+                                                        node2_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+        if len(candidates) == 0:
+            return None
+
+        return [x[1] for x in candidates]
 
 
 class ABCGraphImporter(ABC):

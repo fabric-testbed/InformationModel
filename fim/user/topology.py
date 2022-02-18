@@ -35,13 +35,13 @@ from collections import defaultdict
 
 from fim.view_only_dict import ViewOnlyDict
 
-from .model_element import ModelElement
+from .model_element import ModelElement, TopologyException
 from ..slivers.network_node import NodeType
 from ..slivers.network_link import LinkType
 from ..slivers.network_service import NSLayer, ServiceType
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
-from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
+from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat, PropertyGraphQueryException
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
@@ -96,7 +96,7 @@ class Topology(ABC):
                                                              rel=ABCPropertyGraph.REL_HAS,
                                                              parent=ABCPropertyGraph.CLASS_NetworkNode)
             if node_id is None:
-                raise RuntimeError(f'Component {e} has no parent')
+                raise TopologyException(f'Component {e} has no parent')
             return Node(name=node_name, node_id=node_id, topo=self)
         # NSs may have nodes or components as parents or be by themselves
         if isinstance(e, NetworkService):
@@ -117,15 +117,17 @@ class Topology(ABC):
                                                              parent=ABCPropertyGraph.CLASS_CompositeNode)
             if node_id is not None:
                 return CompositeNode(name=node_name, node_id=node_id, topo=self)
+
+            return None
         # interfaces have NSs as parents
         if isinstance(e, Interface):
             node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
                                                              rel=ABCPropertyGraph.REL_CONNECTS,
                                                              parent=ABCPropertyGraph.CLASS_NetworkService)
             if node_id is None:
-                raise RuntimeError(f'Interface {e} has no parent')
+                raise TopologyException(f'Interface {e} has no parent')
             return NetworkService(name=node_name, node_id=node_id, topo=self)
-        raise RuntimeError(f'Unable to determine parent of element {e}')
+        raise TopologyException(f'Unable to determine parent of element {e}')
 
     def get_owner_node(self, e: ModelElement) -> ModelElement or None:
         """
@@ -154,7 +156,7 @@ class Topology(ABC):
             ns = self.get_parent_element(e)
             if ns is not None:
                 return self.get_owner_node(ns)
-        return RuntimeError(f'Unable to determine owner node of element {e}')
+        return TopologyException(f'Unable to determine owner node of element {e}')
 
     def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
                  **kwargs) -> Node:
@@ -188,7 +190,33 @@ class Topology(ABC):
         """
         assert name is not None
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
-            node_id=self.__get_node_by_name(name=name).node_id)
+            node_id=self._get_node_by_name(name=name).node_id)
+
+    def add_facility(self, *, name: str, node_id: str = None, site: str, **kwargs) -> Node:
+        """
+        Add a facility node with VLAN service and FacilityPort interface as a single construct.
+        Works for aggregate topologies and experiment topologies the same way.
+        Link and interface node_ids are derived from node_id if it is provided.
+        :param name: name of facility (must match the advertisement)
+        :param node_id : optional node id of the facility node (all other node ids are derived if provided)
+        :param site: site of the facility (must match the advertisement)
+        :kwargs: parameters for the interface of the facility (bandwidth, mtu, LAN tags etc)
+        """
+        # should work with deep sliver reconstruction
+        facn = self.add_node(name=name, node_id=node_id, site=site, ntype=NodeType.Facility)
+        facs = facn.add_network_service(name=name + '-ns', node_id=node_id + '-ns' if node_id else None,
+                                        nstype=ServiceType.VLAN)
+        faci = facs.add_interface(name=name + '-int', node_id=node_id + '-int' if node_id else None,
+                                  itype=InterfaceType.FacilityPort, **kwargs)
+
+        return facn
+
+    def remove_facility(self, *, name: str):
+        """
+        Remove a facility and associated network service and interface, disconnecting it from a
+        service as appropriate. Same as removing a node.
+        """
+        self.remove_node(name)
 
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType,
                  interfaces: List[Interface], technology: str = None,
@@ -216,7 +244,7 @@ class Topology(ABC):
         :return:
         """
         assert name is not None
-        self.graph_model.remove_network_link(node_id=self.__get_link_by_name(name=name).node_id)
+        self.graph_model.remove_network_link(node_id=self._get_link_by_name(name=name).node_id)
 
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType,
                             interfaces: List[Interface], technology: str = None, **kwargs) -> NetworkService:
@@ -241,7 +269,7 @@ class Topology(ABC):
         :return:
         """
         assert name is not None
-        self.graph_model.remove_ns_with_cps_and_links(node_id=self.__get_ns_by_name(name=name).node_id)
+        self.graph_model.remove_ns_with_cps_and_links(node_id=self._get_ns_by_name(name=name).node_id)
 
     def validate(self):
         """
@@ -257,12 +285,17 @@ class Topology(ABC):
             # owning nodes for each interface so we search for proper interfaces
             for si in service_interfaces:
                 if si.type == InterfaceType.ServicePort:
-                    node_interfaces.append(si.get_peer())
+                    # there should only ever be one peer for a service port
+                    peers = si.get_peers()
+                    if peers is None or len(peers) != 1:
+                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
+                                                f'number of peer interfaces')
+                    node_interfaces.append(si.get_peers()[0])
                 else:
                     node_interfaces.append(si)
             s.validate_service_constraints(s.type, node_interfaces)
 
-    def __get_node_by_name(self, name: str) -> Node:
+    def _get_node_by_name(self, name: str) -> Node:
         """
         Find node by its name, return Node object
         :param name:
@@ -273,7 +306,7 @@ class Topology(ABC):
                                                      label=ABCPropertyGraph.CLASS_NetworkNode)
         return Node(name=name, node_id=node_id, topo=self)
 
-    def __get_link_by_name(self, name: str) -> Link:
+    def _get_link_by_name(self, name: str) -> Link:
         """
         Find link by its name, return Link object
         :param name:
@@ -284,7 +317,7 @@ class Topology(ABC):
                                                      label=ABCPropertyGraph.CLASS_Link)
         return Link(name=name, node_id=node_id, topo=self)
 
-    def __get_ns_by_name(self, name: str) -> NetworkService:
+    def _get_ns_by_name(self, name: str) -> NetworkService:
         """
         Find a network service by its name, return NetworkService object
         :param name:
@@ -295,7 +328,7 @@ class Topology(ABC):
                                                      label=ABCPropertyGraph.CLASS_NetworkService)
         return NetworkService(name=name, node_id=node_id, topo=self)
 
-    def __get_node_by_id(self, node_id: str) -> Node:
+    def _get_node_by_id(self, node_id: str) -> Node:
         """
         Get node by its node_id, return Node object
         :param node_id:
@@ -306,7 +339,7 @@ class Topology(ABC):
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
-    def __get_link_by_id(self, node_id: str) -> Link:
+    def _get_link_by_id(self, node_id: str) -> Link:
         """
         Get link by its node_id, return Link object
         :param node_id:
@@ -317,7 +350,7 @@ class Topology(ABC):
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
-    def __get_ns_by_id(self, node_id: str) -> NetworkService:
+    def _get_ns_by_id(self, node_id: str) -> NetworkService:
         """
         Get network service by its node id, return NetworkService object
         :param node_id:
@@ -328,7 +361,7 @@ class Topology(ABC):
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
-    def __list_nodes(self) -> ViewOnlyDict:
+    def _list_nodes(self) -> ViewOnlyDict:
         """
         List all NetworkNodes in the topology as a dictionary
         organized by node name. Modifying the dictionary will not affect
@@ -338,11 +371,11 @@ class Topology(ABC):
         node_id_list = self.graph_model.get_all_network_nodes()
         ret = dict()
         for nid in node_id_list:
-            n = self.__get_node_by_id(nid)
+            n = self._get_node_by_id(nid)
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
-    def __list_network_services(self) -> ViewOnlyDict:
+    def _list_network_services(self) -> ViewOnlyDict:
         """
         List all NetworkServices in the topology as a dictionary organized by name.
         Modifying the dictionary will not affect the underlying model, but modifying
@@ -352,11 +385,11 @@ class Topology(ABC):
         node_id_list = self.graph_model.get_all_network_service_nodes()
         ret = dict()
         for nid in node_id_list:
-            n = self.__get_ns_by_id(nid)
+            n = self._get_ns_by_id(nid)
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
-    def __list_links(self) -> ViewOnlyDict:
+    def _list_links(self) -> ViewOnlyDict:
         """
         List all Links in the topology as a dictionary organized by Link name.
         :return:
@@ -364,13 +397,13 @@ class Topology(ABC):
         link_id_list = self.graph_model.get_all_network_links()
         ret = dict()
         for nid in link_id_list:
-            n = self.__get_link_by_id(nid)
+            n = self._get_link_by_id(nid)
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
-    def __list_of_interfaces(self) -> Tuple[Any]:
+    def _list_of_interfaces(self) -> Tuple[Any]:
         """
-        List all interfaces of the topology as a dictionary
+        List all interfaces of the topology as a dictionary.
         :return:
         """
         ret = list()
@@ -380,19 +413,19 @@ class Topology(ABC):
 
     @property
     def nodes(self):
-        return self.__list_nodes()
+        return self._list_nodes()
 
     @property
     def links(self):
-        return self.__list_links()
+        return self._list_links()
 
     @property
     def network_services(self):
-        return self.__list_network_services()
+        return self._list_network_services()
 
     @property
     def interface_list(self):
-        return self.__list_of_interfaces()
+        return self._list_of_interfaces()
 
     def serialize(self, file_name: str = None, fmt: GraphFormat = GraphFormat.GRAPHML) -> str or None:
         """
@@ -418,7 +451,7 @@ class Topology(ABC):
         :return:
         """
         if file_name is None and graph_string is None:
-            raise RuntimeError('Either file_name or graph_string parameters must be specified.')
+            raise TopologyException('Either file_name or graph_string parameters must be specified.')
         if file_name is not None:
             nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
         else:
@@ -426,84 +459,6 @@ class Topology(ABC):
         self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
                                        importer=nx_pgraph.importer,
                                        logger=nx_pgraph.log)
-
-    def draw(self, *, file_name: str = None, interactive: bool = False,
-             topo_detail: TopologyDetail = TopologyDetail.Derived,
-             layout=nx.spring_layout):
-        """
-        Use pyplot to draw the topology of specified level of detail.
-        :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
-        :param interactive: use interactive pyplot mode (defaults to False)
-        :param topo_detail: level of detail to use in drawing, defaults to Derived
-        :param layout: use one of available layout algorithms in NetworkX (defaults to spring_layout)
-        :return:
-        """
-        # clear the drawing
-        if not interactive:
-            plt.ioff()
-        else:
-            plt.ion()
-        plt.clf()
-        if topo_detail == TopologyDetail.InfoModel:
-            # create dictionaries of names for nodes and labels for edges
-            g = self.graph_model.storage.extract_graph(self.graph_model.graph_id)
-            if g is None:
-                return
-            node_labels = dict()
-            for l in g.nodes:
-                node_labels[l] = g.nodes[l][ABCPropertyGraph.PROP_NAME] + \
-                                 '[' + g.nodes[l][ABCPropertyGraph.PROP_TYPE] + ']'
-            edge_labels = dict()
-            for e in g.edges:
-                edge_labels[e] = g.edges[e][ABCPropertyGraph.PROP_CLASS]
-            # run the layout
-            pos = layout(g)
-            # draw
-            nx.draw_networkx(g, labels=node_labels, pos=pos)
-            nx.draw_networkx_edge_labels(g, edge_labels=edge_labels, pos=pos)
-            if not interactive:
-                plt.show()
-            if file_name is not None:
-                plt.savefig(file_name)
-        elif topo_detail == TopologyDetail.Derived:
-            # collect all network nodes and links, draw edges between them
-            network_nodes = self.graph_model.get_all_network_nodes()
-            service_nodes = self.graph_model.get_all_network_service_nodes()
-            links = self.graph_model.get_all_network_links()
-
-            derived_graph = nx.Graph()
-            for n in network_nodes:
-                _, props = self.graph_model.get_node_properties(node_id=n)
-                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
-            for ns in service_nodes:
-                _, props = self.graph_model.get_node_properties(node_id=ns)
-                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
-
-            # link interfaces of NSs and NSs to nodes
-            for ns in self.network_services.values():
-                for nint in ns.interfaces.values():
-                    peer_int_id = self.graph_model.find_peer_connection_point(node_id=nint.node_id)
-                    if peer_int_id is None:
-                        continue
-                    _, peer_props = self.graph_model.get_node_properties(node_id=peer_int_id)
-                    peer_int = Interface(node_id=peer_int_id, name=peer_props[ABCPropertyGraph.PROP_NAME],
-                                         topo=self)
-                    peer_int_parent = self.get_parent_element(peer_int)
-                    if peer_int_parent is None:
-                        continue
-                    derived_graph.add_edge(ns.name, peer_int_parent.name)
-                for n in self.nodes.values():
-                    if self.get_owner_node(ns) == n:
-                        derived_graph.add_edge(ns.name, n.name)
-
-            pos = layout(derived_graph)
-            nx.draw_networkx(derived_graph, pos=pos)
-            if not interactive:
-                plt.show()
-            if file_name is not None:
-                plt.savefig(file_name)
-        else:
-            raise RuntimeError("This level of detail not yet implemented")
 
     @staticmethod
     def __print_caplabs__(caps) -> str:
@@ -564,6 +519,85 @@ class ExperimentTopology(Topology):
         assert asm_graph is not None
         assert isinstance(asm_graph, ABCASMPropertyGraph)
         self.graph_model = asm_graph
+
+    def draw(self, *, file_name: str = None, interactive: bool = False,
+             topo_detail: TopologyDetail = TopologyDetail.Derived,
+             layout=nx.spring_layout):
+        """
+        Use pyplot to draw the topology of specified level of detail.
+        :param file_name: save figure to a file (drawing type is determined by extension, e.g. .png)
+        :param interactive: use interactive pyplot mode (defaults to False)
+        :param topo_detail: level of detail to use in drawing, defaults to Derived
+        :param layout: use one of available layout algorithms in NetworkX (defaults to spring_layout)
+        :return:
+        """
+        # clear the drawing
+        if not interactive:
+            plt.ioff()
+        else:
+            plt.ion()
+        plt.clf()
+        if topo_detail == TopologyDetail.InfoModel:
+            # create dictionaries of names for nodes and labels for edges
+            g = self.graph_model.storage.extract_graph(self.graph_model.graph_id)
+            if g is None:
+                return
+            node_labels = dict()
+            for l in g.nodes:
+                node_labels[l] = g.nodes[l][ABCPropertyGraph.PROP_NAME] + \
+                                 '[' + g.nodes[l][ABCPropertyGraph.PROP_TYPE] + ']'
+            edge_labels = dict()
+            for e in g.edges:
+                edge_labels[e] = g.edges[e][ABCPropertyGraph.PROP_CLASS]
+            # run the layout
+            pos = layout(g)
+            # draw
+            nx.draw_networkx(g, labels=node_labels, pos=pos)
+            nx.draw_networkx_edge_labels(g, edge_labels=edge_labels, pos=pos)
+            if not interactive:
+                plt.show()
+            if file_name is not None:
+                plt.savefig(file_name)
+        elif topo_detail == TopologyDetail.Derived:
+            # collect all network nodes and links, draw edges between them
+            network_nodes = self.graph_model.get_all_network_nodes()
+            service_nodes = self.graph_model.get_all_network_service_nodes()
+            links = self.graph_model.get_all_network_links()
+
+            derived_graph = nx.Graph()
+            for n in network_nodes:
+                _, props = self.graph_model.get_node_properties(node_id=n)
+                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+            for ns in service_nodes:
+                _, props = self.graph_model.get_node_properties(node_id=ns)
+                derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
+
+            # link interfaces of NSs and NSs to nodes
+            for ns in self.network_services.values():
+                for nint in ns.interfaces.values():
+                    peer_int_ids = self.graph_model.find_peer_connection_points(node_id=nint.node_id)
+                    if peer_int_ids is None:
+                        continue
+                    for peer_int_id in peer_int_ids:
+                        _, peer_props = self.graph_model.get_node_properties(node_id=peer_int_id)
+                        peer_int = Interface(node_id=peer_int_id, name=peer_props[ABCPropertyGraph.PROP_NAME],
+                                             topo=self)
+                        peer_int_parent = self.get_parent_element(peer_int)
+                        if peer_int_parent is None:
+                            continue
+                        derived_graph.add_edge(ns.name, peer_int_parent.name)
+                for n in self.nodes.values():
+                    if self.get_owner_node(ns) == n:
+                        derived_graph.add_edge(ns.name, n.name)
+
+            pos = layout(derived_graph)
+            nx.draw_networkx(derived_graph, pos=pos)
+            if not interactive:
+                plt.show()
+            if file_name is not None:
+                plt.savefig(file_name)
+        else:
+            raise TopologyException("This level of detail not yet implemented")
 
 
 class SubstrateTopology(Topology):
@@ -651,7 +685,7 @@ class SubstrateTopology(Topology):
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
                             delegations_dicts[t][i.node_id] = delegations
-                # network services (for eg switches)
+                # network services (for eg switches and facilities)
                 for sf in n.network_services.values():
                     delegations = self.__copy_to_delegations(e=sf, atype=t,
                                                              delegation_id=delegation_id)
@@ -672,8 +706,10 @@ class AdvertizedTopology(Topology):
     Topology object to operate on BQM (Query) models returned from e.g.
     listResources etc.
     In addition to publicly visible methods the following calls can be made:
-    topology.sites - a read-only dictionary of nodes in the topology
+    topology.sites - a read-only dictionary of sites in the topology
+    topology.nodes - a read-only dictionary of nodes
     topology.links - a read-only dictionary of links in the topology
+    topology.facilities - a read-only dictionary of facilities
     """
 
     def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
@@ -686,12 +722,12 @@ class AdvertizedTopology(Topology):
 
     def add_node(self, *, name: str, node_id: str = None, site: str, ntype: NodeType = NodeType.VM,
                  **kwargs) -> Node:
-        raise RuntimeError('Cannot add node to advertisement')
+        raise TopologyException('Cannot add node to advertisement')
 
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType = None,
                  interfaces: List[Interface], layer: NSLayer = None, technology: str = None,
                  **kwargs) -> Link:
-        raise RuntimeError('Cannot add link to advertisement')
+        raise TopologyException('Cannot add link to advertisement')
 
     def load(self, *, file_name: str = None, graph_string: str = None):
         """
@@ -701,25 +737,28 @@ class AdvertizedTopology(Topology):
         :return:
         """
         if file_name is None and graph_string is None:
-            raise RuntimeError('Either file_name or graph_string must be specified.')
+            raise TopologyException('Either file_name or graph_string must be specified.')
         if file_name is not None:
             nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
         else:
             nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
         self.graph_model = NetworkXABQMFactory.create(nx_pgraph)
 
-    def __get_node_by_id(self, node_id: str) -> Node:
+    def _get_node_by_id(self, node_id: str) -> Node:
         """
-        Get node by its node_id, return Node object
+        Get node by its node_id, return Node or CompositeNode object
         :param node_id:
         :return:
         """
         assert node_id is not None
-        _, node_props = self.graph_model.get_node_properties(node_id=node_id)
+        claz, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        if claz[0] == ABCPropertyGraph.CLASS_CompositeNode:
+            return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        elif claz[0] == ABCPropertyGraph.CLASS_NetworkNode:
+            return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
-    def __get_link_by_id(self, node_id: str) -> Link:
+    def _get_link_by_id(self, node_id: str) -> Link:
         """
         Get link by its node_id, return Link object
         :param node_id:
@@ -738,15 +777,15 @@ class AdvertizedTopology(Topology):
         node_id_list = self.graph_model.get_all_composite_nodes()
         ret = dict()
         for nid in node_id_list:
-            n = self.__get_node_by_id(nid)
+            n = self._get_node_by_id(nid)
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
-    def __list_links(self) -> ViewOnlyDict:
+    def _list_links(self) -> ViewOnlyDict:
         link_id_list = self.graph_model.get_all_network_links()
         ret = dict()
         for nid in link_id_list:
-            n = self.__get_link_by_id(nid)
+            n = self._get_link_by_id(nid)
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
@@ -764,7 +803,24 @@ class AdvertizedTopology(Topology):
 
     @property
     def links(self):
-        return self.__list_links()
+        return self._list_links()
+
+    @property
+    def facilities(self) -> ViewOnlyDict or None:
+        """
+        Return facilities connected in this topology. Facilities should NOT be composite nodes in the ad.
+        :return:
+        """
+        fac_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkNode,
+                                                                   ntype=str(NodeType.Facility))
+        if fac_ids is None:
+            return None
+        ret = dict()
+        for nid in fac_ids:
+            n = self._get_node_by_id(nid)
+            if n.type == NodeType.Facility:
+                ret[n.name] = n
+        return ViewOnlyDict(ret)
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
@@ -790,7 +846,6 @@ class AdvertizedTopology(Topology):
 
             # collect all network nodes and links, draw edges between them
             network_sites = self.graph_model.get_all_composite_nodes()
-            links = self.graph_model.get_all_network_links()
 
             derived_graph = nx.Graph()
             for n in network_sites:
@@ -800,14 +855,15 @@ class AdvertizedTopology(Topology):
             # build two-element lists of which nodes should be connected by edges
             # indexed by link name
             graph_edges = defaultdict(list)
-            for n in self.sites.values():
+            all_node_like = list(self.sites.values())
+            all_node_like.extend(self.facilities.values())
+            for n in all_node_like:
                 node_ints = n.interfaces.values()
                 for nint in node_ints:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
                         if nint in l.interface_list:
                             graph_edges[l.name].append(n.name)
-                            #derived_graph.add_edge(n.name, l.name)
 
             edge_labels = dict()
             for k, v in graph_edges.items():
@@ -852,32 +908,47 @@ class AdvertizedTopology(Topology):
         :return:
         """
         lines = list()
-        for n in self.sites.values():
-            tot_cap = n.capacities
-            alloc_cap = n.get_property('capacity_allocations')
-            if alloc_cap is None:
-                # if nothing is allocated, just zero out
-                alloc_cap = Capacities()
-            if tot_cap is not None:
-                ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
-                lines.append(n.name + ": " + str(ncp))
-            else:
-                lines.append(n.name)
-            lines.append("\tComponents:")
-            for c in n.components.values():
-                ccp = CapacityTuple(total=c.capacities,
-                                    allocated=c.get_property("capacity_allocations"))
-                lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
-                             c.model + " " + str(ccp))
-            lines.append("\tSite Interfaces:")
-            for i in n.interfaces.values():
-                icp = CapacityTuple(total=i.capacities,
-                                    allocated=i.get_property("capacity_allocations"))
-                lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
-                             str(icp))
-        lines.append("Links:")
-        for l in self.links.values():
-            interface_names = [iff.name for iff in l.interface_list]
-            lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
-                         str(interface_names))
+        if self.sites:
+            for n in self.sites.values():
+                tot_cap = n.capacities
+                alloc_cap = n.get_property('capacity_allocations')
+                if alloc_cap is None:
+                    # if nothing is allocated, just zero out
+                    alloc_cap = Capacities()
+                if tot_cap is not None:
+                    ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
+                    lines.append(n.name + " [Site] : " + str(ncp))
+                else:
+                    lines.append(n.name + " [Site]")
+                lines.append("\tComponents:")
+                for c in n.components.values():
+                    ccp = CapacityTuple(total=c.capacities,
+                                        allocated=c.get_property("capacity_allocations"))
+                    lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
+                                 c.model + " " + str(ccp))
+                lines.append("\tSite Interfaces:")
+                for i in n.interfaces.values():
+                    if i.capacities is not None:
+                        icp = CapacityTuple(total=i.capacities,
+                                            allocated=i.get_property("capacity_allocations"))
+                        lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                    str(icp))
+        if self.facilities:
+            for fp in self.facilities.values():
+                lines.append(fp.name + " [Facility]")
+                lines.append("\tFacility Interfaces:")
+                for i in fp.interfaces.values():
+                    if i.capacities is not None:
+                        icp = CapacityTuple(total=i.capacities,
+                                            allocated=i.get_property("capacity_allocations"))
+                        lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
+                                    str(icp) + " " + self.__print_caplabs__(i.labels))
+
+        if self.links:
+            lines.append("Links:")
+            for l in self.links.values():
+                interface_names = [iff.name for iff in l.interface_list]
+                lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
+                             str(interface_names))
+
         return "\n".join(lines)

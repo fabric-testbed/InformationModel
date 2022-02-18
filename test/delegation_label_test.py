@@ -8,9 +8,7 @@ from fim.slivers.delegations import Delegation, Delegations, DelegationType, \
 class DelegationTests(unittest.TestCase):
 
     def testCapacityAssignment(self):
-        c = Capacities()
-
-        c.set_fields(cpu=1, core=2)
+        c = Capacities(cpu=1, core=2)
 
         self.assertEqual(c.cpu, 1)
         self.assertEqual(c.core, 2)
@@ -24,10 +22,8 @@ class DelegationTests(unittest.TestCase):
         self.assertEqual(c1.core, 32)
 
     def testLabelAssignment(self):
-        c = Labels()
-
-        c.set_fields(mac=['0C:42:A1:BE:8F:D5', '0C:42:A1:BE:8F:E9'],
-                     bdf=['0000:41:00.0', '0000:41:00.1'])
+        c = Labels(mac=['0C:42:A1:BE:8F:D5', '0C:42:A1:BE:8F:E9'],
+                       bdf=['0000:41:00.0', '0000:41:00.1'])
 
         self.assertEqual(c.bdf, ['0000:41:00.0', '0000:41:00.1'])
         s = '{"bdf": ["0000:41:00.0", "0000:41:00.1"], ' \
@@ -47,13 +43,13 @@ class DelegationTests(unittest.TestCase):
         d3 = Delegation(atype=DelegationType.LABEL, aformat=DelegationFormat.PoolReference,
                         delegation_id='del3', pool_id='pool1')
         ds = Delegations(atype=DelegationType.LABEL)
-        d1.set_details(Labels().set_fields(vlan_range='1-100'))
-        d2.set_details(Labels().set_fields(vlan_range='101-200'))
+        d1.set_details(Labels(vlan_range='1-100'))
+        d2.set_details(Labels(vlan_range='101-200'))
         with self.assertRaises(DelegationException) as de:
-            d2.set_details(Capacities().set_fields(unit=1))
+            d2.set_details(Capacities(unit=1))
 
         with self.assertRaises(DelegationException) as de:
-            d3.set_details(Labels().set_fields(vlan_range='something'))
+            d3.set_details(Labels(vlan_range='100-200'))
 
         ds.add_delegations(d1)
         ds.add_delegations(d2, d3)
@@ -76,10 +72,10 @@ class DelegationTests(unittest.TestCase):
     def testPools(self):
         p1 = Pool(atype=DelegationType.LABEL, pool_id='pool1', delegation_id='del1',
                   defined_on='node1', defined_for=['node2', 'node3'])
-        p1.set_pool_details(Labels().set_fields(vlan_range='1-100'))
+        p1.set_pool_details(Labels(vlan_range='1-100'))
         p2 = Pool(atype=DelegationType.LABEL, pool_id='pool2', delegation_id='del2',
                   defined_on='node2', defined_for=['node1', 'node4', 'node5'])
-        p2.set_pool_details(Labels().set_fields(vlan_range='101-200'))
+        p2.set_pool_details(Labels(vlan_range='101-200'))
         ps = Pools(atype=DelegationType.CAPACITY)
         with self.assertRaises(PoolException) as pe:
             ps.add_pool(pool=p1)
@@ -91,7 +87,7 @@ class DelegationTests(unittest.TestCase):
 
         delegs = ps.generate_delegations_by_node_id()
         d1 = Delegation(atype=DelegationType.LABEL, delegation_id='del3', aformat=DelegationFormat.SinglePool)
-        d1.set_details(Labels().set_fields(ipv4='192.168.1.1-192.168.1.10'))
+        d1.set_details(Labels(ipv4_range='192.168.1.1-192.168.1.10'))
         delegs['node1'].add_delegations(d1)
 
         print(delegs)

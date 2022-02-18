@@ -5,7 +5,8 @@ from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.slivers.path_info import ERO, PathInfo, Path
-from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location
+from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location, LabelException
+from fim.slivers.gateway import Gateway, GatewayException
 
 
 class TestSlivers(unittest.TestCase):
@@ -63,12 +64,24 @@ class TestSlivers(unittest.TestCase):
 
     def testCapacitiesLabels(self):
         ns = NodeSliver()
-        cap_hint = CapacityHints().set_fields(instance_type='blah')
-        lab = Labels().set_fields(vlan_range='1-4096')
+        cap_hint = CapacityHints(instance_type='blah')
+        lab = Labels(vlan_range='1-4096')
         ns.set_properties(capacities=Capacities(unit=1, core=2), labels=lab, capacity_hints=cap_hint)
         assert(ns.get_capacity_hints().instance_type == 'blah')
         assert(ns.get_labels().vlan_range == '1-4096')
         assert(ns.get_capacities().core == 2)
+
+        with self.assertRaises(LabelException):
+            Labels(vlan_range='1-8000')
+
+        with self.assertRaises(LabelException):
+            Labels(asn='600000')
+
+        with self.assertRaises(LabelException):
+            Labels(vlan='4098')
+
+        with self.assertRaises(LabelException):
+            Labels(inner_vlan='6000')
 
     def testLocation(self):
         ns = NodeSliver()
@@ -80,4 +93,19 @@ class TestSlivers(unittest.TestCase):
         self.assertGreater(lat, 35.00)
         self.assertLess(lon, -79.00)
         #print(f'{lat=} {lon=}')
+
+    def testGateway(self):
+
+        gw = Gateway(Labels(ipv4="192.168.1.1", ipv4_subnet="192.168.1.0/24", mac="00:11:22:33:44:55"))
+
+        self.assertEqual(gw.gateway, "192.168.1.1")
+        self.assertEqual(gw.subnet, "192.168.1.0/24")
+        self.assertEqual(gw.mac, "00:11:22:33:44:55")
+
+        with self.assertRaises(GatewayException):
+            Gateway(Labels(ipv4="192.168.1.1"))
+
+
+
+
 

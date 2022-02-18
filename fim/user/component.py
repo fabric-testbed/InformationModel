@@ -30,7 +30,7 @@ import uuid
 
 from fim.view_only_dict import ViewOnlyDict
 from ..graph.abc_property_graph import ABCPropertyGraph
-from .model_element import ModelElement, ElementType
+from .model_element import ModelElement, ElementType, TopologyException
 from .network_service import NetworkService, ServiceType
 from .interface import Interface
 from ..slivers.capacities_labels import Labels
@@ -77,17 +77,17 @@ class Component(ModelElement):
         if etype == ElementType.NEW:
             # cant use isinstance as it would create circular import dependencies
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and node_id is None:
-                raise RuntimeError("When adding components to substrate topology nodes you must specify static Node ID")
+                raise TopologyException("When adding components to substrate topology nodes you must specify static Node ID")
             if node_id is None:
                 node_id = str(uuid.uuid4())
             if parent_node_id is None:
-                raise RuntimeError("Parent node id must be specified for new components")
+                raise TopologyException("Parent node id must be specified for new components")
             if (model is None or ctype is None) and comp_model is None:
-                raise RuntimeError("Model and component type or comp_model must be specified for new components")
+                raise TopologyException("Model and component type or comp_model must be specified for new components")
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     (ctype == ComponentType.SharedNIC or ctype == ComponentType.SmartNIC) and \
                     (network_service_node_id is None or interface_node_ids is None or interface_labels is None):
-                raise RuntimeError('For substrate topologies and components with network interfaces '
+                raise TopologyException('For substrate topologies and components with network interfaces '
                                    'static network service node id, interface node ids and interface labels'
                                    'must be specified')
             super().__init__(name=name, node_id=node_id, topo=topo)
@@ -112,7 +112,7 @@ class Component(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
                                                          label=ABCPropertyGraph.CLASS_Component):
-                raise RuntimeError(f"Component with this id and name {name} doesn't exist")
+                raise TopologyException(f"Component with this id and name {name} doesn't exist")
 
     @property
     def type(self):
@@ -134,11 +134,14 @@ class Component(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a component property
+        Set a component property or unset of pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         comp_sliver = ComponentSliver()
         comp_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph

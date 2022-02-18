@@ -119,7 +119,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
         # clone ADM with temporary ID - we will be changing its properties
         temp_adm_graph_id = str(uuid.uuid4())
-        self.log.info('CREATED TEMPORARY ADM GRAPH ID ' + temp_adm_graph_id +
+        self.log.debug('CREATED TEMPORARY ADM GRAPH ID ' + temp_adm_graph_id +
                       ' when merging graph ' + adm.graph_id + ' into ' + self.graph_id)
         temp_graph = adm.clone_graph(new_graph_id=temp_adm_graph_id)
         # crude typecasting
@@ -132,7 +132,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
         temp_adm_graph.rewrite_delegations(real_adm_id=adm.graph_id)
 
         # update the structural info adm_graph_ids field to a single member list on all CBM nodes
-        si = StructuralInfo().set_fields(adm_graph_ids=[adm.graph_id])
+        si = StructuralInfo(adm_graph_ids=[adm.graph_id])
         temp_adm_graph.update_nodes_property(prop_name=self.PROP_STRUCTURAL_INFO,
                                              prop_val=si.to_json())
 

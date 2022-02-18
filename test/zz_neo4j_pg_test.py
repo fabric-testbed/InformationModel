@@ -92,8 +92,7 @@ class Neo4jTests(unittest.TestCase):
         """
         t = fu.ExperimentTopology()
         n1 = t.add_node(name='n1', site='RENC')
-        cap = fu.Capacities()
-        cap.set_fields(core=4, ram=64, disk=500)
+        cap = fu.Capacities(core=4, ram=64, disk=500)
         n1.set_properties(capacities=cap, image_type='qcow2', image_ref='default_centos_8')
         n1.add_component(ctype=fu.ComponentType.SmartNIC, model='ConnectX-6', name='nic1')
         n2 = t.add_node(name='n2', site='RENC')
@@ -127,12 +126,12 @@ class Neo4jTests(unittest.TestCase):
 
         # set allocated capacities or labels
         # in orchestrator
-        alloc_labels = fu.Labels().set_fields(instance_parent="worker_node-1")
+        alloc_labels = fu.Labels(instance_parent="worker_node-1")
         neo4j_topo.nodes['n1'].set_properties(label_allocations=alloc_labels)
         # in AM
-        provisioned_labels = fu.Labels().set_fields(instance="open-stack-instance-id-123")
+        provisioned_labels = fu.Labels(instance="open-stack-instance-id-123")
         neo4j_topo.nodes['n1'].set_properties(labels=provisioned_labels)
-        ri = fu.ReservationInfo().set_fields(reservation_id="01234", reservation_state='READY')
+        ri = fu.ReservationInfo(reservation_id="01234", reservation_state='READY')
         neo4j_topo.nodes['n1'].set_properties(reservation_info=ri)
 
         self.n4j_imp.delete_all_graphs()

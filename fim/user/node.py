@@ -29,7 +29,7 @@ from typing import Dict, Any, List, Tuple
 import uuid
 
 from fim.view_only_dict import ViewOnlyDict
-from .model_element import ModelElement, ElementType
+from .model_element import ModelElement, ElementType, TopologyException
 from .component import Component, ComponentType
 from .network_service import NetworkService
 from .interface import Interface
@@ -38,7 +38,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph, PropertyGraphQueryExcep
 
 from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
-from ..slivers.network_service import ServiceType
+from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
 from ..slivers.capacities_labels import CapacityHints, Location
 
@@ -56,10 +56,9 @@ class Node(ModelElement):
     network_services - returns a dictionary of network_services (mostly relevant
     to switches, not servers or VMs)
     """
-    SETTABLE_PROPERTIES = ['site', 'name']
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,
-                 ntype: NodeType = None, site: str = None, **kwargs):
+                 ntype: NodeType = None, site: str = None, ns_info: NetworkServiceInfo = None, **kwargs):
         """
         Don't call this method yourself, call topology.add_node()
         node_id will be generated if not provided for experiment topologies
@@ -70,6 +69,7 @@ class Node(ModelElement):
         :param etype: is this supposed to exist or new should be created
         :param ntype: node type if it is new
         :param site: node site
+        :param ns_info: NetworkServiceInfo structure
         :param kwargs: any additional properties
         """
         assert name is not None
@@ -80,20 +80,21 @@ class Node(ModelElement):
             # node id myst be specified for new nodes in substrate topologies
             if str(topo.__class__) == "<class 'fim.user.topology.SubstrateTopology'>" and \
                     node_id is None:
-                raise RuntimeError("When adding new nodes to substrate topology nodes you must specify static Node ID")
+                raise TopologyException("When adding new nodes to substrate topology nodes you must specify static Node ID")
             if node_id is None:
                 node_id = str(uuid.uuid4())
             super().__init__(name=name, node_id=node_id, topo=topo)
             if ntype is None:
-                raise RuntimeError("When creating nodes you must specify NodeType")
+                raise TopologyException("When creating nodes you must specify NodeType")
             if site is None:
-                raise RuntimeError("When creating nodes you must specify site")
+                raise TopologyException("When creating nodes you must specify site")
 
             sliver = NodeSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
             sliver.set_type(ntype)
             sliver.set_site(site)
+            sliver.network_service_info = ns_info
             sliver.set_properties(**kwargs)
             self.topo.graph_model.add_network_node_sliver(sliver=sliver)
         else:
@@ -103,7 +104,7 @@ class Node(ModelElement):
             existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
                                                                        label=str(ABCPropertyGraph.CLASS_NetworkNode))
             if existing_node_id != node_id:
-                raise RuntimeError(f'Node name {name} is not unique within the topology')
+                raise TopologyException(f'Node name {name} is not unique within the topology')
 
     @property
     def site(self):
@@ -181,6 +182,15 @@ class Node(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
+
     def get_sliver(self) -> NodeSliver:
         """
         Get a deep sliver representation of this node from graph
@@ -201,11 +211,14 @@ class Node(ModelElement):
 
     def set_property(self, pname: str, pval: Any):
         """
-        Set a node property
+        Set a node property or unset if pval is None
         :param pname:
         :param pval:
         :return:
         """
+        if pval is None:
+            self.unset_property(pname)
+            return
         node_sliver = NodeSliver()
         node_sliver.set_property(prop_name=pname, prop_val=pval)
         # write into the graph
@@ -249,7 +262,7 @@ class Node(ModelElement):
         assert name is not None
         # make sure name is unique within the node
         if name in self.__list_components().keys():
-            raise RuntimeError('Component names must be unique within node.')
+            raise TopologyException('Component names must be unique within node.')
         # add component node and populate properties
         c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
                       ctype=ctype, model=model, comp_model=model_type,
@@ -260,7 +273,7 @@ class Node(ModelElement):
 
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType, **kwargs) -> NetworkService:
         """
-        Add a network service to node (mostly needed in substrate topologies)
+        Add a network service to node ( needed in substrate topologies)
         :param name:
         :param node_id:
         :param layer:
@@ -270,7 +283,7 @@ class Node(ModelElement):
         assert name is not None
         # make sure name is unique within the node
         if name in self.__list_network_services().keys():
-            raise RuntimeError('NetworkService names must be unique within node.')
+            raise TopologyException('NetworkService names must be unique within node.')
         ns = NetworkService(name=name, node_id=node_id, parent_node_id=self.node_id, topo=self.topo,
                             etype=ElementType.NEW, nstype=nstype, **kwargs)
         return ns

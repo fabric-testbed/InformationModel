@@ -146,9 +146,9 @@ class ComponentCatalog:
                 if isliver.labels is not None:
                     if isliver.labels.bdf is not None and \
                             isinstance(isliver.labels.bdf, list):
-                        isliver.labels.set_fields(local_name=[interface_name for k in range(len(isliver.labels.bdf))])
+                        isliver.labels._set_fields(local_name=[interface_name for k in range(len(isliver.labels.bdf))])
                     else:
-                        isliver.labels.set_fields(local_name=interface_name)
+                        isliver.labels._set_fields(local_name=interface_name)
                 else:
                     isliver.set_labels(Labels(local_name=interface_name))
                 # if labels are lists, extract the length to make it the number of units

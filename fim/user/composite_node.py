@@ -28,6 +28,7 @@ from typing import Dict, Any, List, Tuple
 
 from fim.view_only_dict import ViewOnlyDict
 from .node import Node
+from .model_element import TopologyException
 from .interface import Interface
 
 from ..graph.abc_property_graph import ABCPropertyGraph
@@ -61,7 +62,7 @@ class CompositeNode(Node):
         existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
                                                                    label=str(ABCPropertyGraph.CLASS_CompositeNode))
         if existing_node_id != node_id:
-            raise RuntimeError(f'Composite Node name {name} is not unique within the topology')
+            raise TopologyException(f'Composite Node name {name} is not unique within the topology')
 
     def __list_components(self) -> ViewOnlyDict:
         """

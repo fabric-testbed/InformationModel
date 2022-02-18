@@ -40,6 +40,8 @@ class InterfaceType(enum.Enum):
     DedicatedPort = enum.auto()
     SharedPort = enum.auto()
     vInt = enum.auto()
+    StitchPort = enum.auto()
+    FacilityPort = enum.auto()
 
     def help(self) -> str:
         return 'An ' + self.name
@@ -54,7 +56,7 @@ class InterfaceType(enum.Enum):
 class InterfaceSliver(BaseSliver):
 
     def __init__(self):
-        # addresses are labels, no need for additional fields
+        # addresses are stored on labels, bandwidth on capacities
         super().__init__()
 
     @staticmethod

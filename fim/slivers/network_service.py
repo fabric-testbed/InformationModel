@@ -29,6 +29,7 @@ from recordclass import recordclass
 
 from .base_sliver import BaseSliver
 from .path_info import PathRepresentationType, ERO, PathInfo
+from .gateway import Gateway
 
 
 class NSLayer(enum.Enum):
@@ -69,6 +70,7 @@ class ServiceType(enum.Enum):
     FABNetv6 = enum.auto() # FABRIC IPv6 routed network
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
+    VLAN = enum.auto() # a local VLAN (internal to site)
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -102,6 +104,9 @@ class NetworkServiceSliver(BaseSliver):
         ServiceType.OVS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                  num_instances=NO_LIMIT,
                                                  desc='An OVS generic service.'),
+        ServiceType.VLAN: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
+                                                 num_instances=NO_LIMIT,
+                                                 desc='An local VLAN service in a site.'),
         ServiceType.MPLS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                   num_instances=NO_LIMIT, desc='An MPLS generic service'),
         ServiceType.L2Path: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=2,
@@ -119,11 +124,11 @@ class NetworkServiceSliver(BaseSliver):
         ServiceType.L2Bridge: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
                                                       desc='An L2 bridge service within a single FABRIC site.'),
-        ServiceType.FABNetv4: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
-                                                      num_instances=1,
+        ServiceType.FABNetv4: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                      num_instances=NO_LIMIT,
                                                       desc='A routed IPv4 (RFC1918 addressed) FABRIC network.'),
-        ServiceType.FABNetv6: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
-                                                      num_instances=1,
+        ServiceType.FABNetv6: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                      num_instances=NO_LIMIT,
                                                       desc='A routed IPv6 (publicly addressed) FABRIC network.'),
         ServiceType.PortMirror: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=1,
                                                         num_instances=1,
@@ -143,6 +148,7 @@ class NetworkServiceSliver(BaseSliver):
         self.path_info = None
         self.controller_url = None
         self.site = None
+        self.gateway = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -188,6 +194,12 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_site(self) -> str:
         return self.site
+
+    def set_gateway(self, gw: Gateway):
+        self.gateway = gw
+
+    def get_gateway(self) -> Gateway:
+        return self.gateway
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:

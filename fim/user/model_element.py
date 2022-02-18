@@ -30,6 +30,7 @@ import enum
 
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..slivers.capacities_labels import Capacities, Labels
+from ..slivers.measurement_data import MeasurementData
 
 
 class ElementType(enum.Enum):
@@ -104,7 +105,7 @@ class ModelElement(ABC):
     @abstractmethod
     def set_property(self, pname: str, pval):
         """
-        Set a property of a model element
+        Set a property of a model element or unset if pval is None
         :param pname:
         :param paval:
         :return:
@@ -171,3 +172,55 @@ class ModelElement(ABC):
     def node_map(self, value):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('node_map', value)
+
+    @property
+    def tags(self):
+        return self.get_property('tags') if self.__dict__.get('topo', None) is not None else None
+
+    @tags.setter
+    def tags(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('tags', value)
+
+    @property
+    def mf_data(self):
+        d = self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
+        return d.data if d is not None else None
+
+    @mf_data.setter
+    def mf_data(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            if value is None or isinstance(value, MeasurementData):
+                self.set_property('mf_data', value)
+            else:
+                self.set_property('mf_data', MeasurementData(value))
+
+    def update_labels(self, **kwargs):
+        """
+        Take current labels field (even empty) and add/overwrite additional values into it
+        :param kwargs:
+        :return:
+        """
+        if self.labels is None:
+            self.set_property('labels', Labels(**kwargs))
+        else:
+            new_lab = Labels.update(self.labels, **kwargs)
+            self.set_property('labels', new_lab)
+
+    def update_capacities(self, **kwargs):
+        """
+        Take current capacities field (even empty) and add/overwrite additional values into it
+        :param kwargs:
+        :return:
+        """
+        if self.capacities is None:
+            self.set_property('capacities', Capacities(**kwargs))
+        else:
+            new_cap = Capacities.update(self.capacities, **kwargs)
+            self.set_property('capacities', new_cap)
+
+
+class TopologyException(Exception):
+
+    def __init__(self, msg: str):
+        super().__init__(msg)

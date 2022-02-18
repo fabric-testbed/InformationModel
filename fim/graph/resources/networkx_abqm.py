@@ -94,27 +94,6 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
                                             ]}))
         return len(graph_nodes) > 0
 
-    def get_all_node_or_component_connection_points(self, parent_node_id: str) -> List[str]:
-        """
-        Get a list of interfaces attached via network services to a composite node
-        :param parent_node_id:
-        :return:
-        """
-        assert parent_node_id is not None
-        labels, parent_props = self.get_node_properties(node_id=parent_node_id)
-        if ABCPropertyGraphConstants.CLASS_CompositeNode not in labels:
-            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=parent_node_id,
-                                              msg="Parent node type is not CompositeNode")
-        sfs_ifs = self.get_first_and_second_neighbor(node_id=parent_node_id, rel1=ABCPropertyGraphConstants.REL_HAS,
-                                                     node1_label=ABCPropertyGraphConstants.CLASS_NetworkService,
-                                                     rel2=ABCPropertyGraphConstants.REL_CONNECTS,
-                                                     node2_label=ABCPropertyGraphConstants.CLASS_ConnectionPoint)
-        ret = list()
-        # return only interface IDs, not interested in NetworkServices
-        for tup in sfs_ifs:
-            ret.append(tup[1])
-        return ret
-
 
 class NetworkXABQMFactory:
     """
