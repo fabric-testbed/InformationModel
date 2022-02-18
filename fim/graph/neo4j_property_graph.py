@@ -706,6 +706,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
         assert graphml_file is not None
         assert graph_id is not None
+        # delete this graph if it exists
+        self.delete_graph(graph_id=graph_id)
         try:
             with self.driver.session() as session:
                 self.log.debug(f"Loading graph {graph_id} into Neo4j")

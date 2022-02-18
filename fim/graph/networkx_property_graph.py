@@ -687,10 +687,8 @@ class NetworkXGraphStorage:
             # check this graph_id isn't already present
             existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
             if len(existing_graph_nodes) > 0:
-                # graph already present, warn and exit
-                if self.log is not None:
-                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
-                return
+                # graph already present, delete it so we can replace
+                self.del_graph(graph_id)
             # relabel incoming graph nodes to integers, then merge
             temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
             # set/overwrite GraphID property on all nodes
@@ -707,10 +705,8 @@ class NetworkXGraphStorage:
             # check this graph_id isn't already present
             existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
             if len(existing_graph_nodes) > 0:
-                # graph already present, warn and exit
-                if self.log is not None:
-                    self.log.warn('Attempting to insert a graph with the same GraphID, skipping')
-                return
+                # graph already present, delete so we can replace
+                self.del_graph(graph_id)
             # relabel incoming graph nodes to integers, then merge
             temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
             self.start_id = self.start_id + len(temp_graph.nodes())
