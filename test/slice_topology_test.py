@@ -137,13 +137,6 @@ class SliceTest(unittest.TestCase):
         self_port = service_port.get_peers()[0]
         self.assertEqual(self_port, self.topo.interface_list[0])
 
-        # disabled - replaced with RuntimeError
-        #with self.assertRaises(AssertionError) as e:
-        #    self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge,
-        #                                  interfaces=self.topo.interface_list[0:2])
-
-        #print(self.topo)
-
         # nodemap and unset
         n1.set_properties(node_map=('dead-beef-graph', 'dead-beef-node'))
         assert n1.get_property('node_map') == ('dead-beef-graph', 'dead-beef-node')
@@ -297,6 +290,7 @@ class SliceTest(unittest.TestCase):
                                              n1.interface_list[1]])
 
         self.assertEqual(s1.layer, f.Layer.L2)
+        self.assertEqual(sfac.layer, f.Layer.L2)
 
         # this is typically done by orchestrator
         s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
@@ -323,20 +317,19 @@ class SliceTest(unittest.TestCase):
         self.topo.remove_network_service('s1')
 
         with self.assertRaises(TopologyException):
-            # connection conflict
+            # connection conflict because we have an interface connecting to s-fac
             s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                               interfaces=[self.topo.interface_list[0]])
-        # remove malformed service
-        self.topo.remove_network_service(name='s2')
+                                               interfaces=self.topo.interface_list)
 
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                           interfaces=self.topo.interface_list[2:4])
+                                           interfaces=[n1.components['nic4'].interfaces['nic4-p1'],
+                                                       n2.components['nic2'].interfaces['nic2-p1']])
         self.assertEqual(len(s2.interface_list), 2)
         print(f'S2 has these interfaces: {s2.interface_list}')
 
-        print(f'There are {self.topo.links} left in topology')
+        print(f'There are {self.topo.links}  links left in topology')
         self.assertEqual(len(self.topo.links), 4)
-        print(f'Network services {self.topo.network_services}')
+        print(f'There are {self.topo.network_services} Network services  in topology')
         self.assertEqual(len(self.topo.network_services), 7)
         self.topo.remove_network_service('s2')
         self.topo.validate()
