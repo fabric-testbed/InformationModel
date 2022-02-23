@@ -207,7 +207,6 @@ class Component(ModelElement):
         :return:
         """
         node_id_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
-        # Could consider using frozendict here
         ret = list()
         for nid in node_id_list:
             i = self.__get_interface_by_id(nid)

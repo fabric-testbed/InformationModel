@@ -403,12 +403,12 @@ class Topology(ABC):
 
     def _list_of_interfaces(self) -> Tuple[Any]:
         """
-        List all interfaces of the topology as a dictionary.
+        List all interfaces of the topology as a list.
         :return:
         """
         ret = list()
         for n in self.nodes.values():
-            ret.extend(n.interfaces.values())
+            ret.extend(n.interface_list)
         return tuple(ret)
 
     @property
@@ -858,8 +858,7 @@ class AdvertizedTopology(Topology):
             all_node_like = list(self.sites.values())
             all_node_like.extend(self.facilities.values())
             for n in all_node_like:
-                node_ints = n.interfaces.values()
-                for nint in node_ints:
+                for nint in n.interface_list:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
                         if nint in l.interface_list:
@@ -867,9 +866,12 @@ class AdvertizedTopology(Topology):
 
             edge_labels = dict()
             for k, v in graph_edges.items():
-                derived_graph.add_edge(v[0], v[1])
-                #edge_labels[(v[0], v[1])] = k
-                edge_labels[(v[0], v[1])] = ""
+                if len(v) >= 2:
+                    derived_graph.add_edge(v[0], v[1])
+                    # edge_labels[(v[0], v[1])] = k
+                    edge_labels[(v[0], v[1])] = ""
+                else:
+                    print(f'WARNING: unable to find a peer interface for {v[0]}, proceeding')
 
             pos = layout(derived_graph)
             nx.draw_networkx(derived_graph, pos=pos)
