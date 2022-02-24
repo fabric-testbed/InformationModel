@@ -416,6 +416,8 @@ class Node(ModelElement):
         :return:
         """
         # immediately-attached interfaces
+        # FIXME: note that because there could be a collision on interface name, this
+        # may produce invalid results sometimes. Better to use list_of_interfaces
         node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
         direct_interfaces = dict()
         for nid in node_if_list:
@@ -427,12 +429,20 @@ class Node(ModelElement):
             direct_interfaces.update(comp_interfaces)
         return ViewOnlyDict(direct_interfaces)
 
-    def __list_of_interfaces(self) -> Tuple[Any]:
+    def __list_of_interfaces(self) -> Tuple[Interface]:
         """
         List all interfaces of node and its components
         :return:
         """
-        return tuple(self.__list_interfaces().values())
+        node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        direct_interfaces = list()
+        for nid in node_if_list:
+            i = self.__get_interface_by_id(nid)
+            direct_interfaces.append(i)
+        cdict = self.__list_components()
+        for k, v in cdict.items():
+            direct_interfaces.extend(v.interface_list)
+        return tuple(direct_interfaces)
 
     def get_component(self, name: str):
         """

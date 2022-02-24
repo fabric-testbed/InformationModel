@@ -403,12 +403,12 @@ class Topology(ABC):
 
     def _list_of_interfaces(self) -> Tuple[Any]:
         """
-        List all interfaces of the topology as a dictionary.
+        List all interfaces of the topology as a list.
         :return:
         """
         ret = list()
         for n in self.nodes.values():
-            ret.extend(n.interfaces.values())
+            ret.extend(n.interface_list)
         return tuple(ret)
 
     @property
@@ -485,7 +485,7 @@ class Topology(ABC):
             for c in n.components.values():
                 lines.append("\t" + c.name + ": " + " " + str(c.type) + " " +
                              c.model)
-                for i in c.interfaces.values():
+                for i in c.interface_list:
                     lines.append("\t\t" + i.name + ": " + str(i.type) + " " +
                                  self.__print_caplabs__(i.capacities))
         lines.append("Links:")
@@ -574,7 +574,7 @@ class ExperimentTopology(Topology):
 
             # link interfaces of NSs and NSs to nodes
             for ns in self.network_services.values():
-                for nint in ns.interfaces.values():
+                for nint in ns.interface_list:
                     peer_int_ids = self.graph_model.find_peer_connection_points(node_id=nint.node_id)
                     if peer_int_ids is None:
                         continue
@@ -680,7 +680,7 @@ class SubstrateTopology(Topology):
                                                              delegation_id=delegation_id)
                     if delegations is not None:
                         delegations_dicts[t][c.node_id] = delegations
-                    for i in c.interfaces.values():
+                    for i in c.interface_list:
                         delegations = self.__copy_to_delegations(e=i, atype=t,
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
@@ -691,7 +691,7 @@ class SubstrateTopology(Topology):
                                                              delegation_id=delegation_id)
                     if delegations is not None:
                         delegations_dicts[t][sf.node_id] = delegations
-                    for i in sf.interfaces.values():
+                    for i in sf.interface_list:
                         delegations = self.__copy_to_delegations(e=i, atype=t,
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
@@ -858,8 +858,7 @@ class AdvertizedTopology(Topology):
             all_node_like = list(self.sites.values())
             all_node_like.extend(self.facilities.values())
             for n in all_node_like:
-                node_ints = n.interfaces.values()
-                for nint in node_ints:
+                for nint in n.interface_list:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
                         if nint in l.interface_list:
@@ -867,9 +866,12 @@ class AdvertizedTopology(Topology):
 
             edge_labels = dict()
             for k, v in graph_edges.items():
-                derived_graph.add_edge(v[0], v[1])
-                #edge_labels[(v[0], v[1])] = k
-                edge_labels[(v[0], v[1])] = ""
+                if len(v) >= 2:
+                    derived_graph.add_edge(v[0], v[1])
+                    # edge_labels[(v[0], v[1])] = k
+                    edge_labels[(v[0], v[1])] = ""
+                else:
+                    print(f'WARNING: unable to find a peer interface for {v[0]}, proceeding')
 
             pos = layout(derived_graph)
             nx.draw_networkx(derived_graph, pos=pos)
@@ -927,7 +929,7 @@ class AdvertizedTopology(Topology):
                     lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
                                  c.model + " " + str(ccp))
                 lines.append("\tSite Interfaces:")
-                for i in n.interfaces.values():
+                for i in n.interface_list:
                     if i.capacities is not None:
                         icp = CapacityTuple(total=i.capacities,
                                             allocated=i.get_property("capacity_allocations"))
@@ -937,7 +939,7 @@ class AdvertizedTopology(Topology):
             for fp in self.facilities.values():
                 lines.append(fp.name + " [Facility]")
                 lines.append("\tFacility Interfaces:")
-                for i in fp.interfaces.values():
+                for i in fp.interface_list:
                     if i.capacities is not None:
                         icp = CapacityTuple(total=i.capacities,
                                             allocated=i.get_property("capacity_allocations"))
