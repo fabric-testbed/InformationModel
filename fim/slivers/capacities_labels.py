@@ -443,6 +443,7 @@ class ReservationInfo(JSONField):
     def __init__(self, **kwargs):
         self.reservation_id = None
         self.reservation_state = None
+        self.error_message = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
