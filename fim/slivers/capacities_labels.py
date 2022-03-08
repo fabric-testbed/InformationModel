@@ -238,20 +238,21 @@ class Capacities(JSONField):
         return ret[:-2] + "}"
 
 
-class CapacityTuple:
+class FreeCapacity:
     """
     This class takes two capacities objects (what is the total
-    available and what is free) and helps print them.
+    available and what is allocated) and allows accessing what is
+    free (the difference between the two).
     """
     def __init__(self, *, total: Capacities, allocated: Capacities):
         assert total is not None
         if allocated is None:
             allocated = Capacities()
-        self.available = total
+        self.total = total
         self.free = total - allocated
 
     def __str__(self):
-        d2 = self.available.__dict__.copy()
+        d2 = self.total.__dict__.copy()
         d1 = self.free.__dict__.copy()
 
         for k in self.free.__dict__:
@@ -264,6 +265,13 @@ class CapacityTuple:
         for k in d1:
             ret = ret + k + ": " + f'{d1[k]:,}' + "/" + f'{d2[k]:,} ' + Capacities.UNITS[k] + ", "
         return ret[:-2] + '}'
+
+    def __getattr__(self, item):
+        """
+        Provide access to same fields as capacities, computed as a difference between total and allocated
+        i.e. available or free
+        """
+        return self.free.__getattribute__(item)
 
 
 class CapacityHints(JSONField):

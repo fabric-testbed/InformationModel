@@ -53,3 +53,4 @@ PathInfo = pinfo.PathInfo
 ERO = pinfo.ERO
 Tags = tgs.Tags
 MeasurementData = mdata.MeasurementData
+FreeCapacity = caplab.FreeCapacity
