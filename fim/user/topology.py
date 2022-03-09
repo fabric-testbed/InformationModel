@@ -45,7 +45,7 @@ from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat, PropertyGr
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import Capacities, CapacityTuple
+from fim.slivers.capacities_labels import Capacities, FreeCapacity
 from fim.slivers.interface_info import InterfaceType
 
 from .model_element import ElementType
@@ -913,26 +913,23 @@ class AdvertizedTopology(Topology):
         if self.sites:
             for n in self.sites.values():
                 tot_cap = n.capacities
-                alloc_cap = n.get_property('capacity_allocations')
-                if alloc_cap is None:
-                    # if nothing is allocated, just zero out
-                    alloc_cap = Capacities()
+                alloc_cap = n.capacity_allocations
                 if tot_cap is not None:
-                    ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
+                    ncp = FreeCapacity(total=tot_cap, allocated=alloc_cap)
                     lines.append(n.name + " [Site] : " + str(ncp))
                 else:
                     lines.append(n.name + " [Site]")
                 lines.append("\tComponents:")
                 for c in n.components.values():
-                    ccp = CapacityTuple(total=c.capacities,
-                                        allocated=c.get_property("capacity_allocations"))
+                    ccp = FreeCapacity(total=c.capacities,
+                                       allocated=c.capacity_allocations)
                     lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
                                  c.model + " " + str(ccp))
                 lines.append("\tSite Interfaces:")
                 for i in n.interface_list:
                     if i.capacities is not None:
-                        icp = CapacityTuple(total=i.capacities,
-                                            allocated=i.get_property("capacity_allocations"))
+                        icp = FreeCapacity(total=i.capacities,
+                                           allocated=i.capacity_allocations)
                         lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
                                     str(icp))
         if self.facilities:
@@ -941,8 +938,8 @@ class AdvertizedTopology(Topology):
                 lines.append("\tFacility Interfaces:")
                 for i in fp.interface_list:
                     if i.capacities is not None:
-                        icp = CapacityTuple(total=i.capacities,
-                                            allocated=i.get_property("capacity_allocations"))
+                        icp = FreeCapacity(total=i.capacities,
+                                           allocated=i.capacity_allocations)
                         lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
                                     str(icp) + " " + self.__print_caplabs__(i.labels))
 

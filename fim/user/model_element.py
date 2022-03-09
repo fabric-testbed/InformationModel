@@ -147,6 +147,10 @@ class ModelElement(ABC):
             self.set_property('capacities', value)
 
     @property
+    def capacity_allocations(self):
+        return self.get_property('capacity_allocations') if self.__dict__.get('topo', None) is not None else None
+
+    @property
     def labels(self):
         return self.get_property('labels') if self.__dict__.get('topo', None) is not None else None
 
