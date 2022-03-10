@@ -191,6 +191,25 @@ class Node(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
+    def validate_constraints(self):
+        """
+        Validate node constraints - properties
+        """
+
+        nstype = self.type
+
+        # check properties
+        req_props = NodeSliver.NodeConstraints[nstype].required_properties
+        forb_props = NodeSliver.NodeConstraints[nstype].forbidden_properties
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        node_sliver = self.topo.graph_model.node_sliver_from_graph_properties_dict(node_properties)
+        for rp in req_props:
+            if not node_sliver.get_property(rp):
+                raise TopologyException(f"Node of type {nstype} must have property {rp} set")
+        for fp in forb_props:
+            if node_sliver.get_property(fp):
+                raise TopologyException(f"Node of type {nstype} must NOT have property {fp} set")
+
     def get_sliver(self) -> NodeSliver:
         """
         Get a deep sliver representation of this node from graph

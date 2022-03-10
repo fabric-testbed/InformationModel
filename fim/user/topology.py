@@ -280,30 +280,6 @@ class Topology(ABC):
         assert name is not None
         self.graph_model.remove_ns_with_cps_and_links(node_id=self._get_ns_by_name(name=name).node_id)
 
-    def validate(self):
-        """
-        Validate the experiment topology. Throw an exception if
-        :return:
-        """
-        # check network services, interfaces, sites
-        for s in self.network_services.values():
-            service_interfaces = s.interface_list
-            node_interfaces = list()
-            # some services like OVS have node ports, others like Bridge, STS, PTP
-            # have ServicePorts which peer with node ports. Validation code needs
-            # owning nodes for each interface so we search for proper interfaces
-            for si in service_interfaces:
-                if si.type == InterfaceType.ServicePort:
-                    # there should only ever be one peer for a service port
-                    peers = si.get_peers()
-                    if peers is None or len(peers) != 1:
-                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
-                                                f'number of peer interfaces')
-                    node_interfaces.append(si.get_peers()[0])
-                else:
-                    node_interfaces.append(si)
-            s.validate_service_constraints(node_interfaces)
-
     def _get_node_by_name(self, name: str) -> Node:
         """
         Find node by its name, return Node object
@@ -648,6 +624,34 @@ class ExperimentTopology(Topology):
                                from_interface_name=from_interface_name,
                                to_interface=to_interface, **kwargs)
         return ns
+
+    def validate(self):
+        """
+        Validate the experiment topology. Throw an exception if
+        :return:
+        """
+        # check nodes
+        for n in self.nodes.values():
+            n.validate_constraints()
+
+        # check network services, interfaces, sites
+        for s in self.network_services.values():
+            service_interfaces = s.interface_list
+            node_interfaces = list()
+            # some services like OVS have node ports, others like Bridge, STS, PTP
+            # have ServicePorts which peer with node ports. Validation code needs
+            # owning nodes for each interface so we search for proper interfaces
+            for si in service_interfaces:
+                if si.type == InterfaceType.ServicePort:
+                    # there should only ever be one peer for a service port
+                    peers = si.get_peers()
+                    if peers is None or len(peers) != 1:
+                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
+                                                f'number of peer interfaces')
+                    node_interfaces.append(si.get_peers()[0])
+                else:
+                    node_interfaces.append(si)
+            s.validate_constraints(node_interfaces)
 
 
 class SubstrateTopology(Topology):

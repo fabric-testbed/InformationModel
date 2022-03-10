@@ -25,6 +25,7 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import enum
 import ipaddress
+from recordclass import recordclass
 
 from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
@@ -58,7 +59,30 @@ class NodeType(enum.Enum):
         return None
 
 
+NodeConstraintRecord = recordclass('NodeConstraintRecord',
+                                   ['required_properties',
+                                    'forbidden_properties'])
+
+
 class NodeSliver(BaseSliver):
+    NodeConstraints = {
+        NodeType.Server: NodeConstraintRecord(required_properties=['site'],
+                                              forbidden_properties=[]),
+        NodeType.VM: NodeConstraintRecord(required_properties=['site'],
+                                          forbidden_properties=[]),
+        NodeType.Container: NodeConstraintRecord(required_properties=['site'],
+                                                 forbidden_properties=[]),
+        NodeType.Switch: NodeConstraintRecord(required_properties=[],
+                                              forbidden_properties=['attached_components_info',
+                                                                    'image_type', 'image_ref']),
+        NodeType.NAS: NodeConstraintRecord(required_properties=[],
+                                           forbidden_properties=['attached_components_info',
+                                                                 'image_type', 'image_ref']),
+        NodeType.Facility: NodeConstraintRecord(required_properties=[],
+                                                forbidden_properties=['attached_components_info',
+                                                                      'image_type', 'image_ref',
+                                                                      'management_ip'])
+    }
 
     def __init__(self):
         super().__init__()

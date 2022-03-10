@@ -222,7 +222,7 @@ class NetworkService(ModelElement):
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
         return sites
 
-    def validate_service_constraints(self, interfaces):
+    def validate_constraints(self, interfaces):
         """
         Validate service constraints - number of sites, interfaces, instances, properties
         """
