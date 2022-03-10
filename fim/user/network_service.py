@@ -82,7 +82,7 @@ class NetworkService(ModelElement):
             # cant use isinstance as it would create circular import dependencies
             # We do more careful checks for ExperimentTopologies, but for substrate we let things loose
             if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>" and interfaces:
-                sites = self.validate_service_constraints(nstype, interfaces)
+                sites = self.__validate_nstype_constraints(nstype, interfaces)
 
                 # if a single-site service
                 if len(sites) == 1:
@@ -186,7 +186,7 @@ class NetworkService(ModelElement):
         """
         return self.topo.graph_model.build_deep_ns_sliver(node_id=self.node_id)
 
-    def validate_service_constraints(self, nstype,  interfaces) -> Set[str]:
+    def __validate_nstype_constraints(self, nstype, interfaces) -> Set[str]:
         """
         Validate service constraints as encoded for each services (number of interfaces, instances, sites).
         Note that interfaces is a list of interfaces belonging to nodes!
@@ -194,11 +194,12 @@ class NetworkService(ModelElement):
         :param interfaces:
         :return: a list of sites the service covers
         """
+
         # check the number of instances of this service
         if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
             services = self.topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                              ntype=str(nstype))
-            if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
+            if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[self.type].num_instances:
                 raise TopologyException(f"Service type {nstype} cannot have {len(services) + 1} instances. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
         # check the number of interfaces
@@ -219,8 +220,35 @@ class NetworkService(ModelElement):
             if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
                 raise TopologyException(f"Service of type {nstype} cannot span {len(sites)} sites. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
-
         return sites
+
+    def validate_service_constraints(self, interfaces):
+        """
+        Validate service constraints - number of sites, interfaces, instances, properties
+        """
+
+        nstype = self.type
+        self.__validate_nstype_constraints(nstype, interfaces)
+
+        # check properties
+        req_props = NetworkServiceSliver.ServiceConstraints[nstype].required_properties
+        forb_props = NetworkServiceSliver.ServiceConstraints[nstype].forbidden_properties
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        ns_sliver = self.topo.graph_model.network_service_sliver_from_graph_properties_dict(node_properties)
+        for rp in req_props:
+            if not ns_sliver.get_property(rp):
+                raise TopologyException(f"Service of type {nstype} must have property {rp} set")
+        for fp in forb_props:
+            if ns_sliver.get_property(fp):
+                raise TopologyException(f"Service of type {nstype} must NOT have property {fp} set")
+
+        # check interface types that are required to attach
+        rit = NetworkServiceSliver.ServiceConstraints[nstype].required_interface_types
+        if len(rit) > 0:
+            for i in interfaces:
+                if not i.type in rit:
+                    raise TopologyException(f"Service of type {nstype} must use one of the following interface types:"
+                                            f"{rit} instead of {i.type}")
 
     @staticmethod
     def __service_guardrails(sliver: NetworkServiceSliver, interface: Interface):

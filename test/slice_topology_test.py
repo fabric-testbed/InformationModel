@@ -342,6 +342,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.links), 4)
         print(f'There are {self.topo.network_services} Network services  in topology')
         self.assertEqual(len(self.topo.network_services), 7)
+        self.topo.validate()
         self.topo.remove_network_service('s2')
         self.topo.validate()
         self.assertEqual(len(self.topo.network_services), 6)
@@ -449,6 +450,7 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='single-site.graphml')
         self.topo.serialize(file_name='single-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='single-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+        self.topo.validate()
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
@@ -465,6 +467,7 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.graphml')
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+        self.topo.validate()
 
     def testL3Service(self):
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
@@ -487,6 +490,7 @@ class SliceTest(unittest.TestCase):
         # site property is set automagically
         self.assertEqual(s1.site, 'UKY')
         self.assertEqual(s2.site, 'RENC')
+        self.topo.validate()
 
     def testPortMirrorService(self):
         t = self.topo
@@ -508,4 +512,5 @@ class SliceTest(unittest.TestCase):
 
         self.assertEqual(t.network_services['pm1'].mirror_port, 'blahname')
         self.assertEqual(t.network_services['pm1'].mirror_direction, MirrorDirection.Both)
+        t.validate()
         t.remove_network_service(name='pm1')

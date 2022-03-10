@@ -302,7 +302,7 @@ class Topology(ABC):
                     node_interfaces.append(si.get_peers()[0])
                 else:
                     node_interfaces.append(si)
-            s.validate_service_constraints(s.type, node_interfaces)
+            s.validate_service_constraints(node_interfaces)
 
     def _get_node_by_name(self, name: str) -> Node:
         """
