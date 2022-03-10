@@ -25,7 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 from abc import ABC
-from typing import List, Dict, Tuple, Any
+from typing import List, Tuple, Any
 import enum
 
 import uuid
@@ -38,10 +38,10 @@ from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, TopologyException
 from ..slivers.network_node import NodeType
 from ..slivers.network_link import LinkType
-from ..slivers.network_service import NSLayer, ServiceType
+from ..slivers.network_service import NSLayer, ServiceType, MirrorDirection
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
-from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat, PropertyGraphQueryException
+from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
@@ -52,7 +52,7 @@ from .model_element import ElementType
 from .node import Node
 from .component import Component
 from .composite_node import CompositeNode
-from .network_service import NetworkService
+from .network_service import NetworkService, PortMirrorService
 from .interface import Interface
 from .link import Link
 
@@ -177,6 +177,9 @@ class Topology(ABC):
         """
         assert name is not None
         assert site is not None
+        # make sure name is unique within the topology
+        if name in self._list_nodes().keys():
+            raise TopologyException('Node names must be unique within topology.')
         # add node to graph
         n = Node(name=name, node_id=node_id, topo=self, site=site,
                  etype=ElementType.NEW, ntype=ntype, **kwargs)
@@ -216,6 +219,9 @@ class Topology(ABC):
         Remove a facility and associated network service and interface, disconnecting it from a
         service as appropriate. Same as removing a node.
         """
+        fac = self._get_node_by_name(name)
+        if fac.type != NodeType.Facility:
+            raise TopologyException(f'{name} is not a Facility node, cannot remove.')
         self.remove_node(name)
 
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType,
@@ -233,6 +239,9 @@ class Topology(ABC):
         :return:
         """
         # add link to graph
+        # make sure name is unique within the topology
+        if name in self._list_links().keys():
+            raise TopologyException('Link names must be unique within topology.')
         link = Link(name=name, node_id=node_id, ltype=ltype, interfaces=interfaces,
                     etype=ElementType.NEW, topo=self, technology=technology, **kwargs)
         return link
@@ -259,7 +268,7 @@ class Topology(ABC):
         :return:
         """
         ns = NetworkService(name=name, node_id=node_id, topo=self, nstype=nstype,
-                            etype=ElementType.NEW, interfaces=interfaces, technology=technology)
+                            etype=ElementType.NEW, interfaces=interfaces, technology=technology, **kwargs)
         return ns
 
     def remove_network_service(self, name: str):
@@ -359,7 +368,10 @@ class Topology(ABC):
         assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        ns = NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        if ns.type == ServiceType.PortMirror:
+            return PortMirrorService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        return ns
 
     def _list_nodes(self) -> ViewOnlyDict:
         """
@@ -372,7 +384,9 @@ class Topology(ABC):
         ret = dict()
         for nid in node_id_list:
             n = self._get_node_by_id(nid)
-            ret[n.name] = n
+            # exclude Facility nodes
+            if n.type != NodeType.Facility:
+                ret[n.name] = n
         return ViewOnlyDict(ret)
 
     def _list_network_services(self) -> ViewOnlyDict:
@@ -496,6 +510,22 @@ class Topology(ABC):
 
         return "\n".join(lines)
 
+    @property
+    def facilities(self) -> ViewOnlyDict or None:
+        """
+        Return facilities connected in this topology. Facilities should NOT be composite nodes in the ad.
+        :return:
+        """
+        fac_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkNode,
+                                                                   ntype=str(NodeType.Facility))
+        if fac_ids is None:
+            return None
+        ret = dict()
+        for nid in fac_ids:
+            n = self._get_node_by_id(nid)
+            ret[n.name] = n
+        return ViewOnlyDict(ret)
+
 
 class ExperimentTopology(Topology):
     """
@@ -598,6 +628,26 @@ class ExperimentTopology(Topology):
                 plt.savefig(file_name)
         else:
             raise TopologyException("This level of detail not yet implemented")
+
+    def add_port_mirror_service(self, *, name: str, node_id: str = None,
+                                from_interface_name: str, to_interface: Interface,
+                                direction: MirrorDirection = MirrorDirection.Both,
+                                **kwargs) -> PortMirrorService:
+        """
+        Add a network service to a topology. Interfaces can be specified upfront or added/removed later
+        :param name:
+        :param node_id:
+        :param from_interface_name: name of the interface to mirror
+        :param to_interface: node interface to mirror to
+        :param direction:
+        :param kwargs:
+        :return:
+        """
+        ns = PortMirrorService(name=name, node_id=node_id, topo=self,
+                               etype=ElementType.NEW, direction=direction,
+                               from_interface_name=from_interface_name,
+                               to_interface=to_interface, **kwargs)
+        return ns
 
 
 class SubstrateTopology(Topology):
@@ -804,23 +854,6 @@ class AdvertizedTopology(Topology):
     @property
     def links(self):
         return self._list_links()
-
-    @property
-    def facilities(self) -> ViewOnlyDict or None:
-        """
-        Return facilities connected in this topology. Facilities should NOT be composite nodes in the ad.
-        :return:
-        """
-        fac_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkNode,
-                                                                   ntype=str(NodeType.Facility))
-        if fac_ids is None:
-            return None
-        ret = dict()
-        for nid in fac_ids:
-            n = self._get_node_by_id(nid)
-            if n.type == NodeType.Facility:
-                ret[n.name] = n
-        return ViewOnlyDict(ret)
 
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,

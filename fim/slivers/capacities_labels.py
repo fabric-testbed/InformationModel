@@ -121,7 +121,7 @@ class JSONField(ABC):
 class Capacities(JSONField):
     """
     Implements basic capacity field handling - encoding and decoding
-    from JSON dictionaries of properties
+    from JSON dictionaries of properties. Only ints are allowed.
     """
     UNITS = {'cpu': '', 'unit': '',
              'core': '', 'ram': 'G',
@@ -151,6 +151,7 @@ class Capacities(JSONField):
         for k, v in kwargs.items():
             if v is not None:
                 assert v >= 0
+                assert isinstance(v, int)
             try:
                 # will toss an exception if field is not defined
                 self.__getattribute__(k)
@@ -223,7 +224,6 @@ class Capacities(JSONField):
             if self.__dict__[f] <= 0:
                 return False
         return True
-
 
     def __str__(self):
         d = self.__dict__.copy()

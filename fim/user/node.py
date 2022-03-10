@@ -280,6 +280,28 @@ class Node(ModelElement):
                       parent_node_id=self.node_id, **kwargs)
         return c
 
+    def add_storage(self, *, name: str, node_id: str = None, **kwargs) -> Component:
+        """
+        Add storage as a component (only in ASMs). Note that storage shows up as a component
+        on the list of node components. Typically you want to specify labels=Labels(local_name='volume name')
+        as part of keyargs so an existing volume can get attached.
+        :param name:
+        :param node_id:
+        :param kwargs: additional properties of the component
+        :return:
+        """
+        assert name is not None
+        if str(self.topo.__class__) != "<class 'fim.user.topology.ExperimentTopology'>":
+            raise TopologyException('Storage can be added as a component only in ExperimentTopologies')
+        # make sure name is unique within the node
+        if name in self.__list_components().keys():
+            raise TopologyException('Component names must be unique within node.')
+        # add component node and populate properties
+        c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
+                      ctype=ComponentType.Storage, model=NodeType.NAS.name,
+                      parent_node_id=self.node_id, **kwargs)
+        return c
+
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType, **kwargs) -> NetworkService:
         """
         Add a network service to node ( needed in substrate topologies)
@@ -319,6 +341,12 @@ class Node(ModelElement):
         node_id = self.topo.graph_model.find_ns_by_name(parent_node_id=self.node_id,
                                                         nsname=name)
         self.topo.graph_model.remove_ns_with_cps_and_links(node_id=node_id)
+
+    def remove_storage(self, name: str) -> None:
+        """
+        Removes attached storage component
+        """
+        self.remove_component(name)
 
     def __get_component_by_name(self, name: str) -> Component:
         """

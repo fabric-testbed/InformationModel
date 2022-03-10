@@ -37,6 +37,7 @@ class ComponentType(enum.Enum):
     SharedNIC = enum.auto()
     FPGA = enum.auto()
     NVME = enum.auto()
+    Storage = enum.auto()
 
     def __repr__(self):
         return self.name

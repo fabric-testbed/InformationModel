@@ -52,6 +52,25 @@ class NSLayer(enum.Enum):
         return None
 
 
+class MirrorDirection(enum.Enum):
+    Both = enum.auto()
+    RX_Only = enum.auto()
+    TX_Only = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def from_string(cls, s: str):
+        for md in MirrorDirection:
+            if md.name == s:
+                return cls(md)
+        return None
+
+
 class ServiceType(enum.Enum):
     """
     Possible Service types in FABRIC. Unlike links,
@@ -130,9 +149,9 @@ class NetworkServiceSliver(BaseSliver):
         ServiceType.FABNetv6: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
                                                       desc='A routed IPv6 (publicly addressed) FABRIC network.'),
-        ServiceType.PortMirror: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=1,
-                                                        num_instances=1,
-                                                        desc='A port mirroring service in a site.'),
+        ServiceType.PortMirror: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=1, num_sites=1,
+                                                        num_instances=NO_LIMIT,
+                                                        desc='A port mirroring service in a FABRIC site.'),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                    num_instances=NO_LIMIT,
                                                    desc='A L3 VPN service connecting to FABRIC.')
@@ -149,6 +168,8 @@ class NetworkServiceSliver(BaseSliver):
         self.controller_url = None
         self.site = None
         self.gateway = None
+        self.mirror_port = None
+        self.mirror_direction = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -200,6 +221,18 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_gateway(self) -> Gateway:
         return self.gateway
+
+    def set_mirror_port(self, mirror_port: str):
+        self.mirror_port = mirror_port
+
+    def get_mirror_port(self) -> str:
+        return self.mirror_port
+
+    def set_mirror_direction(self, mirror_direction: MirrorDirection):
+        self.mirror_direction = mirror_direction
+
+    def get_mirror_direction(self) -> MirrorDirection:
+        return self.mirror_direction
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:
