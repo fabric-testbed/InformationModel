@@ -199,6 +199,15 @@ class ModelElement(ABC):
             else:
                 self.set_property('mf_data', MeasurementData(value))
 
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
+
     def update_labels(self, **kwargs):
         """
         Take current labels field (even empty) and add/overwrite additional values into it

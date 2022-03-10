@@ -198,7 +198,8 @@ class SliceTest(unittest.TestCase):
         n1.add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
         n1.add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic4')
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
-        n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
+        nc3 = n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3',
+                         boot_script='#!/bin/bash echo *')
 
         #tags on model elements (nodes, links, components, interfaces, network services)
         n1.tags = f.Tags('blue', 'heavy')
@@ -206,6 +207,8 @@ class SliceTest(unittest.TestCase):
         # unset the tags
         n1.tags = None
         self.assertEqual(n1.tags, None)
+
+        self.assertEqual(nc3.boot_script, '#!/bin/bash echo *')
 
         #boot script on nodes only
         n1.boot_script = """

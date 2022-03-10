@@ -71,7 +71,6 @@ class NodeSliver(BaseSliver):
         self.network_service_info = None
         self.site = None
         self.location = None
-        self.boot_script = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -121,13 +120,6 @@ class NodeSliver(BaseSliver):
 
     def get_location(self) -> Location:
         return self.location
-
-    def set_boot_script(self, boot_script: str):
-        assert(boot_script is None or isinstance(boot_script, str))
-        self.boot_script = boot_script
-
-    def get_boot_script(self) -> str:
-        return self.boot_script
 
     @staticmethod
     def type_from_str(ntype: str) -> NodeType or None:

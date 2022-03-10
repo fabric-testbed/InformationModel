@@ -33,6 +33,8 @@ class MeasurementData:
     """
     Measurement data attaches as a property on any graph node and is represented as an opaque JSON blob
     """
+    MF_SIZE = 10240
+
     def __init__(self, data: Any or None):
         """
         data has to be a valid JSON string
@@ -40,8 +42,8 @@ class MeasurementData:
         """
 
         if data is not None and isinstance(data, str):
-            if len(data) > 1024*1024:
-                raise MeasurementDataError(f'MeasurementData JSON string is too long ({len(data)} > 1024*1024')
+            if len(data) > self.MF_SIZE:
+                raise MeasurementDataError(f'MeasurementData JSON string is too long ({len(data)} > {self.MF_SIZE}B')
             try:
                 json.loads(data)
             except json.JSONDecodeError:
@@ -51,7 +53,8 @@ class MeasurementData:
             try:
                 self._data = json.dumps(data)
                 if len(self._data) > 1024*1024:
-                    raise MeasurementDataError(f'MeasurementData object is too large: {len(self._data)} > 1024*1024')
+                    raise MeasurementDataError(f'MeasurementData object is too large: '
+                                               f'{len(self._data)} > {self.MF_SIZE}B')
             except TypeError:
                 raise MeasurementDataError(f'Unable to encode data as valid JSON')
         else:

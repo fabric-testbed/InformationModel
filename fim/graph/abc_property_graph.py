@@ -512,6 +512,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
         if sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
+        if sliver.boot_script is not None:
+            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -536,8 +538,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
-        if sliver.boot_script is not None:
-            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -707,7 +707,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
                                                       if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
-                                                         is not None else None
+                                                         is not None else None,
+                              boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                               )
 
     @staticmethod
@@ -725,8 +726,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
-                         boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
                          )
         return n
 
