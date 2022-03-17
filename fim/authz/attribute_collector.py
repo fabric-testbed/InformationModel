@@ -30,6 +30,7 @@ This collection of classes helps collect authorization attributes about various 
 
 from typing import Dict, Any, List
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 
 from fim.user.topology import ExperimentTopology
 from fim.user.node import Node
@@ -41,7 +42,7 @@ from fim.slivers.network_service import NetworkServiceSliver
 from fim.view_only_dict import ViewOnlyDict
 
 
-class AuthZAttributes:
+class ResourceAuthZAttributes:
 
     # standard resource attributes we are able to send to PDP
     RESOURCE_TYPE = "urn:fabric:xacml:attributes:resource-type"
@@ -132,7 +133,7 @@ class AuthZAttributes:
         """
         assert source
 
-        method_suffix = AuthZAttributes.METHOD_LUT.get(source.__class__)
+        method_suffix = ResourceAuthZAttributes.METHOD_LUT.get(source.__class__)
 
         if not method_suffix:
             raise AuthZResourceAttributeException(f'Unsupported resource type {source.__class__} '
@@ -141,12 +142,35 @@ class AuthZAttributes:
         # for now resource type is always sliver
         self._attributes[self.RESOURCE_TYPE] = ["sliver"]
 
-    def set_lifetime(self, some_time):
+    def set_lifetime(self, end_time: datetime):
         """
-        Convert to XML dayTimeDuration and set in dictionary
+        Convert endtime of a slice to XML dayTimeDuration and set in dictionary.
+        Uses utcnow to compute timedelta first.
+        See http://www.datypic.com/sc/xsd/t-xsd_dayTimeDuration.html for format details
         """
         # convert to dayTimeDuration
-        self._attributes[self.RESOURCE_LIFETIME].append('P10D')
+        td = end_time - datetime.now(timezone.utc)
+        days, hours, minutes, seconds = self.fromtimedelta(td)
+        self._attributes[self.RESOURCE_LIFETIME].append(f'P{days}DT{hours}H{minutes}M{seconds}S')
+
+    __SECONDS_IN_DAY = 24 * 60 * 60
+    __SECONDS_IN_HOUR = 60 * 60
+    __SECONDS_IN_MINUTE = 60
+    @staticmethod
+    def fromtimedelta(td: timedelta):
+        """
+        Convert time delta to a tuple of days, hours, minutes and seconds
+        """
+        assert td.total_seconds() > 0
+
+        ts = int(td.total_seconds())
+        days = td.days
+        seconds = ts - days * ResourceAuthZAttributes.__SECONDS_IN_DAY
+        hours = seconds // ResourceAuthZAttributes.__SECONDS_IN_HOUR
+        seconds %= ResourceAuthZAttributes.__SECONDS_IN_HOUR
+        minutes = seconds // ResourceAuthZAttributes.__SECONDS_IN_MINUTE
+        seconds %= ResourceAuthZAttributes.__SECONDS_IN_MINUTE
+        return days, hours, minutes, seconds
 
     def __str__(self):
         return str(self.attributes)
