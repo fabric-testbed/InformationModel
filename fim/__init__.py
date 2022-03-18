@@ -1,2 +1,2 @@
 #
-__VERSION__ = "1.2b2"
+__VERSION__ = "1.2rc1"

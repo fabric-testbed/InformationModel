@@ -255,7 +255,6 @@ class NetworkService(ModelElement):
         """
         Checks if this interface can be added to this service for various reasons related to e.g.
         service implementation constraints (that can be temporary and change from release to release).
-        Prints warnings or throws exceptions.
         :param sliver:
         :param interface:
         :return:
@@ -266,11 +265,6 @@ class NetworkService(ModelElement):
             interface.type == InterfaceType.SharedPort:
             raise TopologyException(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
                                     f"L2P2P service currently doesn't support shared interfaces")
-        if sliver.get_type() == ServiceType.L2STS and \
-            interface.type == InterfaceType.SharedPort:
-            print('WARNING: Our implementation of L2STS service does not support hairpins (connections withing the '
-                  'same physical port), if your VMs are assigned to the same worker node, communications between them '
-                  'over this service will not be possible.')
 
     def __connect_interface(self, *, interface: Interface):
         """
