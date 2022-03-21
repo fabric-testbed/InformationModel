@@ -25,7 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 from abc import ABC
-from typing import List, Dict, Tuple, Any
+from typing import List, Tuple, Any
 import enum
 
 import uuid
@@ -38,21 +38,21 @@ from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, TopologyException
 from ..slivers.network_node import NodeType
 from ..slivers.network_link import LinkType
-from ..slivers.network_service import NSLayer, ServiceType
+from ..slivers.network_service import NSLayer, ServiceType, MirrorDirection
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
-from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat, PropertyGraphQueryException
+from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import Capacities, CapacityTuple
+from fim.slivers.capacities_labels import Capacities, FreeCapacity
 from fim.slivers.interface_info import InterfaceType
 
 from .model_element import ElementType
 from .node import Node
 from .component import Component
 from .composite_node import CompositeNode
-from .network_service import NetworkService
+from .network_service import NetworkService, PortMirrorService
 from .interface import Interface
 from .link import Link
 
@@ -177,6 +177,9 @@ class Topology(ABC):
         """
         assert name is not None
         assert site is not None
+        # make sure name is unique within the topology
+        if name in self._list_nodes().keys():
+            raise TopologyException('Node names must be unique within topology.')
         # add node to graph
         n = Node(name=name, node_id=node_id, topo=self, site=site,
                  etype=ElementType.NEW, ntype=ntype, **kwargs)
@@ -216,6 +219,9 @@ class Topology(ABC):
         Remove a facility and associated network service and interface, disconnecting it from a
         service as appropriate. Same as removing a node.
         """
+        fac = self._get_node_by_name(name)
+        if fac.type != NodeType.Facility:
+            raise TopologyException(f'{name} is not a Facility node, cannot remove.')
         self.remove_node(name)
 
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType,
@@ -233,6 +239,9 @@ class Topology(ABC):
         :return:
         """
         # add link to graph
+        # make sure name is unique within the topology
+        if name in self._list_links().keys():
+            raise TopologyException('Link names must be unique within topology.')
         link = Link(name=name, node_id=node_id, ltype=ltype, interfaces=interfaces,
                     etype=ElementType.NEW, topo=self, technology=technology, **kwargs)
         return link
@@ -259,7 +268,7 @@ class Topology(ABC):
         :return:
         """
         ns = NetworkService(name=name, node_id=node_id, topo=self, nstype=nstype,
-                            etype=ElementType.NEW, interfaces=interfaces, technology=technology)
+                            etype=ElementType.NEW, interfaces=interfaces, technology=technology, **kwargs)
         return ns
 
     def remove_network_service(self, name: str):
@@ -270,30 +279,6 @@ class Topology(ABC):
         """
         assert name is not None
         self.graph_model.remove_ns_with_cps_and_links(node_id=self._get_ns_by_name(name=name).node_id)
-
-    def validate(self):
-        """
-        Validate the experiment topology. Throw an exception if
-        :return:
-        """
-        # check network services, interfaces, sites
-        for s in self.network_services.values():
-            service_interfaces = s.interface_list
-            node_interfaces = list()
-            # some services like OVS have node ports, others like Bridge, STS, PTP
-            # have ServicePorts which peer with node ports. Validation code needs
-            # owning nodes for each interface so we search for proper interfaces
-            for si in service_interfaces:
-                if si.type == InterfaceType.ServicePort:
-                    # there should only ever be one peer for a service port
-                    peers = si.get_peers()
-                    if peers is None or len(peers) != 1:
-                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
-                                                f'number of peer interfaces')
-                    node_interfaces.append(si.get_peers()[0])
-                else:
-                    node_interfaces.append(si)
-            s.validate_service_constraints(s.type, node_interfaces)
 
     def _get_node_by_name(self, name: str) -> Node:
         """
@@ -359,7 +344,10 @@ class Topology(ABC):
         assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
         assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
-        return NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        ns = NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        if ns.type == ServiceType.PortMirror:
+            return PortMirrorService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
+        return ns
 
     def _list_nodes(self) -> ViewOnlyDict:
         """
@@ -372,7 +360,9 @@ class Topology(ABC):
         ret = dict()
         for nid in node_id_list:
             n = self._get_node_by_id(nid)
-            ret[n.name] = n
+            # exclude Facility nodes
+            if n.type != NodeType.Facility:
+                ret[n.name] = n
         return ViewOnlyDict(ret)
 
     def _list_network_services(self) -> ViewOnlyDict:
@@ -403,12 +393,12 @@ class Topology(ABC):
 
     def _list_of_interfaces(self) -> Tuple[Any]:
         """
-        List all interfaces of the topology as a dictionary.
+        List all interfaces of the topology as a list.
         :return:
         """
         ret = list()
         for n in self.nodes.values():
-            ret.extend(n.interfaces.values())
+            ret.extend(n.interface_list)
         return tuple(ret)
 
     @property
@@ -485,7 +475,7 @@ class Topology(ABC):
             for c in n.components.values():
                 lines.append("\t" + c.name + ": " + " " + str(c.type) + " " +
                              c.model)
-                for i in c.interfaces.values():
+                for i in c.interface_list:
                     lines.append("\t\t" + i.name + ": " + str(i.type) + " " +
                                  self.__print_caplabs__(i.capacities))
         lines.append("Links:")
@@ -495,6 +485,22 @@ class Topology(ABC):
                          str(interface_names))
 
         return "\n".join(lines)
+
+    @property
+    def facilities(self) -> ViewOnlyDict or None:
+        """
+        Return facilities connected in this topology. Facilities should NOT be composite nodes in the ad.
+        :return:
+        """
+        fac_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkNode,
+                                                                   ntype=str(NodeType.Facility))
+        if fac_ids is None:
+            return None
+        ret = dict()
+        for nid in fac_ids:
+            n = self._get_node_by_id(nid)
+            ret[n.name] = n
+        return ViewOnlyDict(ret)
 
 
 class ExperimentTopology(Topology):
@@ -574,7 +580,7 @@ class ExperimentTopology(Topology):
 
             # link interfaces of NSs and NSs to nodes
             for ns in self.network_services.values():
-                for nint in ns.interfaces.values():
+                for nint in ns.interface_list:
                     peer_int_ids = self.graph_model.find_peer_connection_points(node_id=nint.node_id)
                     if peer_int_ids is None:
                         continue
@@ -598,6 +604,54 @@ class ExperimentTopology(Topology):
                 plt.savefig(file_name)
         else:
             raise TopologyException("This level of detail not yet implemented")
+
+    def add_port_mirror_service(self, *, name: str, node_id: str = None,
+                                from_interface_name: str, to_interface: Interface,
+                                direction: MirrorDirection = MirrorDirection.Both,
+                                **kwargs) -> PortMirrorService:
+        """
+        Add a network service to a topology. Interfaces can be specified upfront or added/removed later
+        :param name:
+        :param node_id:
+        :param from_interface_name: name of the interface to mirror
+        :param to_interface: node interface to mirror to
+        :param direction:
+        :param kwargs:
+        :return:
+        """
+        ns = PortMirrorService(name=name, node_id=node_id, topo=self,
+                               etype=ElementType.NEW, direction=direction,
+                               from_interface_name=from_interface_name,
+                               to_interface=to_interface, **kwargs)
+        return ns
+
+    def validate(self):
+        """
+        Validate the experiment topology. Throw an exception if
+        :return:
+        """
+        # check nodes
+        for n in self.nodes.values():
+            n.validate_constraints()
+
+        # check network services, interfaces, sites
+        for s in self.network_services.values():
+            service_interfaces = s.interface_list
+            node_interfaces = list()
+            # some services like OVS have node ports, others like Bridge, STS, PTP
+            # have ServicePorts which peer with node ports. Validation code needs
+            # owning nodes for each interface so we search for proper interfaces
+            for si in service_interfaces:
+                if si.type == InterfaceType.ServicePort:
+                    # there should only ever be one peer for a service port
+                    peers = si.get_peers()
+                    if peers is None or len(peers) != 1:
+                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
+                                                f'number of peer interfaces')
+                    node_interfaces.append(si.get_peers()[0])
+                else:
+                    node_interfaces.append(si)
+            s.validate_constraints(node_interfaces)
 
 
 class SubstrateTopology(Topology):
@@ -680,7 +734,7 @@ class SubstrateTopology(Topology):
                                                              delegation_id=delegation_id)
                     if delegations is not None:
                         delegations_dicts[t][c.node_id] = delegations
-                    for i in c.interfaces.values():
+                    for i in c.interface_list:
                         delegations = self.__copy_to_delegations(e=i, atype=t,
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
@@ -691,7 +745,7 @@ class SubstrateTopology(Topology):
                                                              delegation_id=delegation_id)
                     if delegations is not None:
                         delegations_dicts[t][sf.node_id] = delegations
-                    for i in sf.interfaces.values():
+                    for i in sf.interface_list:
                         delegations = self.__copy_to_delegations(e=i, atype=t,
                                                                  delegation_id=delegation_id)
                         if delegations is not None:
@@ -805,23 +859,6 @@ class AdvertizedTopology(Topology):
     def links(self):
         return self._list_links()
 
-    @property
-    def facilities(self) -> ViewOnlyDict or None:
-        """
-        Return facilities connected in this topology. Facilities should NOT be composite nodes in the ad.
-        :return:
-        """
-        fac_ids = self.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkNode,
-                                                                   ntype=str(NodeType.Facility))
-        if fac_ids is None:
-            return None
-        ret = dict()
-        for nid in fac_ids:
-            n = self._get_node_by_id(nid)
-            if n.type == NodeType.Facility:
-                ret[n.name] = n
-        return ViewOnlyDict(ret)
-
     def draw(self, *, file_name: str = None, interactive: bool = False,
              topo_detail: TopologyDetail = TopologyDetail.Derived,
              layout=nx.spring_layout):
@@ -858,8 +895,7 @@ class AdvertizedTopology(Topology):
             all_node_like = list(self.sites.values())
             all_node_like.extend(self.facilities.values())
             for n in all_node_like:
-                node_ints = n.interfaces.values()
-                for nint in node_ints:
+                for nint in n.interface_list:
                     for l in self.links.values():
                         # this works because of custom ModelElement.__eq__()
                         if nint in l.interface_list:
@@ -867,9 +903,12 @@ class AdvertizedTopology(Topology):
 
             edge_labels = dict()
             for k, v in graph_edges.items():
-                derived_graph.add_edge(v[0], v[1])
-                #edge_labels[(v[0], v[1])] = k
-                edge_labels[(v[0], v[1])] = ""
+                if len(v) >= 2:
+                    derived_graph.add_edge(v[0], v[1])
+                    # edge_labels[(v[0], v[1])] = k
+                    edge_labels[(v[0], v[1])] = ""
+                else:
+                    print(f'WARNING: unable to find a peer interface for {v[0]}, proceeding')
 
             pos = layout(derived_graph)
             nx.draw_networkx(derived_graph, pos=pos)
@@ -911,36 +950,33 @@ class AdvertizedTopology(Topology):
         if self.sites:
             for n in self.sites.values():
                 tot_cap = n.capacities
-                alloc_cap = n.get_property('capacity_allocations')
-                if alloc_cap is None:
-                    # if nothing is allocated, just zero out
-                    alloc_cap = Capacities()
+                alloc_cap = n.capacity_allocations
                 if tot_cap is not None:
-                    ncp = CapacityTuple(total=tot_cap, allocated=alloc_cap)
+                    ncp = FreeCapacity(total=tot_cap, allocated=alloc_cap)
                     lines.append(n.name + " [Site] : " + str(ncp))
                 else:
                     lines.append(n.name + " [Site]")
                 lines.append("\tComponents:")
                 for c in n.components.values():
-                    ccp = CapacityTuple(total=c.capacities,
-                                        allocated=c.get_property("capacity_allocations"))
+                    ccp = FreeCapacity(total=c.capacities,
+                                       allocated=c.capacity_allocations)
                     lines.append("\t\t" + c.name + ": " + " " + str(c.get_property("type")) + " " +
                                  c.model + " " + str(ccp))
                 lines.append("\tSite Interfaces:")
-                for i in n.interfaces.values():
+                for i in n.interface_list:
                     if i.capacities is not None:
-                        icp = CapacityTuple(total=i.capacities,
-                                            allocated=i.get_property("capacity_allocations"))
+                        icp = FreeCapacity(total=i.capacities,
+                                           allocated=i.capacity_allocations)
                         lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
                                     str(icp))
         if self.facilities:
             for fp in self.facilities.values():
                 lines.append(fp.name + " [Facility]")
                 lines.append("\tFacility Interfaces:")
-                for i in fp.interfaces.values():
+                for i in fp.interface_list:
                     if i.capacities is not None:
-                        icp = CapacityTuple(total=i.capacities,
-                                            allocated=i.get_property("capacity_allocations"))
+                        icp = FreeCapacity(total=i.capacities,
+                                           allocated=i.capacity_allocations)
                         lines.append("\t\t" + i.name + ": " + str(i.get_property("type")) + " " +
                                     str(icp) + " " + self.__print_caplabs__(i.labels))
 

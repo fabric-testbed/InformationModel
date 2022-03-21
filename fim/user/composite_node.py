@@ -97,6 +97,8 @@ class CompositeNode(Node):
         :return:
         """
         # immediately-attached interfaces only for composite nodes
+        # FIXME: note that due to interface name collisions this may not return
+        # all the interfaces. Better to use list_of_interfaces
         node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
         direct_interfaces = dict()
         for nid in node_if_list:
@@ -104,12 +106,17 @@ class CompositeNode(Node):
             direct_interfaces[i.name] = i
         return ViewOnlyDict(direct_interfaces)
 
-    def __list_of_interfaces(self) -> Tuple[Any]:
+    def __list_of_interfaces(self) -> Tuple[Interface]:
         """
         List all interfaces of node and its components
         :return:
         """
-        return tuple(self.__list_interfaces().values())
+        node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        direct_interfaces = list()
+        for nid in node_if_list:
+            i = self.__get_interface_by_id(nid)
+            direct_interfaces.append(i)
+        return tuple(direct_interfaces)
 
     @property
     def components(self):

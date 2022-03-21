@@ -147,6 +147,10 @@ class ModelElement(ABC):
             self.set_property('capacities', value)
 
     @property
+    def capacity_allocations(self):
+        return self.get_property('capacity_allocations') if self.__dict__.get('topo', None) is not None else None
+
+    @property
     def labels(self):
         return self.get_property('labels') if self.__dict__.get('topo', None) is not None else None
 
@@ -194,6 +198,15 @@ class ModelElement(ABC):
                 self.set_property('mf_data', value)
             else:
                 self.set_property('mf_data', MeasurementData(value))
+
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
 
     def update_labels(self, **kwargs):
         """

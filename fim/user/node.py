@@ -40,7 +40,7 @@ from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
-from ..slivers.capacities_labels import CapacityHints, Location
+from ..slivers.capacities_labels import CapacityHints, Location, ReservationInfo
 
 
 class Node(ModelElement):
@@ -154,6 +154,15 @@ class Node(ModelElement):
             self.set_property('capacity_hints', value)
 
     @property
+    def reservation_info(self):
+        return self.get_property('reservation_info') if self.__dict__.get('topo', None) is not None else None
+
+    @reservation_info.setter
+    def reservation_info(self, value: ReservationInfo):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('reservation_info', value)
+
+    @property
     def location(self):
         return self.get_property('location') if self.__dict__.get('topo', None) is not None else None
 
@@ -182,14 +191,24 @@ class Node(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
-    @property
-    def boot_script(self):
-        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+    def validate_constraints(self):
+        """
+        Validate node constraints - properties
+        """
 
-    @boot_script.setter
-    def boot_script(self, value: str):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('boot_script', value)
+        nstype = self.type
+
+        # check properties
+        req_props = NodeSliver.NodeConstraints[nstype].required_properties
+        forb_props = NodeSliver.NodeConstraints[nstype].forbidden_properties
+        _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
+        node_sliver = self.topo.graph_model.node_sliver_from_graph_properties_dict(node_properties)
+        for rp in req_props:
+            if not node_sliver.get_property(rp):
+                raise TopologyException(f"Node of type {nstype} must have property {rp} set")
+        for fp in forb_props:
+            if node_sliver.get_property(fp):
+                raise TopologyException(f"Node of type {nstype} must NOT have property {fp} set")
 
     def get_sliver(self) -> NodeSliver:
         """
@@ -271,6 +290,28 @@ class Node(ModelElement):
                       parent_node_id=self.node_id, **kwargs)
         return c
 
+    def add_storage(self, *, name: str, node_id: str = None, **kwargs) -> Component:
+        """
+        Add storage as a component (only in ASMs). Note that storage shows up as a component
+        on the list of node components. Typically you want to specify labels=Labels(local_name='volume name')
+        as part of keyargs so an existing volume can get attached.
+        :param name:
+        :param node_id:
+        :param kwargs: additional properties of the component
+        :return:
+        """
+        assert name is not None
+        if str(self.topo.__class__) != "<class 'fim.user.topology.ExperimentTopology'>":
+            raise TopologyException('Storage can be added as a component only in ExperimentTopologies')
+        # make sure name is unique within the node
+        if name in self.__list_components().keys():
+            raise TopologyException('Component names must be unique within node.')
+        # add component node and populate properties
+        c = Component(name=name, node_id=node_id, topo=self.topo, etype=ElementType.NEW,
+                      ctype=ComponentType.Storage, model=NodeType.NAS.name,
+                      parent_node_id=self.node_id, **kwargs)
+        return c
+
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType, **kwargs) -> NetworkService:
         """
         Add a network service to node ( needed in substrate topologies)
@@ -310,6 +351,12 @@ class Node(ModelElement):
         node_id = self.topo.graph_model.find_ns_by_name(parent_node_id=self.node_id,
                                                         nsname=name)
         self.topo.graph_model.remove_ns_with_cps_and_links(node_id=node_id)
+
+    def remove_storage(self, name: str) -> None:
+        """
+        Removes attached storage component
+        """
+        self.remove_component(name)
 
     def __get_component_by_name(self, name: str) -> Component:
         """
@@ -416,6 +463,8 @@ class Node(ModelElement):
         :return:
         """
         # immediately-attached interfaces
+        # FIXME: note that because there could be a collision on interface name, this
+        # may produce invalid results sometimes. Better to use list_of_interfaces
         node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
         direct_interfaces = dict()
         for nid in node_if_list:
@@ -427,12 +476,20 @@ class Node(ModelElement):
             direct_interfaces.update(comp_interfaces)
         return ViewOnlyDict(direct_interfaces)
 
-    def __list_of_interfaces(self) -> Tuple[Any]:
+    def __list_of_interfaces(self) -> Tuple[Interface]:
         """
         List all interfaces of node and its components
         :return:
         """
-        return tuple(self.__list_interfaces().values())
+        node_if_list = self.topo.graph_model.get_all_node_or_component_connection_points(parent_node_id=self.node_id)
+        direct_interfaces = list()
+        for nid in node_if_list:
+            i = self.__get_interface_by_id(nid)
+            direct_interfaces.append(i)
+        cdict = self.__list_components()
+        for k, v in cdict.items():
+            direct_interfaces.extend(v.interface_list)
+        return tuple(direct_interfaces)
 
     def get_component(self, name: str):
         """

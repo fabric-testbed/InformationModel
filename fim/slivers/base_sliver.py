@@ -38,6 +38,8 @@ from fim.slivers.measurement_data import MeasurementData
 class BaseSliver(ABC):
     """Base class for all sliver types"""
 
+    BOOST_SCRIPT_SIZE = 1024
+
     @abstractmethod
     def __init__(self):
         self.resource_type = None
@@ -59,6 +61,7 @@ class BaseSliver(ABC):
         self.stitch_node = False
         self.tags = None # list of strings, limited in length
         self.mf_data = None # opaque JSON object limited in length
+        self.boot_script = None # string limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -181,6 +184,14 @@ class BaseSliver(ABC):
 
     def get_mf_data(self) -> MeasurementData or None:
         return self.mf_data
+
+    def set_boot_script(self, boot_script: str):
+        assert(boot_script is None or
+               (isinstance(boot_script, str) and len(boot_script) < self.BOOST_SCRIPT_SIZE))
+        self.boot_script = boot_script
+
+    def get_boot_script(self) -> str:
+        return self.boot_script
 
     def set_properties(self, **kwargs):
         """

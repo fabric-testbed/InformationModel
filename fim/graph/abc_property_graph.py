@@ -47,7 +47,7 @@ from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
 from fim.slivers.tags import Tags
 from fim.slivers.measurement_data import MeasurementData
-from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer
+from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, MirrorDirection
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
 
@@ -96,6 +96,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "path_info": ABCPropertyGraphConstants.PROP_PATH_INFO,
         "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
+        "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
+        "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
@@ -510,6 +512,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
         if sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
+        if sliver.boot_script is not None:
+            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -534,8 +538,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
-        if sliver.boot_script is not None:
-            prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
 
@@ -590,6 +592,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if sliver.gateway is not None:
             prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
+        if sliver.mirror_port is not None:
+            prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
+        if sliver.mirror_direction is not None:
+            prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
 
         return prop_dict
 
@@ -701,7 +707,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
                                                       if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
-                                                         is not None else None
+                                                         is not None else None,
+                              boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                               )
 
     @staticmethod
@@ -719,8 +726,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
-                         boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
                          )
         return n
 
@@ -760,7 +766,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           path_info=PathInfo.from_json(d.get(ABCPropertyGraph.PROP_PATH_INFO, None)),
                           controller_url=d.get(ABCPropertyGraph.PROP_CONTROLLER_URL, None),
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                          gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None))
+                          gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
+                          mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
+                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
         return ns
 

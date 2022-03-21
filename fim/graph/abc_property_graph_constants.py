@@ -67,6 +67,8 @@ class ABCPropertyGraphConstants(ABC):
     PROP_PATH_INFO = "PathInfo"
     PROP_CONTROLLER_URL = "ControllerURL"
     PROP_GATEWAY = "Gateway"
+    PROP_MIRROR_PORT = "MirrorPort"
+    PROP_MIRROR_DIRECTION = "MirrorDirection"
     PROP_TAGS = "Tags"
     PROP_MEAS_DATA = "MeasurementData"
     PROP_BOOT_SCRIPT = "BootScript"
