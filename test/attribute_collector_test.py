@@ -29,9 +29,11 @@ class AttributeCollectorTest(unittest.TestCase):
                                      interfaces=[fac1.interface_list[0],
                                                  c2.interface_list[0]])
         # this will take just about anything - an ASM, a Node, a NetworkService,
-        # a sliver. However to get things like peering sites, facility sites, it is best to
-        # call it on the ASM
-        az.collect_attributes(source=t)
+        # a sliver. So it can be called in AM, Broker or Orchestrator
+        #
+        # However to get things like peering sites, facility sites, it is best to
+        # call it on the ASM (in Orchestrator)
+        az.collect_resource_attributes(source=t)
         # generally you also want to set the lifetime (provided externally)
         now = datetime.now(timezone.utc)
         delta = timedelta(days=13, hours=11, minutes=7, seconds=4, milliseconds=10)
@@ -45,3 +47,16 @@ class AttributeCollectorTest(unittest.TestCase):
         self.assertTrue('RENC' in az.attributes[ResourceAuthZAttributes.RESOURCE_SITE])
         self.assertTrue('UKY' in az.attributes[ResourceAuthZAttributes.RESOURCE_SITE])
         self.assertTrue('P13DT11H7M4S' in az.attributes[ResourceAuthZAttributes.RESOURCE_LIFETIME])
+
+        az.set_subject_attributes(subject_id="user@gmail.com", project=["Project1"],
+                                  project_tag=["Tag1", "Tag2"])
+        az.set_action("create")
+        az.set_resource_subject_and_project(subject_id="user@gmail.com", project="Project1")
+
+        # convert to full PDP request after adding attributes
+        req_json = az.transform_to_pdp_request()
+        req_dict = az.transform_to_pdp_request(as_json=False)
+
+        print(f'JSON {req_json}')
+
+        print(f'Dict {req_dict}')

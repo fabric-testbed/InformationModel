@@ -31,6 +31,7 @@ This collection of classes helps collect authorization attributes about various 
 from typing import Dict, Any, List
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+import json
 
 from fim.user.topology import ExperimentTopology
 from fim.user.node import Node
@@ -46,7 +47,7 @@ class ResourceAuthZAttributes:
 
     # standard resource attributes we are able to send to PDP
     RESOURCE_TYPE = "urn:fabric:xacml:attributes:resource-type"
-    RESOURCE_CPUS = "urn:fabric:xacml:attributes:resource-cpu"
+    RESOURCE_CPU = "urn:fabric:xacml:attributes:resource-cpu"
     RESOURCE_RAM = "urn:fabric:xacml:attributes:resource-ram"
     RESOURCE_DISK = "urn:fabric:xacml:attributes:resource-disk"
     RESOURCE_BW = "urn:fabric:xacml:attribute:resource-bw"
@@ -56,6 +57,49 @@ class ResourceAuthZAttributes:
     RESOURCE_FACILITY_PORT = "urn:fabric:xacml:attribute:resource-facility-port"
     RESOURCE_MEASUREMENTS = "urn:fabric:xacml:attribute:resource-with-measurements"
     RESOURCE_LIFETIME = "urn:fabric:xacml:attributes:resource-lifetime"
+    RESOURCE_PROJECT = "urn:fabric:xacml:attributes:resource-project"
+    RESOURCE_SUBJECT = "urn:fabric:xacml:attributes:resource-subject"
+    ACTION_ID = "urn:oasis:names:tc:xacml:1.0:action:action-id"
+    SUBJECT_ID = "urn:oasis:names:tc:xacml:1.0:subject:subject-id"
+    SUBJECT_PROJECT = "urn:fabric:xacml:attributes:subject-project"
+    PROJECT_TAG = "urn:fabric:xacml:attributes:project-tag"
+
+    ATTRIBUTE_TYPES_AND_CATEGORIES = {
+        RESOURCE_TYPE: ("http://www.w3.org/2001/XMLSchema#string",
+                        "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_CPU: ("http://www.w3.org/2001/XMLSchema#integer",
+                       "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_RAM: ("http://www.w3.org/2001/XMLSchema#integer",
+                       "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_DISK: ("http://www.w3.org/2001/XMLSchema#integer",
+                        "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_BW: ("http://www.w3.org/2001/XMLSchema#integer",
+                      "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_SITE: ("http://www.w3.org/2001/XMLSchema#string",
+                        "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_COMPONENT: ("http://www.w3.org/2001/XMLSchema#string",
+                             "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_PEER_SITE: ("http://www.w3.org/2001/XMLSchema#string",
+                             "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_FACILITY_PORT: ("http://www.w3.org/2001/XMLSchema#string",
+                                 "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_MEASUREMENTS: ("http://www.w3.org/2001/XMLSchema#boolean",
+                                "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_PROJECT: ("http://www.w3.org/2001/XMLSchema#string",
+                           "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_SUBJECT: ("http://www.w3.org/2001/XMLSchema#string"
+                           "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        ACTION_ID: ("http://www.w3.org/2001/XMLSchema#string",
+                    "urn:oasis:names:tc:xacml:3.0:attribute-category:action"),
+        RESOURCE_LIFETIME: ("http://www.w3.org/2001/XMLSchema#dayTimeDuration",
+                            "urn:oasis:names:tc:xacml:3.0:attribute-category:action"),
+        SUBJECT_ID: ("http://www.w3.org/2001/XMLSchema#string",
+                     "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject"),
+        SUBJECT_PROJECT: ("http://www.w3.org/2001/XMLSchema#string",
+                          "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject"),
+        PROJECT_TAG: ("http://www.w3.org/2001/XMLSchema#string",
+                      "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject")
+    }
 
     METHOD_LUT = {
         ExperimentTopology: "topo",
@@ -76,7 +120,7 @@ class ResourceAuthZAttributes:
 
     def _collect_attributes_from_node_sliver(self, sliver: NodeSliver):
         if sliver.capacities:
-            self._attributes[self.RESOURCE_CPUS].append(sliver.capacities.core)
+            self._attributes[self.RESOURCE_CPU].append(sliver.capacities.core)
             self._attributes[self.RESOURCE_RAM].append(sliver.capacities.ram)
             self._attributes[self.RESOURCE_DISK].append(sliver.capacities.disk)
         if sliver.site:
@@ -119,11 +163,11 @@ class ResourceAuthZAttributes:
         self._attributes = defaultdict(list)
         raise RuntimeError('Not implemented')
 
-    def collect_attributes(self, *, source: ExperimentTopology or
-                           ABCASMPropertyGraph or
-                           BaseSliver or NodeSliver or
-                           NetworkServiceSliver or Node or
-                           NetworkService or None):
+    def collect_resource_attributes(self, *, source: ExperimentTopology or
+                                    ABCASMPropertyGraph or
+                                    BaseSliver or NodeSliver or
+                                    NetworkServiceSliver or Node or
+                                    NetworkService or None):
         """
         Take an ExperimentTopology or an ASM graph or a Sliver or a member of topology
         and extract all relevant authorization attributes, storing them as a Dict suitable for
@@ -153,6 +197,55 @@ class ResourceAuthZAttributes:
         days, hours, minutes, seconds = self.fromtimedelta(td)
         self._attributes[self.RESOURCE_LIFETIME].append(f'P{days}DT{hours}H{minutes}M{seconds}S')
 
+    def set_resource_subject_and_project(self, *, subject_id: List[str] or str, project: List[str] or str):
+        """
+        Set resource subject (who created it) and resource project (which project it was created in
+        :param subject: string or list of strings
+        :param project: string or list of strings
+        """
+        if subject:
+            if isinstance(subject, list):
+                self._attributes[self.RESOURCE_SUBJECT].extend(subject)
+            else:
+                self._attributes[self.RESOURCE_SUBJECT].append(subject)
+
+        if project:
+            if isinstance(project, list):
+                self._attributes[self.RESOURCE_PROJECT].extend(project)
+            else:
+                self._attributes[self.RESOURCE_PROJECT].append(project)
+
+    def set_action(self, action: str):
+        """
+        Set the action attribute of the request
+        :param action: string
+        """
+        if action:
+            self._attributes[self.ACTION_ID].append(action)
+
+    def set_subject_attributes(self, *, subject_id: str or None, project: str or List[str] or None,
+                               project_tag: str or List[str] or None):
+        """
+        Set subject attributes.
+        :param subject_id: string
+        :param project: string or list of strings
+        :param project_tag: string or list of strings
+        """
+        if subject_id:
+            self._attributes[self.SUBJECT_ID].append(subject_id)
+
+        if project:
+            if isinstance(project, list):
+                self._attributes[self.SUBJECT_PROJECT].extend(project)
+            else:
+                self._attributes[self.SUBJECT_PROJECT].append(project)
+
+        if project_tag:
+            if isinstance(project_tag, list):
+                self._attributes[self.PROJECT_TAG].extend(project_tag)
+            else:
+                self._attributes[self.PROJECT_TAG].append(project_tag)
+
     __SECONDS_IN_DAY = 24 * 60 * 60
     __SECONDS_IN_HOUR = 60 * 60
     __SECONDS_IN_MINUTE = 60
@@ -171,6 +264,42 @@ class ResourceAuthZAttributes:
         minutes = seconds // ResourceAuthZAttributes.__SECONDS_IN_MINUTE
         seconds %= ResourceAuthZAttributes.__SECONDS_IN_MINUTE
         return days, hours, minutes, seconds
+
+    def transform_to_pdp_request(self, *, as_json: bool = True,
+                                 return_policy_id_list: bool = False,
+                                 combined_decision: bool = False) -> Dict[str, Any] or str:
+        """
+        Transform the collected attributes into a proper PDP request.
+        Depending on as_json parameter returns a JSON string or a complex dict
+        :param as_json: bool (default True)
+        :param return_policy_id_list: bool (default False)
+        :param combined_decision: bool (default False)
+        """
+        ret = {"Request": {
+                "ReturnPolicyIdList": return_policy_id_list,
+                "CombinedDecision": combined_decision,
+                "Category": [
+                    { "CategoryId": "urn:oasis:names:tc:xacml:3.0:attribute-category:resource",
+                      "Attribute": []},
+                    { "CategoryId": "urn:oasis:names:tc:xacml:3.0:attribute-category:action",
+                      "Attribute": []},
+                    { "CategoryId": "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject",
+                      "Attribute": []}
+                ]}}
+
+        cat_list = ret["Request"]["Category"]
+        for k, v in self._attributes.items():
+            attribute_dict = {"IncludeInResult": False, "Value": v, "AttributeId": k,
+                              "DataType": self.ATTRIBUTE_TYPES_AND_CATEGORIES[k][0]}
+            cat_id = self.ATTRIBUTE_TYPES_AND_CATEGORIES[k][1]
+            for atcat in cat_list:
+                if atcat["CategoryId"] == cat_id:
+                    atcat["Attribute"].append(attribute_dict)
+
+        if as_json:
+            return json.dumps(ret)
+        else:
+            return ret
 
     def __str__(self):
         return str(self.attributes)
