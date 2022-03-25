@@ -87,7 +87,7 @@ class ResourceAuthZAttributes:
                                 "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_PROJECT: ("http://www.w3.org/2001/XMLSchema#string",
                            "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
-        RESOURCE_SUBJECT: ("http://www.w3.org/2001/XMLSchema#string"
+        RESOURCE_SUBJECT: ("http://www.w3.org/2001/XMLSchema#string",
                            "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         ACTION_ID: ("http://www.w3.org/2001/XMLSchema#string",
                     "urn:oasis:names:tc:xacml:3.0:attribute-category:action"),
@@ -200,14 +200,14 @@ class ResourceAuthZAttributes:
     def set_resource_subject_and_project(self, *, subject_id: List[str] or str, project: List[str] or str):
         """
         Set resource subject (who created it) and resource project (which project it was created in
-        :param subject: string or list of strings
+        :param subject_id: string or list of strings
         :param project: string or list of strings
         """
-        if subject:
-            if isinstance(subject, list):
-                self._attributes[self.RESOURCE_SUBJECT].extend(subject)
+        if subject_id:
+            if isinstance(subject_id, list):
+                self._attributes[self.RESOURCE_SUBJECT].extend(subject_id)
             else:
-                self._attributes[self.RESOURCE_SUBJECT].append(subject)
+                self._attributes[self.RESOURCE_SUBJECT].append(subject_id)
 
         if project:
             if isinstance(project, list):
