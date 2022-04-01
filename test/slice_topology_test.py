@@ -298,13 +298,17 @@ class SliceTest(unittest.TestCase):
                                                                                               n3.interface_list[0]])
 
         # facilities
-        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10))
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10),
+                                      labels=f.Labels(vlan='100'))
+        # facility needs to be connected via a service to something else
         sfac = self.topo.add_network_service(name='s-fac', nstype=f.ServiceType.L2STS,
                                              interfaces=[fac1.interface_list[0],
-                                             n1.interface_list[2]])
+                                                         n1.interface_list[2]])
 
         self.assertEqual(s1.layer, f.Layer.L2)
-        self.assertEqual(sfac.layer, f.Layer.L2)
+        print(fac1.network_services['RENCI-DTN-ns'].labels)
+        self.assertEqual(fac1.network_services['RENCI-DTN-ns'].layer, f.Layer.L2)
+        self.assertEqual(fac1.interface_list[0].labels.vlan, '100')
 
         # this is typically done by orchestrator
         s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))

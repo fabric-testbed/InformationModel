@@ -578,6 +578,8 @@ class ExperimentTopology(Topology):
                 _, props = self.graph_model.get_node_properties(node_id=ns)
                 derived_graph.add_node(props[ABCPropertyGraph.PROP_NAME])
 
+            all_node_like = list(self.nodes.values())
+            all_node_like.extend(self.facilities.values())
             # link interfaces of NSs and NSs to nodes
             for ns in self.network_services.values():
                 for nint in ns.interface_list:
@@ -592,7 +594,7 @@ class ExperimentTopology(Topology):
                         if peer_int_parent is None:
                             continue
                         derived_graph.add_edge(ns.name, peer_int_parent.name)
-                for n in self.nodes.values():
+                for n in all_node_like:
                     if self.get_owner_node(ns) == n:
                         derived_graph.add_edge(ns.name, n.name)
 
