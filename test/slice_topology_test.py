@@ -208,6 +208,12 @@ class SliceTest(unittest.TestCase):
         n1.tags = None
         self.assertEqual(n1.tags, None)
 
+        # flags on model elements
+        n1.flags = f.Flags(auto_config=True)
+        self.assertTrue(n1.flags.auto_config)
+        n1.flags = None
+        self.assertEqual(n1.flags, None)
+
         self.assertEqual(nc3.boot_script, '#!/bin/bash echo *')
 
         #boot script on nodes only

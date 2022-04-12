@@ -38,7 +38,8 @@ from enum import Enum
 import logging
 
 from fim.slivers.attached_components import ComponentSliver, AttachedComponentsInfo
-from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, StructuralInfo, CapacityHints, Location
+from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, \
+    StructuralInfo, CapacityHints, Location, Flags
 from fim.slivers.delegations import Delegations, DelegationType
 from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
 from fim.slivers.base_sliver import BaseSliver
@@ -100,6 +101,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
+        "flags": ABCPropertyGraphConstants.PROP_FLAGS,
         "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
     }
 
@@ -512,6 +514,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
         if sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
+        if sliver.flags is not None:
+            prop_dict[ABCPropertyGraph.PROP_FLAGS] = sliver.flags.to_json()
         if sliver.boot_script is not None:
             prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
@@ -705,6 +709,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               stitch_node=json.loads(d[ABCPropertyGraph.PROP_STITCH_NODE]) if
                               d.get(ABCPropertyGraph.PROP_STITCH_NODE, None) is not None else False,
                               tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
+                              flags=Flags.from_json(d.get(ABCPropertyGraph.PROP_FLAGS, None)),
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
                                                       if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
                                                          is not None else None,

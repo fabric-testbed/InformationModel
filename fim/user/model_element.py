@@ -187,6 +187,15 @@ class ModelElement(ABC):
             self.set_property('tags', value)
 
     @property
+    def flags(self):
+        return self.get_property('flags') if self.__dict__.get('topo', None) is not None else None
+
+    @flags.setter
+    def flags(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('flags', value)
+
+    @property
     def mf_data(self):
         d = self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
         return d.data if d is not None else None

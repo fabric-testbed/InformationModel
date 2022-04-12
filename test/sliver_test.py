@@ -4,8 +4,10 @@ from fim.slivers.attached_components import ComponentSliver, ComponentType, Atta
 from fim.slivers.network_node import NodeSliver, NodeType
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
+from fim.slivers.interface_info import InterfaceSliver
 from fim.slivers.path_info import ERO, PathInfo, Path
-from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location, LabelException
+from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location, LabelException, Flags
+from fim.slivers.tags import Tags
 from fim.slivers.gateway import Gateway, GatewayException
 
 
@@ -82,6 +84,13 @@ class TestSlivers(unittest.TestCase):
 
         with self.assertRaises(LabelException):
             Labels(inner_vlan='6000')
+
+    def testFlagsAndTags(self):
+        isl = InterfaceSliver()
+        isl.flags = Flags(auto_config=True)
+        isl.tags = Tags('blue', 'soft')
+        self.assertTrue('blue' in isl.tags)
+        self.assertTrue(isl.flags.auto_config)
 
     def testLocation(self):
         ns = NodeSliver()

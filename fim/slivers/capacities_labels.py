@@ -556,6 +556,37 @@ class Location(JSONField):
         return float(response_json[0]['lat']), float(response_json[0]['lon'])
 
 
+class Flags(JSONField):
+    """
+    JSON-ified representation of various flags that can be attached to slivers
+    """
+    def __init__(self, **kwargs):
+        self.auto_config = False
+        self._set_fields(**kwargs)
+
+    def _set_fields(self, **kwargs):
+        for k, v in kwargs.items():
+            assert v is not None
+            assert isinstance(v, bool)
+            try:
+                # will throw exception if field is not defined
+                self.__getattribute__(k)
+                self.__setattr__(k, v)
+            except AttributeError:
+                raise FlagException(f"Unable to set field {k} of location, no such field available")
+        return self
+
+    def to_json(self) -> str:
+        """
+        Dumps to JSON the __dict__ of the instance. Be careful as the fields in this
+        class should only be those that can be present in JSON output.
+        Specialized for boolean values from the generic implementation in JSONFields
+        :return:
+        """
+        d = self.__dict__.copy()
+        return json.dumps(d, skipkeys=True, sort_keys=True)
+
+
 class CapacityException(Exception):
     """
     Exception with a capacity
@@ -609,3 +640,12 @@ class LocationException(Exception):
     def __init__(self, msg: str):
         assert msg is not None
         super().__init__(f"Location exception: {msg}")
+
+
+class FlagException(Exception):
+    """
+    Exception with flags
+    """
+    def __init__(self, msg: str):
+        assert msg is not None
+        super().__init__(f"Flag exception: {msg}")
