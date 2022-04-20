@@ -126,7 +126,8 @@ class ResourceAuthZAttributes:
             self._attributes[self.RESOURCE_RAM].append(sliver.capacities.ram)
             self._attributes[self.RESOURCE_DISK].append(sliver.capacities.disk)
         if sliver.site:
-            self._attributes[self.RESOURCE_SITE].append(sliver.site)
+            if sliver.site not in self._attributes[self.RESOURCE_SITE]:
+                self._attributes[self.RESOURCE_SITE].append(sliver.site)
         if sliver.attached_components_info:
             for c in sliver.attached_components_info.list_devices():
                 self._attributes[self.RESOURCE_COMPONENT].append(str(c.get_type()))
@@ -135,7 +136,8 @@ class ResourceAuthZAttributes:
         if sliver.capacities:
             self._attributes[self.RESOURCE_BW].append(sliver.capacities.bw)
         if sliver.site:
-            self._attributes[self.RESOURCE_SITE].append(sliver.site)
+            if sliver.site not in self._attributes[self.RESOURCE_SITE]:
+                self._attributes[self.RESOURCE_SITE].append(sliver.site)
 
     def _collect_attributes_from_base_sliver(self, sliver: BaseSliver):
         if isinstance(sliver, NetworkServiceSliver):
