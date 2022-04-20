@@ -36,7 +36,7 @@ import json
 from fim.user.topology import ExperimentTopology
 from fim.user.node import Node
 from fim.user.network_service import NetworkService
-from fim.graph.slices.abc_asm import ABCASMPropertyGraph
+from fim.graph.slices.networkx_asm import NetworkxASM
 from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver
 from fim.slivers.network_service import NetworkServiceSliver
@@ -105,7 +105,7 @@ class ResourceAuthZAttributes:
         ExperimentTopology: "topo",
         Node: "node",
         NetworkService: "ns",
-        ABCASMPropertyGraph: "asm",
+        NetworkxASM: "asm",
         NodeSliver: "node_sliver",
         NetworkServiceSliver: "ns_sliver",
         BaseSliver: "base_sliver"
@@ -113,6 +113,8 @@ class ResourceAuthZAttributes:
 
     def __init__(self):
         self._attributes = defaultdict(list)
+        # for now resource type is always sliver
+        self._attributes[self.RESOURCE_TYPE] = ["sliver"]
 
     @property
     def attributes(self):
@@ -142,9 +144,6 @@ class ResourceAuthZAttributes:
             self._collect_attributes_from_node_sliver(sliver)
 
     def _collect_attributes_from_topo(self, topo: ExperimentTopology):
-        # reset the dictionary (only here, other calls are additive)
-        self._attributes = defaultdict(list)
-
         for n in topo.nodes.values():
             self._collect_attributes_from_node(n)
         for ns in topo.network_services.values():
@@ -158,13 +157,15 @@ class ResourceAuthZAttributes:
     def _collect_attributes_from_ns(self, ns: NetworkService):
         self._collect_attributes_from_ns_sliver(ns.get_sliver())
 
-    def _collect_attributes_from_asm(self, asm: ABCASMPropertyGraph):
-        # reset the dictionary (only here, other calls are additive)
-        self._attributes = defaultdict(list)
-        raise RuntimeError('Not implemented')
+    def _collect_attributes_from_asm(self, asm: NetworkxASM):
+        # convert to experiment topology
+        asm.validate_graph()
+        t = ExperimentTopology(graph_string=asm.serialize_graph())
+        t.validate()
+        self._collect_attributes_from_topo(t)
 
     def collect_resource_attributes(self, *, source: ExperimentTopology or
-                                    ABCASMPropertyGraph or
+                                    NetworkxASM or
                                     BaseSliver or NodeSliver or
                                     NetworkServiceSliver or Node or
                                     NetworkService or None):
@@ -183,8 +184,6 @@ class ResourceAuthZAttributes:
             raise AuthZResourceAttributeException(f'Unsupported resource type {source.__class__} '
                                                   f'for collecting attributes')
         self.__getattribute__('_collect_attributes_from_' + method_suffix)(source)
-        # for now resource type is always sliver
-        self._attributes[self.RESOURCE_TYPE] = ["sliver"]
 
     def set_lifetime(self, end_time: datetime):
         """
@@ -249,6 +248,7 @@ class ResourceAuthZAttributes:
     __SECONDS_IN_DAY = 24 * 60 * 60
     __SECONDS_IN_HOUR = 60 * 60
     __SECONDS_IN_MINUTE = 60
+
     @staticmethod
     def fromtimedelta(td: timedelta):
         """
