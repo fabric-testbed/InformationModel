@@ -448,6 +448,32 @@ class SliceTest(unittest.TestCase):
         print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
         self.n4j_imp.delete_all_graphs()
 
+    def testSerDes3(self):
+        # multi-format serialization-deserialization test
+        topo = f.ExperimentTopology()
+        topo.add_node(name='n1', site='RENC')
+        cap = f.Capacities(core=1, unit=2)
+        topo.nodes['n1'].capacities = cap
+        topo.nodes['n1'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        topo.add_node(name='n2', site='UKY')
+        topo.nodes['n2'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
+        topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=topo.interface_list)
+        slice_graph = topo.serialize(fmt=f.GraphFormat.JSON_NODELINK)
+
+        print(f'NODE_LINK {slice_graph=}')
+
+        t1 = f.ExperimentTopology(graph_string=slice_graph)
+
+        self.assertTrue('n1' in t1.nodes.keys())
+        self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
+        cap1 = t1.nodes['n1'].capacities
+        self.assertEqual(cap1.core, 1)
+        self.assertEqual(cap1.unit, 2)
+
+        print(f'LIST COMPONENTS of n1 {t1.nodes["n1"].components}')
+        print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
+        self.n4j_imp.delete_all_graphs()
+
     def testBasicOneSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)

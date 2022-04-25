@@ -1354,7 +1354,23 @@ class ABCGraphImporter(ABC):
         :return:
         """
         assert graph_file is not None
-        g = nx.read_graphml(graph_file)
+        # try to read it using known methods
+        g = None
+        try:
+            g = nx.read_graphml(graph_file)
+        except:
+            pass
+
+        try:
+            with open(graph_file, 'r', encoding='utf-8') as f:
+                data = f.read()
+            data = json.loads(data)
+            g = nx.readwrite.node_link_graph(data=data)
+        except:
+            pass
+
+        if not g:
+            raise PropertyGraphImportException(graph_id=None, msg=f'Unable to read graph {graph_file}')
 
         # check graph_ids on nodes
         graph_ids = set()

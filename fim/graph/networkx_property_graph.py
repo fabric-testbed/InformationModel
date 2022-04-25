@@ -762,6 +762,7 @@ class NetworkXGraphImporter(ABCGraphImporter):
     Importer for NetworkX graphs. Stores graphs in a single NetworkX
     object. Care is taken to disambiguate nodes when loading graphs.
     """
+    READ_FORMATS = ["json_nodelink", "graphml"]
 
     def __init__(self, *, logger=None):
         """
@@ -796,6 +797,38 @@ class NetworkXGraphImporter(ABCGraphImporter):
 
         return nx.relabel_nodes(graph, name_map, copy)
 
+    @staticmethod
+    def _read_from_file_json_nodelink(file_name: str) -> Any:
+        """
+        Read in the graph as a JSON_NODELINK format
+        """
+        with open(file_name, 'r', encoding='utf-8') as f:
+            data = f.read()
+        data = json.loads(data)
+        return nx.readwrite.node_link_graph(data=data)
+
+    @staticmethod
+    def _read_from_file_graphml(file_name: str) -> Any:
+        """
+        Read in the graph as a GraphML format
+        """
+        return nx.read_graphml(file_name)
+
+    def _read_from_file(self, file_name: str, format_hint: str or None = None) -> Any:
+        """
+        Read NetworkX graph from file using different formats. If format hint is
+        specified, tried that, otherwise try all methods in order
+        """
+        if format_hint:
+            return self.__getattribute__('_read_from_file_' + format_hint)(file_name)
+        else:
+            for fmt in self.READ_FORMATS:
+                try:
+                    return self.__getattribute__('_read_from_file_' + fmt)(file_name)
+                except:
+                    continue
+            return None
+
     def import_graph_from_string(self, *, graph_string: str, graph_id: str = None) -> ABCPropertyGraph:
         """
         Load graph serialized as a GraphML string. Assign graph id property to nodes.
@@ -811,8 +844,12 @@ class NetworkXGraphImporter(ABCGraphImporter):
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph_string)
             f1.flush()
-            # read using networkx
-            self.storage.add_graph(graph_id=graph_id, graph=nx.read_graphml(f1.name))
+            graph = self._read_from_file(f1.name)
+            if graph:
+                self.storage.add_graph(graph_id=graph_id, graph=graph)
+            else:
+                raise PropertyGraphImportException(graph_id=graph_id,
+                                                   msg=f'Unable to import graph from string')
 
         return self.graph_class(graph_id=graph_id, importer=self, logger=self.log)
 
@@ -830,8 +867,12 @@ class NetworkXGraphImporter(ABCGraphImporter):
             f1.flush()
             # get graph id (kinda inefficient, because reads graph in, then discards)
             graph_id = self.get_graph_id(graph_file=f1.name)
-            # read using networkx
-            self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(f1.name))
+            graph = self._read_from_file(f1.name)
+            if graph:
+                self.storage.add_graph_direct(graph_id=graph_id, graph=graph)
+            else:
+                raise PropertyGraphImportException(graph_id=graph_id,
+                                                   msg=f'Unable to import graph from string')
 
         return self.graph_class(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
 
@@ -844,8 +885,13 @@ class NetworkXGraphImporter(ABCGraphImporter):
         assert graph_file is not None
         # get graph id
         graph_id = self.get_graph_id(graph_file=graph_file)
-        self.storage.add_graph_direct(graph_id=graph_id, graph=nx.read_graphml(graph_file))
-        return self.graph_class(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
+        graph = self._read_from_file(graph_file)
+        if graph:
+            self.storage.add_graph_direct(graph_id=graph_id, graph=graph)
+            return self.graph_class(graph_id=graph_id, importer=self, logger=self.log) if graph_id is not None else None
+        else:
+            raise PropertyGraphImportException(graph_id=graph_id,
+                                               msg=f'Unable to import graph from file {graph_file}')
 
     def delete_graph(self, *, graph_id: str) -> None:
         """
