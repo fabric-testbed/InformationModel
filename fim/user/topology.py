@@ -483,6 +483,11 @@ class Topology(ABC):
             interface_names = [iff.name for iff in l.interface_list]
             lines.append("\t" + l.name + "[" + str(l.type) + "]: " +
                          str(interface_names))
+        lines.append("Network Services:")
+        for ns in self.network_services.values():
+            interface_names = [iff.name for iff in ns.interface_list]
+            lines.append("\t" + ns.name + "[" + str(ns.type) + "]:" +
+                         str(interface_names))
 
         return "\n".join(lines)
 
