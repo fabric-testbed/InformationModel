@@ -29,7 +29,7 @@ class TupleTests(unittest.TestCase):
         self.assertEqual(len(ns2.attached_components_info.list_devices()), 2)
         self.assertEqual(len(nss1.interface_info.list_interfaces()), 4)
         inames = [i.resource_name for i in nss1.interface_info.list_interfaces()]
-        self.assertTrue('s1-c2-p1' in inames)
+        self.assertTrue('n2-c2-p1' in inames)
         self.assertEqual(ns1.attached_components_info.list_devices()[0].
                          network_service_info.list_services()[0].
                          interface_info.list_interfaces()[0].capacities.bw, 100)

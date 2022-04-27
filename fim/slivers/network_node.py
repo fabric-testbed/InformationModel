@@ -25,6 +25,7 @@
 # Author: Komal Thareja (kthare10@renci.org)
 import enum
 import ipaddress
+from recordclass import recordclass
 
 from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
@@ -58,7 +59,30 @@ class NodeType(enum.Enum):
         return None
 
 
+NodeConstraintRecord = recordclass('NodeConstraintRecord',
+                                   ['required_properties',
+                                    'forbidden_properties'])
+
+
 class NodeSliver(BaseSliver):
+    NodeConstraints = {
+        NodeType.Server: NodeConstraintRecord(required_properties=['site'],
+                                              forbidden_properties=[]),
+        NodeType.VM: NodeConstraintRecord(required_properties=['site'],
+                                          forbidden_properties=[]),
+        NodeType.Container: NodeConstraintRecord(required_properties=['site'],
+                                                 forbidden_properties=[]),
+        NodeType.Switch: NodeConstraintRecord(required_properties=[],
+                                              forbidden_properties=['attached_components_info',
+                                                                    'image_type', 'image_ref']),
+        NodeType.NAS: NodeConstraintRecord(required_properties=[],
+                                           forbidden_properties=['attached_components_info',
+                                                                 'image_type', 'image_ref']),
+        NodeType.Facility: NodeConstraintRecord(required_properties=[],
+                                                forbidden_properties=['attached_components_info',
+                                                                      'image_type', 'image_ref',
+                                                                      'management_ip'])
+    }
 
     def __init__(self):
         super().__init__()
@@ -71,7 +95,6 @@ class NodeSliver(BaseSliver):
         self.network_service_info = None
         self.site = None
         self.location = None
-        self.boot_script = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -121,13 +144,6 @@ class NodeSliver(BaseSliver):
 
     def get_location(self) -> Location:
         return self.location
-
-    def set_boot_script(self, boot_script: str):
-        assert(boot_script is None or isinstance(boot_script, str))
-        self.boot_script = boot_script
-
-    def get_boot_script(self) -> str:
-        return self.boot_script
 
     @staticmethod
     def type_from_str(ntype: str) -> NodeType or None:

@@ -187,6 +187,15 @@ class ModelElement(ABC):
             self.set_property('tags', value)
 
     @property
+    def flags(self):
+        return self.get_property('flags') if self.__dict__.get('topo', None) is not None else None
+
+    @flags.setter
+    def flags(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('flags', value)
+
+    @property
     def mf_data(self):
         d = self.get_property('mf_data') if self.__dict__.get('topo', None) is not None else None
         return d.data if d is not None else None
@@ -198,6 +207,15 @@ class ModelElement(ABC):
                 self.set_property('mf_data', value)
             else:
                 self.set_property('mf_data', MeasurementData(value))
+
+    @property
+    def boot_script(self):
+        return self.get_property('boot_script') if self.__dict__.get('topo', None) is not None else None
+
+    @boot_script.setter
+    def boot_script(self, value: str):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('boot_script', value)
 
     def update_labels(self, **kwargs):
         """

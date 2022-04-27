@@ -41,5 +41,10 @@
     "Type": "NVME",
     "Details": "Dell Express Flash NVMe P4510 1TB SFF",
     "Capacity": "1000"
+  },
+  {
+    "Model": "NAS",
+    "Type": "Storage",
+    "Details": "Site-local NAS share"
   }
 ]

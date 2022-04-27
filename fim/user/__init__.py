@@ -35,6 +35,7 @@ Capacities = caplab.Capacities
 Location = caplab.Location
 CapacityHints = caplab.CapacityHints
 Labels = caplab.Labels
+Flags = caplab.Flags
 ReservationInfo = caplab.ReservationInfo
 Layer = nss.NSLayer
 Link = link.Link

@@ -30,6 +30,7 @@ from recordclass import recordclass
 from .base_sliver import BaseSliver
 from .path_info import PathRepresentationType, ERO, PathInfo
 from .gateway import Gateway
+from .interface_info import InterfaceType
 
 
 class NSLayer(enum.Enum):
@@ -49,6 +50,25 @@ class NSLayer(enum.Enum):
         for la in NSLayer:
             if la.name == s:
                 return cls(la)
+        return None
+
+
+class MirrorDirection(enum.Enum):
+    Both = enum.auto()
+    RX_Only = enum.auto()
+    TX_Only = enum.auto()
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def from_string(cls, s: str):
+        for md in MirrorDirection:
+            if md.name == s:
+                return cls(md)
         return None
 
 
@@ -86,7 +106,10 @@ ServiceConstraintRecord = recordclass('ServiceConstraintRecord',
                                       ['layer', 'desc',
                                        'num_interfaces',
                                        'num_sites',
-                                       'num_instances'])
+                                       'num_instances',
+                                       'required_properties',
+                                       'forbidden_properties',
+                                       'required_interface_types'])
 
 
 class NetworkServiceSliver(BaseSliver):
@@ -99,43 +122,103 @@ class NetworkServiceSliver(BaseSliver):
     """
     ServiceConstraints = {
         ServiceType.P4: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
-                                                num_instances=NO_LIMIT,
+                                                num_instances=NO_LIMIT, required_properties=['controller_url'],
+                                                forbidden_properties=['mirror_port',
+                                                                      'mirror_direction'],
+                                                required_interface_types=[],
                                                 desc='A P4 service.'),
         ServiceType.OVS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
-                                                 num_instances=NO_LIMIT,
+                                                 num_instances=NO_LIMIT, required_properties=[],
+                                                 forbidden_properties=['mirror_port',
+                                                                       'mirror_direction'],
+                                                 required_interface_types=[],
                                                  desc='An OVS generic service.'),
         ServiceType.VLAN: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
-                                                 num_instances=NO_LIMIT,
-                                                 desc='An local VLAN service in a site.'),
+                                                  num_instances=NO_LIMIT, required_properties=[],
+                                                  forbidden_properties=['mirror_port',
+                                                                        'mirror_direction',
+                                                                        'controller_url'],
+                                                  required_interface_types=[],
+                                                  desc='An local VLAN service in a site.'),
         ServiceType.MPLS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
-                                                  num_instances=NO_LIMIT, desc='An MPLS generic service'),
+                                                  num_instances=NO_LIMIT, desc='An MPLS generic service',
+                                                  required_properties=[],
+                                                  forbidden_properties=['mirror_port',
+                                                                        'mirror_direction',
+                                                                        'controller_url'],
+                                                  required_interface_types=[]),
         ServiceType.L2Path: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=2,
                                                     num_instances=NO_LIMIT,
-                                                    desc='A provider L2 Path e.g. from ESnet or Internet2.'),
+                                                    desc='A provider L2 Path e.g. from ESnet or Internet2.',
+                                                    required_properties=[],
+                                                    forbidden_properties=['mirror_port',
+                                                                          'mirror_direction',
+                                                                          'controller_url'],
+                                                    required_interface_types=[]),
         ServiceType.L2STS: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=2,
                                                    num_instances=NO_LIMIT,
-                                                   desc='A Site-to-Site service in FABRIC.'),
+                                                   desc='A Site-to-Site service in FABRIC.',
+                                                   required_properties=[],
+                                                   forbidden_properties=['ero',
+                                                                         'mirror_port',
+                                                                         'mirror_direction',
+                                                                         'controller_url'],
+                                                   required_interface_types=[]),
         ServiceType.L2PTP: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=2,
                                                    num_instances=NO_LIMIT,
-                                                   desc='A Port-to-Port service in FABRIC.'),
+                                                   desc='A Port-to-Port service in FABRIC.',
+                                                   required_properties=[],
+                                                   forbidden_properties=['mirror_port',
+                                                                         'mirror_direction',
+                                                                         'controller_url'],
+                                                   required_interface_types=[InterfaceType.DedicatedPort]),
         ServiceType.L2Multisite: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                          num_instances=NO_LIMIT,
-                                                         desc='A Multi-Site L2 service in FABRIC.'),
+                                                         desc='A Multi-Site L2 service in FABRIC.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[]),
         ServiceType.L2Bridge: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
-                                                      desc='An L2 bridge service within a single FABRIC site.'),
+                                                      desc='An L2 bridge service within a single FABRIC site.',
+                                                      required_properties=[],
+                                                      forbidden_properties=['mirror_port',
+                                                                            'mirror_direction',
+                                                                            'controller_url'],
+                                                      required_interface_types=[]),
         ServiceType.FABNetv4: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
-                                                      desc='A routed IPv4 (RFC1918 addressed) FABRIC network.'),
+                                                      desc='A routed IPv4 (RFC1918 addressed) FABRIC network.',
+                                                      required_properties=[],
+                                                      forbidden_properties=['mirror_port',
+                                                                            'mirror_direction',
+                                                                            'controller_url'],
+                                                      required_interface_types=[]),
         ServiceType.FABNetv6: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
-                                                      desc='A routed IPv6 (publicly addressed) FABRIC network.'),
-        ServiceType.PortMirror: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=2, num_sites=1,
-                                                        num_instances=1,
-                                                        desc='A port mirroring service in a site.'),
+                                                      desc='A routed IPv6 (publicly addressed) FABRIC network.',
+                                                      required_properties=[],
+                                                      forbidden_properties=['mirror_port',
+                                                                            'mirror_direction',
+                                                                            'controller_url'],
+                                                      required_interface_types=[]),
+        ServiceType.PortMirror: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=1, num_sites=1,
+                                                        num_instances=NO_LIMIT,
+                                                        desc='A port mirroring service in a FABRIC site.',
+                                                        required_properties=['mirror_port',
+                                                                             'mirror_direction'],
+                                                        forbidden_properties=['controller_url'],
+                                                        required_interface_types=[InterfaceType.DedicatedPort]),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                    num_instances=NO_LIMIT,
-                                                   desc='A L3 VPN service connecting to FABRIC.')
+                                                   desc='A L3 VPN service connecting to FABRIC.',
+                                                   required_properties=[],
+                                                   forbidden_properties=['mirror_port',
+                                                                         'mirror_direction',
+                                                                         'controller_url'],
+                                                   required_interface_types=[])
     }
 
     def __init__(self):
@@ -149,6 +232,8 @@ class NetworkServiceSliver(BaseSliver):
         self.controller_url = None
         self.site = None
         self.gateway = None
+        self.mirror_port = None
+        self.mirror_direction = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -200,6 +285,18 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_gateway(self) -> Gateway:
         return self.gateway
+
+    def set_mirror_port(self, mirror_port: str):
+        self.mirror_port = mirror_port
+
+    def get_mirror_port(self) -> str:
+        return self.mirror_port
+
+    def set_mirror_direction(self, mirror_direction: MirrorDirection):
+        self.mirror_direction = mirror_direction
+
+    def get_mirror_direction(self) -> MirrorDirection:
+        return self.mirror_direction
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:

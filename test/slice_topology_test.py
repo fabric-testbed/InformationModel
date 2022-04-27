@@ -9,6 +9,9 @@ from fim.slivers.gateway import Gateway
 from fim.slivers.capacities_labels import Labels
 from fim.user.model_element import TopologyException
 from fim.slivers.measurement_data import MeasurementDataError
+from fim.slivers.attached_components import ComponentType
+from fim.slivers.component_catalog import ComponentModelType
+from fim.slivers.network_service import ServiceType, MirrorDirection
 
 
 class SliceTest(unittest.TestCase):
@@ -86,9 +89,17 @@ class SliceTest(unittest.TestCase):
         assert(self.topo.get_parent_element(e=gpu1) == n1)
         assert(self.topo.get_parent_element(e=p1) == self.topo.get_parent_element(e=p2))
 
-        # name uniqueness enforcement (disabled: replaced with RuntimeError)
-        #with self.assertRaises(AssertionError) as e:
-        #   self.topo.add_node(name='Node1', site='UKY')
+        # name uniqueness enforcement
+        with self.assertRaises(TopologyException) as e:
+            self.topo.add_node(name='Node1', site='UKY')
+
+        # storage
+        n1.add_storage(name='mystorage', labels=Labels(local_name='volume_name'))
+
+        with self.assertRaises(Exception) as e:
+            n1.remove_storage(name='wrong_name')
+
+        n1.remove_storage(name='mystorage')
 
         gpu1_1 = n2.add_component(ctype=f.ComponentType.GPU, model='RTX6000', name='gpu1')
         n2.remove_component(name='gpu1')
@@ -187,7 +198,8 @@ class SliceTest(unittest.TestCase):
         n1.add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
         n1.add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic4')
         n2.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic2')
-        n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3')
+        nc3 = n3.add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic3',
+                         boot_script='#!/bin/bash echo *')
 
         #tags on model elements (nodes, links, components, interfaces, network services)
         n1.tags = f.Tags('blue', 'heavy')
@@ -195,6 +207,14 @@ class SliceTest(unittest.TestCase):
         # unset the tags
         n1.tags = None
         self.assertEqual(n1.tags, None)
+
+        # flags on model elements
+        n1.flags = f.Flags(auto_config=True)
+        self.assertTrue(n1.flags.auto_config)
+        n1.flags = None
+        self.assertEqual(n1.flags, None)
+
+        self.assertEqual(nc3.boot_script, '#!/bin/bash echo *')
 
         #boot script on nodes only
         n1.boot_script = """
@@ -284,13 +304,17 @@ class SliceTest(unittest.TestCase):
                                                                                               n3.interface_list[0]])
 
         # facilities
-        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10))
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10),
+                                      labels=f.Labels(vlan='100'))
+        # facility needs to be connected via a service to something else
         sfac = self.topo.add_network_service(name='s-fac', nstype=f.ServiceType.L2STS,
                                              interfaces=[fac1.interface_list[0],
-                                             n1.interface_list[1]])
+                                                         n1.interface_list[2]])
 
         self.assertEqual(s1.layer, f.Layer.L2)
-        self.assertEqual(sfac.layer, f.Layer.L2)
+        print(fac1.network_services['RENCI-DTN-ns'].labels)
+        self.assertEqual(fac1.network_services['RENCI-DTN-ns'].layer, f.Layer.L2)
+        self.assertEqual(fac1.interface_list[0].labels.vlan, '100')
 
         # this is typically done by orchestrator
         s1.gateway = Gateway(Labels(ipv4_subnet="192.168.1.0/24", ipv4="192.168.1.1", mac="00:11:22:33:44:55"))
@@ -322,8 +346,8 @@ class SliceTest(unittest.TestCase):
                                                interfaces=self.topo.interface_list)
 
         s2 = self.topo.add_network_service(name='s2', nstype=f.ServiceType.L2PTP,
-                                           interfaces=[n1.components['nic4'].interfaces['nic4-p1'],
-                                                       n2.components['nic2'].interfaces['nic2-p1']])
+                                           interfaces=[n1.interface_list[1],
+                                                       n2.interface_list[1]])
         self.assertEqual(len(s2.interface_list), 2)
         print(f'S2 has these interfaces: {s2.interface_list}')
 
@@ -331,6 +355,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.links), 4)
         print(f'There are {self.topo.network_services} Network services  in topology')
         self.assertEqual(len(self.topo.network_services), 7)
+        self.topo.validate()
         self.topo.remove_network_service('s2')
         self.topo.validate()
         self.assertEqual(len(self.topo.network_services), 6)
@@ -423,6 +448,32 @@ class SliceTest(unittest.TestCase):
         print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
         self.n4j_imp.delete_all_graphs()
 
+    def testSerDes3(self):
+        # multi-format serialization-deserialization test
+        topo = f.ExperimentTopology()
+        topo.add_node(name='n1', site='RENC')
+        cap = f.Capacities(core=1, unit=2)
+        topo.nodes['n1'].capacities = cap
+        topo.nodes['n1'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic1')
+        topo.add_node(name='n2', site='UKY')
+        topo.nodes['n2'].add_component(ctype=f.ComponentType.SharedNIC, model='ConnectX-6', name='nic2')
+        topo.add_network_service(name='s1', nstype=f.ServiceType.L2STS, interfaces=topo.interface_list)
+        slice_graph = topo.serialize(fmt=f.GraphFormat.JSON_NODELINK)
+
+        print(f'NODE_LINK {slice_graph=}')
+
+        t1 = f.ExperimentTopology(graph_string=slice_graph)
+
+        self.assertTrue('n1' in t1.nodes.keys())
+        self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
+        cap1 = t1.nodes['n1'].capacities
+        self.assertEqual(cap1.core, 1)
+        self.assertEqual(cap1.unit, 2)
+
+        print(f'LIST COMPONENTS of n1 {t1.nodes["n1"].components}')
+        print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
+        self.n4j_imp.delete_all_graphs()
+
     def testBasicOneSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
@@ -438,6 +489,7 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='single-site.graphml')
         self.topo.serialize(file_name='single-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='single-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+        self.topo.validate()
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
@@ -454,6 +506,7 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.graphml')
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
+        self.topo.validate()
 
     def testL3Service(self):
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
@@ -476,4 +529,27 @@ class SliceTest(unittest.TestCase):
         # site property is set automagically
         self.assertEqual(s1.site, 'UKY')
         self.assertEqual(s2.site, 'RENC')
+        self.topo.validate()
 
+    def testPortMirrorService(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+        n2 = t.add_node(name='n2', site='RENC')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+        n3 = t.add_node(name='n3', site='RENC')
+        n3.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+        with self.assertRaises(TopologyException) as e:
+            t.add_network_service(name='ns1', nstype=ServiceType.PortMirror,
+                                  interfaces=[n1.interface_list[0], n2.interface_list[0]])
+        t.add_network_service(name='ns1', nstype=ServiceType.L2STS,
+                              interfaces=[n1.interface_list[0], n2.interface_list[0]])
+        t.add_port_mirror_service(name='pm1', from_interface_name='blahname',
+                                  to_interface=n3.interface_list[0])
+        n3.add_storage(name='st1', labels=Labels(local_name='volume_x'))
+
+        self.assertEqual(t.network_services['pm1'].mirror_port, 'blahname')
+        self.assertEqual(t.network_services['pm1'].mirror_direction, MirrorDirection.Both)
+        t.validate()
+        t.remove_network_service(name='pm1')
