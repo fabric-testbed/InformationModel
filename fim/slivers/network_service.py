@@ -208,7 +208,7 @@ class NetworkServiceSliver(BaseSliver):
                                                         num_instances=NO_LIMIT,
                                                         desc='A port mirroring service in a FABRIC site.',
                                                         required_properties=['mirror_port',
-                                                                             'mirror_direction'],
+                                                                             'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
                                                         required_interface_types=[InterfaceType.DedicatedPort]),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
