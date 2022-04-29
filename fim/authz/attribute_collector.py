@@ -35,7 +35,7 @@ import json
 
 from fim.user.topology import ExperimentTopology
 from fim.user.node import Node
-from fim.user.network_service import NetworkService
+from fim.user.network_service import NetworkService, ServiceType
 from fim.graph.slices.networkx_asm import NetworkxASM
 from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver
@@ -54,6 +54,7 @@ class ResourceAuthZAttributes:
     RESOURCE_SITE = "urn:fabric:xacml:attribute:resource-site"
     RESOURCE_COMPONENT = "urn:fabric:xacml:attribute:resource-component"
     RESOURCE_PEER_SITE = "urn:fabric:xacml:attribute:resource-peersite"
+    RESOURCE_MIRROR_SITE = "urn:fabric:xacml:attribute:resource-mirrorsite"
     RESOURCE_FACILITY_PORT = "urn:fabric:xacml:attribute:resource-facility-port"
     RESOURCE_MEASUREMENTS = "urn:fabric:xacml:attribute:resource-with-measurements"
     RESOURCE_LIFETIME = "urn:fabric:xacml:attributes:resource-lifetime"
@@ -81,6 +82,8 @@ class ResourceAuthZAttributes:
                              "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_PEER_SITE: ("http://www.w3.org/2001/XMLSchema#string",
                              "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_MIRROR_SITE: ("http://www.w3.org/2001/XMLSchema#string",
+                               "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_FACILITY_PORT: ("http://www.w3.org/2001/XMLSchema#string",
                                  "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_MEASUREMENTS: ("http://www.w3.org/2001/XMLSchema#boolean",
@@ -138,6 +141,9 @@ class ResourceAuthZAttributes:
         if sliver.site:
             if sliver.site not in self._attributes[self.RESOURCE_SITE]:
                 self._attributes[self.RESOURCE_SITE].append(sliver.site)
+        if sliver.resource_type == ServiceType.PortMirror:
+            if sliver.site not in self._attributes[self.RESOURCE_MIRROR_SITE]:
+                self._attributes[self.RESOURCE_MIRROR_SITE].append(sliver.site)
 
     def _collect_attributes_from_base_sliver(self, sliver: BaseSliver):
         if isinstance(sliver, NetworkServiceSliver):
