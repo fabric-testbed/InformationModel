@@ -102,7 +102,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
-        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT,
+        "layout": ABCPropertyGraphConstants.PROP_LAYOUT
     }
 
     @abstractmethod
