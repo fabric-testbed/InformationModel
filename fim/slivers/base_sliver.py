@@ -63,6 +63,7 @@ class BaseSliver(ABC):
         self.flags = None # various flags
         self.mf_data = None # opaque JSON object limited in length
         self.boot_script = None # string limited in length
+        self.layout = None # opaque JSON object limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
