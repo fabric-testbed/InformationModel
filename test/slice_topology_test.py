@@ -326,6 +326,13 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(s1.interface_list), 3)
         self.topo.validate()
 
+        # Import it in the neo4j as ASM
+        slice_graph = self.topo.serialize()
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+
         s1p = self.topo.network_services['s1']
 
         print(f'S1 has these interfaces: {s1p.interface_list}')
@@ -337,6 +344,12 @@ class SliceTest(unittest.TestCase):
 
         # validate the topology
         self.topo.validate()
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
 
         self.topo.remove_network_service('s1')
 
@@ -491,6 +504,13 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='single-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
         self.topo.validate()
 
+        # Import it in the neo4j as ASM
+        slice_graph = self.topo.serialize()
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
@@ -507,6 +527,13 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
         self.topo.validate()
+
+        # Import it in the neo4j as ASM
+        slice_graph = self.topo.serialize()
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
 
     def testL3Service(self):
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
@@ -531,6 +558,14 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(s2.site, 'RENC')
         self.topo.validate()
 
+        slice_graph = self.topo.serialize()
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+
     def testPortMirrorService(self):
         t = self.topo
 
@@ -552,4 +587,35 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(t.network_services['pm1'].mirror_port, 'blahname')
         self.assertEqual(t.network_services['pm1'].mirror_direction, MirrorDirection.Both)
         t.validate()
+
+        slice_graph = t.serialize()
+        print(f"PortMirror: {slice_graph}")
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+
         t.remove_network_service(name='pm1')
+        self.n4j_imp.delete_all_graphs()
+
+    def testNoNetworkServiceValidate(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+        n2 = t.add_node(name='n2', site='RENC')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+        n3 = t.add_node(name='n3', site='RENC')
+        n3.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+        n3.add_storage(name='st1', labels=Labels(local_name='volume_x'))
+
+        t.validate()
+
+        slice_graph = t.serialize()
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
