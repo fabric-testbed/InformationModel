@@ -477,46 +477,49 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         prop_dict = dict()
 
-        if sliver.resource_name is not None:
+        # hasattr checks are added because slivers sometimes are unpickled and certain
+        # attributes may not be present (come from an older version of the code)
+        if hasattr(sliver, 'resource_name') and sliver.resource_name is not None:
             prop_dict[ABCPropertyGraph.PROP_NAME] = sliver.resource_name
-        if sliver.resource_type is not None:
+        if hasattr(sliver, 'resource_type') and sliver.resource_type is not None:
             prop_dict[ABCPropertyGraph.PROP_TYPE] = str(sliver.resource_type)
-        if sliver.resource_model is not None:
+        if hasattr(sliver, 'resource_model') and sliver.resource_model is not None:
             prop_dict[ABCPropertyGraph.PROP_MODEL] = sliver.resource_model
-        if sliver.capacities is not None:
+        if hasattr(sliver, 'capacities') and sliver.capacities is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITIES] = sliver.capacities.to_json()
-        if sliver.capacity_hints is not None:
+        if hasattr(sliver, 'capacity_hints') and sliver.capacity_hints is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_HINTS] = sliver.capacity_hints.to_json()
-        if sliver.labels is not None:
+        if hasattr(sliver, 'labels') and sliver.labels is not None:
             prop_dict[ABCPropertyGraph.PROP_LABELS] = sliver.labels.to_json()
-        if sliver.capacity_delegations is not None:
+        if hasattr(sliver, 'capacity_delegations') and sliver.capacity_delegations is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_DELEGATIONS] = \
                 sliver.capacity_delegations.to_json()
-        if sliver.label_delegations is not None:
+        if hasattr(sliver, 'label_delegations') and sliver.label_delegations is not None:
             prop_dict[ABCPropertyGraph.PROP_LABEL_DELEGATIONS] = \
                 sliver.label_delegations.to_json()
-        if sliver.capacity_allocations is not None:
+        if hasattr(sliver, 'capacity_allocations') and sliver.capacity_allocations is not None:
             prop_dict[ABCPropertyGraph.PROP_CAPACITY_ALLOCATIONS] = sliver.capacity_allocations.to_json()
-        if sliver.label_allocations is not None:
+        if hasattr(sliver, 'label_allocations') and sliver.label_allocations is not None:
             prop_dict[ABCPropertyGraph.PROP_LABEL_ALLOCATIONS] = sliver.label_allocations.to_json()
-        if sliver.reservation_info is not None:
+        if hasattr(sliver, 'reservation_info') and sliver.reservation_info is not None:
             prop_dict[ABCPropertyGraph.PROP_RESERVATION_INFO] = sliver.reservation_info.to_json()
-        if sliver.structural_info is not None:
+        if hasattr(sliver, 'structural_info') and sliver.structural_info is not None:
             prop_dict[ABCPropertyGraph.PROP_STRUCTURAL_INFO] = sliver.structural_info.to_json()
-        if sliver.details is not None:
+        if hasattr(sliver, 'details') and sliver.details is not None:
             prop_dict[ABCPropertyGraph.PROP_DETAILS] = sliver.details
-        if sliver.node_map is not None:
+        if hasattr(sliver, 'node_map') and sliver.node_map is not None:
             prop_dict[ABCPropertyGraph.PROP_NODE_MAP] = json.dumps(sliver.node_map)
-        # boolean is always there. use json dumps for simplicity
-        prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
+        if hasattr(sliver, 'stitch_node'):
+            # boolean is always there. use json dumps for simplicity
+            prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
         # this is already a JSON dict
-        if sliver.mf_data is not None:
+        if hasattr(sliver, 'mf_data') and sliver.mf_data is not None:
             prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
-        if sliver.tags is not None:
+        if hasattr(sliver, 'tags') and sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
-        if sliver.flags is not None:
+        if hasattr(sliver, 'flags') and sliver.flags is not None:
             prop_dict[ABCPropertyGraph.PROP_FLAGS] = sliver.flags.to_json()
-        if sliver.boot_script is not None:
+        if hasattr(sliver, 'boot_script') and sliver.boot_script is not None:
             prop_dict[ABCPropertyGraph.PROP_BOOT_SCRIPT] = sliver.boot_script
 
         return prop_dict
@@ -530,17 +533,20 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
 
-        if sliver.image_ref is not None and sliver.image_type is not None:
+        # hasattr checks are added because slivers sometimes are unpickled and certain
+        # attributes may not be present (come from an older version of the code)
+        if hasattr(sliver, 'image_ref') and hasattr(sliver, 'image_type')  and \
+                sliver.image_ref is not None and sliver.image_type is not None:
             prop_dict[ABCPropertyGraph.PROP_IMAGE_REF] = sliver.image_ref + ',' + str(sliver.image_type)
-        if sliver.management_ip is not None:
+        if hasattr(sliver, 'management_ip') and sliver.management_ip is not None:
             prop_dict[ABCPropertyGraph.PROP_MGMT_IP] = str(sliver.management_ip)
-        if sliver.allocation_constraints is not None:
+        if hasattr(sliver, 'allocation_constraints') and sliver.allocation_constraints is not None:
             prop_dict[ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS] = sliver.allocation_constraints
-        if sliver.service_endpoint is not None:
+        if hasattr(sliver, 'service_endpoint') and sliver.service_endpoint is not None:
             prop_dict[ABCPropertyGraph.PROP_SERVICE_ENDPOINT] = str(sliver.service_endpoint)
-        if sliver.site is not None:
+        if hasattr(sliver, 'site') and sliver.site is not None:
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
-        if sliver.location is not None:
+        if hasattr(sliver, 'location') and sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
 
         return prop_dict
@@ -554,9 +560,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
 
-        if sliver.layer is not None:
+        # hasattr checks are added because slivers sometimes are unpickled and certain
+        # attributes may not be present (come from an older version of the code)
+        if hasattr(sliver, 'layer') and sliver.layer is not None:
             prop_dict[ABCPropertyGraph.PROP_LAYER] = str(sliver.layer)
-        if sliver.technology is not None:
+        if hasattr(sliver, 'technology') and sliver.technology is not None:
             prop_dict[ABCPropertyGraph.PROP_TECHNOLOGY] = str(sliver.technology)
 
         return prop_dict
@@ -580,25 +588,28 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
-        if sliver.layer is not None:
+
+        # hasattr checks are added because slivers sometimes are unpickled and certain
+        # attributes may not be present (come from an older version of the code)
+        if hasattr(sliver, 'layer') and sliver.layer is not None:
             prop_dict[ABCPropertyGraph.PROP_LAYER] = str(sliver.layer)
-        if sliver.technology is not None:
+        if hasattr(sliver, 'technology') and sliver.technology is not None:
             prop_dict[ABCPropertyGraph.PROP_TECHNOLOGY] = str(sliver.technology)
-        if sliver.allocation_constraints is not None:
+        if hasattr(sliver, 'allocation_constraints') and sliver.allocation_constraints is not None:
             prop_dict[ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS] = sliver.allocation_constraints
-        if sliver.ero is not None:
+        if hasattr(sliver, 'ero') and sliver.ero is not None:
             prop_dict[ABCPropertyGraph.PROP_ERO] = sliver.ero.to_json()
-        if sliver.path_info is not None:
+        if hasattr(sliver, 'path_info') and sliver.path_info is not None:
             prop_dict[ABCPropertyGraph.PROP_PATH_INFO] = sliver.path_info.to_json()
-        if sliver.controller_url is not None:
+        if hasattr(sliver, 'controller_url') and sliver.controller_url is not None:
             prop_dict[ABCPropertyGraph.PROP_CONTROLLER_URL] = sliver.controller_url
-        if sliver.site is not None:
+        if hasattr(sliver, 'site') and sliver.site is not None:
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
-        if sliver.gateway is not None:
+        if hasattr(sliver, 'gateway') and sliver.gateway is not None:
             prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
-        if sliver.mirror_port is not None:
+        if hasattr(sliver, 'mirror_port') and sliver.mirror_port is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
-        if sliver.mirror_direction is not None:
+        if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
 
         return prop_dict
