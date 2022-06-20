@@ -210,11 +210,8 @@ class BaseSliver(ABC):
         """
         # set any property on a sliver that has a setter
         for k, v in kwargs.items():
-            try:
-                # we can set anything the sliver model has a setter for
-                self.__getattribute__('set_' + k)(v)
-            except AttributeError:
-                raise RuntimeError(f'Unable to set property {k} on the sliver - no such property available')
+            # we can set anything the sliver model has a setter for
+            self.__getattribute__('set_' + k)(v)
 
     @classmethod
     def list_properties(cls) -> Tuple[str]:
@@ -237,10 +234,7 @@ class BaseSliver(ABC):
         :param prop_val:
         :return:
         """
-        try:
-            return self.__getattribute__('set_' + prop_name)(prop_val)
-        except AttributeError:
-            raise RuntimeError(f'Unable to set property {prop_name} of the sliver - no such property available')
+        return self.__getattribute__('set_' + prop_name)(prop_val)
 
     def get_property(self, prop_name: str):
         """
@@ -248,10 +242,7 @@ class BaseSliver(ABC):
         :param prop_name:
         :return:
         """
-        try:
-            return self.__getattribute__('get_' + prop_name)()
-        except AttributeError:
-            raise RuntimeError(f'Unable to get property {prop_name} of the sliver - no such property available')
+        return self.__getattribute__('get_' + prop_name)()
 
     def __repr__(self):
         exclude_set = {"get_property", "get_stitch_node"}
@@ -262,9 +253,14 @@ class BaseSliver(ABC):
         print_set.sort()
         print_vals = dict()
         for p in print_set:
-            pval = self.get_property(p)
-            if pval is not None and len(str(pval)) != 0:
-                print_vals[p] = str(pval)
+            try:
+                pval = self.get_property(p)
+                if pval is not None and len(str(pval)) != 0:
+                    print_vals[p] = str(pval)
+            except AttributeError:
+                # sometimes a property is not available due to e.g. unpicking
+                # an older version of the object, and that's ok.
+                pass
         return str(print_vals)
 
     def __str__(self):
