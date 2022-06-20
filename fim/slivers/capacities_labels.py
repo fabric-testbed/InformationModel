@@ -561,7 +561,8 @@ class Flags(JSONField):
     JSON-ified representation of various flags that can be attached to slivers
     """
     def __init__(self, **kwargs):
-        self.auto_config = False
+        self.auto_config = False # primarily for interfaces
+        self.auto_mount = False # primarily for storage components
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
