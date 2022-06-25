@@ -311,6 +311,7 @@ class SliceTest(unittest.TestCase):
                                              interfaces=[fac1.interface_list[0],
                                                          n1.interface_list[2]])
 
+        self.topo.validate()
         self.assertEqual(s1.layer, f.Layer.L2)
         print(fac1.network_services['RENCI-DTN-ns'].labels)
         self.assertEqual(fac1.network_services['RENCI-DTN-ns'].layer, f.Layer.L2)
