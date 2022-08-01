@@ -45,7 +45,9 @@ class Link(ModelElement):
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
                  interfaces: List[Interface] = None,
-                 ltype: LinkType = None, technology: str = None, **kwargs):
+                 ltype: LinkType = None, technology: str = None,
+                 check_existing: bool = False,
+                 **kwargs):
         """
         Don't call this method yourself, call topology.add_link()
         node_id will be generated if not provided for experiment topologies
@@ -93,12 +95,13 @@ class Link(ModelElement):
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            # check that this node exists
-            existing_node_id = self.topo.\
-                graph_model.find_node_by_name(node_name=name,
-                                              label=ABCPropertyGraph.CLASS_Link)
-            if existing_node_id != node_id:
-                raise TopologyException(f'Link name {name} is not unique within the topology.')
+            if check_existing:
+                # check that this node exists
+                existing_node_id = self.topo.\
+                    graph_model.find_node_by_name(node_name=name,
+                                                  label=ABCPropertyGraph.CLASS_Link)
+                if existing_node_id != node_id:
+                    raise TopologyException(f'Link name {name} is not unique within the topology.')
             # collect a list of interfaces it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()

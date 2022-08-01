@@ -1229,6 +1229,16 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
 
+    @abstractmethod
+    def get_graph_diff(self, other_graph, label: str):
+        """
+        Return two lists - nodes that are in this graph but NOT in the other graph
+        and node that are in the other graph, but not in this graph, using label
+        as a filter
+        [0] - elements present in self, absent in other (i.e. removed elements)
+        [1] - elements present in other, absent in self (i.e. added elements
+        """
+
     def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:
         """
         Find the ids of the peer connection points to this one (connected over a Link)
