@@ -547,7 +547,8 @@ class Topology(ABC):
 
     def validate(self):
         """
-        Validate the experiment topology. Throw an exception if
+        Validate an experiment or a substrate topology. Throw an exception if rules
+        are violated.
         :return:
         """
         # check nodes
