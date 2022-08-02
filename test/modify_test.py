@@ -1,18 +1,11 @@
 import unittest
-import json
 import uuid
 from typing import Any
 
 import fim.user as f
 
-from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
-from fim.slivers.gateway import Gateway
-from fim.slivers.capacities_labels import Labels
-from fim.user.model_element import TopologyException
-from fim.slivers.measurement_data import MeasurementDataError
 from fim.slivers.attached_components import ComponentType
-from fim.slivers.component_catalog import ComponentModelType
 from fim.slivers.network_service import ServiceType
 from fim.user.topology import TopologyDiff, TopologyDiffTuple
 
@@ -73,6 +66,17 @@ class ModifyTest(unittest.TestCase):
         self.diff.added.services.add(s1)
 
         #
+        # add a connection to a facility to the second port of nic1
+        #
+        f1 = self.topoB.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10),
+                                     labels=f.Labels(vlan='100'))
+        sfac = self.topoB.add_network_service(name='s-fac', nstype=f.ServiceType.L2STS,
+                                              interfaces=[f1.interface_list[0],
+                                                          self.topoB.nodes['NodeA'].components['nic1'].interface_list[1]])
+        self.diff.added.nodes.add(f1)
+        self.diff.added.services.add(sfac)
+
+        #
         # add a component to old node (will show up as added)
         #
         c1 = self.topoB.nodes['NodeA'].add_component(name='gpu1', ctype=ComponentType.GPU, model='RTX6000')
@@ -103,7 +107,8 @@ class ModifyTest(unittest.TestCase):
         #
         # disconnect Node D from bridge2
         #
-        disconnected_interface = self.topoB.nodes['NodeD'].components['nic4'].interface_list[0]
+        # we need to get the interface from topoA because in topoB it will be missing
+        disconnected_interface = self.topoA.nodes['NodeD'].components['nic4'].interface_list[0]
         self.diff.removed.interfaces.add(disconnected_interface.get_peers()[0])
         self.topoB.network_services['bridge2'].disconnect_interface(disconnected_interface)
 
@@ -130,8 +135,7 @@ class ModifyTest(unittest.TestCase):
 
     @staticmethod
     def compare_sets(diff1: set[Any], diff2: set[Any], str):
-        d = diff1.symmetric_difference(diff2)
-        if len(d) > 0:
+        if diff1 != diff2:
             raise Exception(f"Topology differences don't match in {str}: {d}")
 
     @staticmethod
