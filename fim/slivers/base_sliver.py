@@ -244,6 +244,17 @@ class BaseSliver(ABC):
         """
         return self.__getattribute__('get_' + prop_name)()
 
+    def property_exists(self, prop_name: str):
+        """
+        Does this property have a getter?
+        """
+        try:
+            self.__getattribute__('get_' + prop_name)
+            exists = True
+        except AttributeError:
+            exists = False
+        return exists
+
     def __repr__(self):
         exclude_set = {"get_property", "get_stitch_node"}
         print_set = list()

@@ -602,6 +602,23 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 return True
             return False
 
+    def get_graph_diff(self, other_graph, label: str):
+        assert other_graph is not None
+        assert label is not None
+
+        query = f"MATCH(n:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:{label} {{GraphID: $graphIdB}}) WITH " \
+                f"collect(DISTINCT n) as A, collect(DISTINCT n1) as B, " \
+                f"collect(DISTINCT n.NodeID) as AN, collect(DISTINCT n1.NodeID) as BN " \
+                f"RETURN [x in A WHERE NOT x.NodeID in BN] as AnotB, [x in B WHERE NOT x.NodeID in AN] as BnotA"
+        with self.driver.session() as session:
+            val = session.run(query, graphIdA=self.graph_id, graphIdB=other_graph.graph_id).single()
+            if val is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg=f"Unable to diff with graph {other_graph.graph_id}")
+            # A not B means element was removed
+            # B not A means element was added
+            return val.data()['AnotB'], val.data()['BnotA']
+
 
 class Neo4jGraphImporter(ABCGraphImporter):
 
@@ -758,10 +775,10 @@ class Neo4jGraphImporter(ABCGraphImporter):
                 # something in APOC prevents loading sometimes on some platforms
                 self.log.debug(f"Trying to load the file {mapped_file_name}")
                 self._import_graph(mapped_file_name, assigned_id)
-                retry = -1
+                retry = -5
             except PropertyGraphImportException:
                 self.log.warning(f"Transient error, unable to load, deleting and reimporting graph {assigned_id}")
-                retry = retry - 1
+                retry -= 1
                 self.delete_graph(graph_id=assigned_id)
                 # sleep and try again
                 time.sleep(1.0)
@@ -796,11 +813,27 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # get graph id
         graph_id = self.get_graph_id(graph_file=host_file_name)
 
-        self._import_graph(mapped_file_name, graph_id)
+        retry = APOC_RETRY_COUNT
+        while retry > 0:
+            try:
+                # something in APOC prevents loading sometimes on some platforms
+                self.log.debug(f"Trying to load the file {mapped_file_name}")
+                self._import_graph(mapped_file_name, graph_id)
+                retry = -5
+            except PropertyGraphImportException:
+                self.log.warning(f"Transient error, unable to load, deleting and reimporting graph {graph_id}")
+                retry -= 1
+                self.delete_graph(graph_id=graph_id)
+                # sleep and try again
+                time.sleep(1.0)
 
         # unlink temp file
         self.log.debug(f"Unlinking temporary file {host_file_name}")
         os.unlink(host_file_name)
+
+        if retry == 0:
+            raise PropertyGraphImportException(graph_id=graph_id,
+                                               msg='Unable to load graph after multiple attempts')
 
         return Neo4jPropertyGraph(graph_id=graph_id, importer=self, logger=self.log)
 

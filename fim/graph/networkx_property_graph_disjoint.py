@@ -54,7 +54,7 @@ class NetworkXPropertyGraphDisjoint(NetworkXPropertyGraph):
         has assumptions about a common store for all graphs.
         Would require to store all graphs in a single NetworkX graph.
         """
-        raise RuntimeError("Not implementable")
+        raise RuntimeError("Not implementable with this backend.")
 
     def graph_exists(self) -> bool:
         """

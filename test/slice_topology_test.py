@@ -137,6 +137,8 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(service_port, None)
 
         self.topo.add_network_service(name='s1', nstype=f.ServiceType.L2Bridge, interfaces=self.topo.interface_list)
+        # validate sets node names on services
+        self.topo.validate()
         print(self.topo.network_services['s1'])
         assert(self.topo.network_services['s1'].get_property('site') == 'RENC')
 
@@ -311,6 +313,7 @@ class SliceTest(unittest.TestCase):
                                              interfaces=[fac1.interface_list[0],
                                                          n1.interface_list[2]])
 
+        self.topo.validate()
         self.assertEqual(s1.layer, f.Layer.L2)
         print(fac1.network_services['RENCI-DTN-ns'].labels)
         self.assertEqual(fac1.network_services['RENCI-DTN-ns'].layer, f.Layer.L2)
@@ -553,10 +556,11 @@ class SliceTest(unittest.TestCase):
         with self.assertRaises(TopologyException):
             self.topo.add_network_service(name='bad_service', nstype=f.ServiceType.FABNetv4,
                                           interfaces=self.topo.interface_list)
-        # site property is set automagically
+        # site property is set automagically by validate
+        # NOTE: site property NO LONGER SET BY CONSTRUCTOR
+        self.topo.validate()
         self.assertEqual(s1.site, 'UKY')
         self.assertEqual(s2.site, 'RENC')
-        self.topo.validate()
 
         slice_graph = self.topo.serialize()
 
@@ -575,9 +579,14 @@ class SliceTest(unittest.TestCase):
         n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
         n3 = t.add_node(name='n3', site='RENC')
         n3.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
-        with self.assertRaises(TopologyException) as e:
-            t.add_network_service(name='ns1', nstype=ServiceType.PortMirror,
-                                  interfaces=[n1.interface_list[0], n2.interface_list[0]])
+
+        t.add_network_service(name='ns1', nstype=ServiceType.PortMirror,
+                              interfaces=[n1.interface_list[0], n2.interface_list[0]])
+        with self.assertRaises(TopologyException):
+            t.validate()
+
+        t.remove_network_service(name='ns1')
+        t.validate()
         t.add_network_service(name='ns1', nstype=ServiceType.L2STS,
                               interfaces=[n1.interface_list[0], n2.interface_list[0]])
         t.add_port_mirror_service(name='pm1', from_interface_name='blahname',
