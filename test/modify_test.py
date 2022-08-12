@@ -2,12 +2,17 @@ import unittest
 import uuid
 from typing import Any
 
+import cProfile
+from pstats import Stats
+
 import fim.user as f
 
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.network_service import ServiceType
 from fim.user.topology import TopologyDiff, TopologyDiffTuple
+
+WITH_PROFILER = False
 
 
 class ModifyTest(unittest.TestCase):
@@ -124,6 +129,8 @@ class ModifyTest(unittest.TestCase):
         self.topoB.validate()
 
     def setUp(self) -> None:
+        if WITH_PROFILER: self.pr = cProfile.Profile()
+
         self.n4j_imp = Neo4jGraphImporter(url=self.neo4j["url"], user=self.neo4j["user"],
                                           pswd=self.neo4j["pass"],
                                           import_host_dir=self.neo4j["import_host_dir"],
@@ -161,30 +168,63 @@ class ModifyTest(unittest.TestCase):
     def tearDown(self) -> None:
         pass
         self.n4j_imp.delete_all_graphs()
+        if WITH_PROFILER:
+            p = Stats(self.pr)
+            p.strip_dirs()
+            p.sort_stats('ncalls')
+            p.print_stats()
+            print('\n')
 
     def testNodeAddRemove(self):
         """
         Run the diff between topoA and topoB and validate the results
         """
+        print('*** Full diff test')
         self.modifyActions()
 
+        if WITH_PROFILER: self.pr.enable()
         diff_res = self.topoA.diff(self.topoB)
+        if WITH_PROFILER: self.pr.disable()
 
         ModifyTest.compare_diffs(diff_res, self.diff)
 
         print(f'Result {diff_res=}')
         #print(f'\nExpected {self.diff}')
-        print(f'\nStarting Topo {self.topoA}')
-        print(f'\nFinal Topo {self.topoB}')
+        #print(f'\nStarting Topo {self.topoA}')
+        #print(f'\nFinal Topo {self.topoB}')
 
     def testComponentAddOnly(self):
+        print('*** Component add test')
         self.modifyActions1()
 
+        if WITH_PROFILER: self.pr.enable()
         diff_res = self.topoA.diff(self.topoB)
+        if WITH_PROFILER: self.pr.disable()
 
         ModifyTest.compare_diffs(diff_res, self.diff)
 
-        print(f'Result {diff_res=}')
+        #print(f'Result {diff_res=}')
         #print(f'\nExpected {self.diff}')
-        print(f'\nStarting Topo {self.topoA}')
-        print(f'\nFinal Topo {self.topoB}')
+        #print(f'\nStarting Topo {self.topoA}')
+        #print(f'\nFinal Topo {self.topoB}')
+
+    def testSliverDiffs(self):
+
+        print('*** Sliver diff test')
+        self.modifyActions()
+
+        nAA = self.topoA.nodes['NodeA']
+        print(f'{nAA.components=}')
+        nAB = self.topoB.nodes['NodeA']
+        print(f'{nAB.components=}')
+        nAAs = nAA.get_sliver()
+        nABs = nAB.get_sliver()
+
+        if WITH_PROFILER: self.pr.enable()
+        diff = nAAs.diff(nABs)
+        if WITH_PROFILER: self.pr.disable()
+
+        assert(len(diff.added.components) == 1)
+        assert('gpu1' in diff.added.components)
+
+        print(f'Sliver diff {diff}')

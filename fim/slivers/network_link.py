@@ -28,6 +28,7 @@ from recordclass import recordclass
 
 from .base_sliver import BaseSliver
 from .network_service import NSLayer
+from .topology_diff import TopologyDiff
 
 
 class LinkType(enum.Enum):
@@ -110,3 +111,5 @@ class NetworkLinkSliver(BaseSliver):
             return None
         return NSLayer.from_string(layer)
 
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        raise RuntimeError('Not implemented')

@@ -28,6 +28,7 @@ import uuid
 import enum
 
 from .base_sliver import BaseSliver
+from .topology_diff import TopologyDiff
 
 
 class InterfaceType(enum.Enum):
@@ -67,6 +68,8 @@ class InterfaceSliver(BaseSliver):
             if ntype == str(t):
                 return t
 
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        raise RuntimeError('Not implemented')
 
 class InterfaceInfo:
     def __init__(self):

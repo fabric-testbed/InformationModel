@@ -23,7 +23,6 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-import dataclasses
 from abc import ABC
 from typing import List, Tuple, Any, Set
 import enum
@@ -49,6 +48,7 @@ from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 from fim.slivers.capacities_labels import FreeCapacity
 from fim.slivers.interface_info import InterfaceType
+from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
 
 from .model_element import ElementType
 from .node import Node
@@ -57,20 +57,6 @@ from .composite_node import CompositeNode
 from .network_service import NetworkService, PortMirrorService
 from .interface import Interface
 from .link import Link
-
-
-@dataclasses.dataclass
-class TopologyDiffTuple:
-    nodes: set[Node]
-    components: set[Component]
-    services: set[NetworkService]
-    interfaces: set[Interface]
-
-
-@dataclasses.dataclass
-class TopologyDiff:
-    added: TopologyDiffTuple
-    removed: TopologyDiffTuple
 
 
 class TopologyDetail(enum.Enum):
