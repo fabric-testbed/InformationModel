@@ -114,6 +114,15 @@ class ModifyTest(unittest.TestCase):
 
         self.topoB.validate()
 
+    def modifyActions1(self):
+        #
+        # add a component to old node (will show up as added)
+        #
+        c1 = self.topoB.nodes['NodeA'].add_component(name='gpu1', ctype=ComponentType.GPU, model='RTX6000')
+        self.diff.added.components.add(c1)
+
+        self.topoB.validate()
+
     def setUp(self) -> None:
         self.n4j_imp = Neo4jGraphImporter(url=self.neo4j["url"], user=self.neo4j["user"],
                                           pswd=self.neo4j["pass"],
@@ -131,7 +140,6 @@ class ModifyTest(unittest.TestCase):
         new_id = str(uuid.uuid4())
         self.topoB.load(graph_string=graph_A_string, new_graph_id=new_id)
         print(f'Created topology B with new GUID {self.topoB.graph_model.graph_id}/{new_id}')
-        self.modifyActions()
 
     @staticmethod
     def compare_sets(diff1: set[Any], diff2: set[Any], str):
@@ -158,12 +166,25 @@ class ModifyTest(unittest.TestCase):
         """
         Run the diff between topoA and topoB and validate the results
         """
+        self.modifyActions()
+
         diff_res = self.topoA.diff(self.topoB)
 
         ModifyTest.compare_diffs(diff_res, self.diff)
 
         print(f'Result {diff_res=}')
         #print(f'\nExpected {self.diff}')
-        print(f'\nStartig Topo {self.topoA}')
+        print(f'\nStarting Topo {self.topoA}')
         print(f'\nFinal Topo {self.topoB}')
 
+    def testComponentAddOnly(self):
+        self.modifyActions1()
+
+        diff_res = self.topoA.diff(self.topoB)
+
+        ModifyTest.compare_diffs(diff_res, self.diff)
+
+        print(f'Result {diff_res=}')
+        #print(f'\nExpected {self.diff}')
+        print(f'\nStarting Topo {self.topoA}')
+        print(f'\nFinal Topo {self.topoB}')

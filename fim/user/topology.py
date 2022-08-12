@@ -711,7 +711,9 @@ class ExperimentTopology(Topology):
         Is this component parented to any of the nodes?
         """
         assert comp
-        assert nodes
+
+        if not nodes:
+            return False
         parent_node = comp.topo.get_parent_element(comp)
         assert parent_node
         # so we can get early exit
@@ -726,7 +728,9 @@ class ExperimentTopology(Topology):
         Is this Interface parented to the Network Service
         """
         assert intf
-        assert nss
+
+        if not nss:
+            return False
         parent_ns = intf.topo.get_parent_element(intf)
         assert parent_ns
         # so we can get early exit
@@ -741,7 +745,9 @@ class ExperimentTopology(Topology):
         Is this Network Service parented to a node or component
         """
         assert ns
-        assert parents
+
+        if not parents:
+            return False
         parent_node = ns.topo.get_parent_element(ns)
         if parent_node:
             # so we get early exit
