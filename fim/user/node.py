@@ -40,7 +40,7 @@ from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
-from ..slivers.capacities_labels import CapacityHints, Location, ReservationInfo
+from ..slivers.capacities_labels import CapacityHints, Location
 
 
 class Node(ModelElement):
@@ -155,15 +155,6 @@ class Node(ModelElement):
     def capacity_hints(self, value: CapacityHints):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('capacity_hints', value)
-
-    @property
-    def reservation_info(self):
-        return self.get_property('reservation_info') if self.__dict__.get('topo', None) is not None else None
-
-    @reservation_info.setter
-    def reservation_info(self, value: ReservationInfo):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('reservation_info', value)
 
     @property
     def location(self):

@@ -11,6 +11,7 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.network_service import ServiceType
 from fim.user.topology import TopologyDiff, TopologyDiffTuple
+from fim.slivers.capacities_labels import ReservationInfo
 
 WITH_PROFILER = False
 
@@ -228,3 +229,19 @@ class ModifyTest(unittest.TestCase):
         assert('gpu1' in diff.added.components)
 
         print(f'Sliver diff {diff}')
+
+    def testPrune(self):
+
+        print('*** Prune test')
+
+        print(self.topoA.nodes)
+
+        self.topoA.nodes['NodeA'].reservation_info = ReservationInfo(reservation_state="Failed")
+        self.topoA.network_services['bridge1'].reservation_info = ReservationInfo(reservation_state="Failed")
+
+        self.topoA.prune(reservation_state="Failed")
+
+        self.assertTrue('NodeA' not in self.topoA.nodes.keys())
+        self.assertTrue('bridge1' not in self.topoA.network_services.keys())
+
+        print(self.topoA.nodes)

@@ -99,10 +99,19 @@ class Topology(ABC):
         :param e:
         :return:
         """
-        assert e is not None
         if isinstance(e, Node) or isinstance(e, Link):
             # nodes or links don't have parents
             return None
+
+        # interfaces have NSs as parents
+        if isinstance(e, Interface):
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_CONNECTS,
+                                                             parent=ABCPropertyGraph.CLASS_NetworkService)
+            if node_id is None:
+                raise TopologyException(f'Interface {e} has no parent')
+            return NetworkService(name=node_name, node_id=node_id, topo=self)
+
         # components have nodes as parents
         if isinstance(e, Component):
             node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
@@ -111,6 +120,7 @@ class Topology(ABC):
             if node_id is None:
                 raise TopologyException(f'Component {e} has no parent')
             return Node(name=node_name, node_id=node_id, topo=self)
+
         # NSs may have nodes or components as parents or be by themselves
         if isinstance(e, NetworkService):
             node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
@@ -132,14 +142,7 @@ class Topology(ABC):
                 return CompositeNode(name=node_name, node_id=node_id, topo=self)
 
             return None
-        # interfaces have NSs as parents
-        if isinstance(e, Interface):
-            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
-                                                             rel=ABCPropertyGraph.REL_CONNECTS,
-                                                             parent=ABCPropertyGraph.CLASS_NetworkService)
-            if node_id is None:
-                raise TopologyException(f'Interface {e} has no parent')
-            return NetworkService(name=node_name, node_id=node_id, topo=self)
+
         raise TopologyException(f'Unable to determine parent of element {e}')
 
     def get_owner_node(self, e: ModelElement) -> ModelElement or None:
@@ -149,7 +152,6 @@ class Topology(ABC):
         :param e:
         :return:
         """
-        assert e is not None
         if isinstance(e, Node) or isinstance(e, Link):
             # nodes or links don't have parents
             return None
@@ -204,7 +206,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
@@ -265,7 +266,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_network_link(node_id=self._get_link_by_name(name=name).node_id)
 
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType,
@@ -290,7 +290,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_ns_with_cps_and_links(node_id=self._get_ns_by_name(name=name).node_id)
 
     def _get_node_by_name(self, name: str) -> Node:
@@ -299,7 +298,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_NetworkNode)
         return Node(name=name, node_id=node_id, topo=self)
@@ -310,7 +308,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_Link)
         return Link(name=name, node_id=node_id, topo=self)
@@ -321,7 +318,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_NetworkService)
         return NetworkService(name=name, node_id=node_id, topo=self)
@@ -332,9 +328,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def _get_link_by_id(self, node_id: str) -> Link:
@@ -343,9 +337,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def _get_ns_by_id(self, node_id: str) -> NetworkService:
@@ -354,9 +346,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         ns = NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
         if ns.type == ServiceType.PortMirror:
             return PortMirrorService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
@@ -580,7 +570,6 @@ class ExperimentTopology(Topology):
         :param asm_graph:
         :return:
         """
-        assert asm_graph is not None
         assert isinstance(asm_graph, ABCASMPropertyGraph)
         self.graph_model = asm_graph
 
@@ -696,12 +685,9 @@ class ExperimentTopology(Topology):
         """
         Is this component parented to any of the nodes?
         """
-        assert comp
-
         if not nodes:
             return False
         parent_node = comp.topo.get_parent_element(comp)
-        assert parent_node
         # so we can get early exit
         for n in nodes:
             if n.node_id == parent_node.node_id:
@@ -713,12 +699,9 @@ class ExperimentTopology(Topology):
         """
         Is this Interface parented to the Network Service
         """
-        assert intf
-
         if not nss:
             return False
         parent_ns = intf.topo.get_parent_element(intf)
-        assert parent_ns
         # so we can get early exit
         for ns in nss:
             if ns.node_id == parent_ns.node_id:
@@ -730,8 +713,6 @@ class ExperimentTopology(Topology):
         """
         Is this Network Service parented to a node or component
         """
-        assert ns
-
         if not parents:
             return False
         parent_node = ns.topo.get_parent_element(ns)
@@ -799,6 +780,91 @@ class ExperimentTopology(Topology):
                                                       services=nss_removed,
                                                       interfaces=interfaces_removed))
 
+    def _prune_node(self, node: Node):
+        """
+        Prune this node, its components, network services and interfaces
+        """
+        self.graph_model.remove_network_node_with_components_nss_cps_and_links(node_id=node.node_id)
+
+    def _prune_ns(self, ns: NetworkService):
+        """
+        Prune this network service and its interfaces
+        """
+        self.graph_model.remove_ns_with_cps_and_links(node_id=ns.node_id)
+
+    def _prune_components(self, c: Component):
+        """
+        Prune this component, its network services and interfaces
+        """
+        self.graph_model.remove_component_with_nss_cps_and_links(node_id=c.node_id)
+
+    def _prune_interface(self, i: Interface):
+        """
+        Prune this interface
+        """
+        self.graph_model.remove_cp_and_links(node_id=i.node_id)
+
+    def prune(self, reservation_state):
+        """
+        Prune the topology of any elements with reservation_info.reservation_state matching
+        the provided.
+        """
+        #
+        # for all nodes, network services, components and interfaces collect them
+        #
+        nodes = set()
+        components = set()
+        nss = set()
+        seennss = set()
+        interfaces = set()
+        for n in self.nodes.values():
+            nsl = n.get_sliver()
+            if nsl.get_reservation_info() and \
+                    nsl.get_reservation_info().reservation_state == reservation_state:
+                nodes.add(n)
+            for c in n.components.values():
+                csl = c.get_sliver()
+                if csl.get_reservation_info() and \
+                        csl.get_reservation_info().reservation_state == reservation_state:
+                    components.add(c)
+                for ns in c.network_services.values():
+                    seennss.add(ns)
+                    nsl = ns.get_sliver()
+                    if nsl.get_reservation_info() and \
+                            nsl.get_reservation_info().reservation_state == reservation_state:
+                        nss.add(ns)
+                    for i in ns.interface_list:
+                        isl = i.get_sliver()
+                        if isl.get_reservation_info() and \
+                                isl.get_reservation_info().reservation_state == reservation_state:
+                            interfaces.add(i)
+
+        # top level network services only, we visited others already
+        for ns in self.network_services.values():
+            if ns not in seennss:
+                nsl = ns.get_sliver()
+                if nsl.get_reservation_info() and \
+                        nsl.get_reservation_info().reservation_state == reservation_state:
+                    nss.add(ns)
+                for i in ns.interface_list:
+                    isl = i.get_sliver()
+                    if isl.get_reservation_info() and \
+                            isl.get_reservation_info().reservation_state == reservation_state:
+                        interfaces.add(i)
+
+        # all deletes are supposed to be idempotent
+        for n in nodes:
+            self._prune_node(n)
+
+        for c in components:
+            self._prune_components(c)
+
+        for ns in nss:
+            self._prune_ns(ns)
+
+        for i in interfaces:
+            self._prune_interface(i)
+
 
 class SubstrateTopology(Topology):
     """
@@ -835,8 +901,6 @@ class SubstrateTopology(Topology):
         :param e:
         :return:
         """
-        assert e is not None
-        assert delegation_id is not None
         if e.get_property("stitch_node"):
             return None
         if atype == DelegationType.CAPACITY:
@@ -954,9 +1018,7 @@ class AdvertizedTopology(Topology):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         claz, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         if claz[0] == ABCPropertyGraph.CLASS_CompositeNode:
             return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
         elif claz[0] == ABCPropertyGraph.CLASS_NetworkNode:
@@ -968,9 +1030,7 @@ class AdvertizedTopology(Topology):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def __list_sites(self) -> ViewOnlyDict:
