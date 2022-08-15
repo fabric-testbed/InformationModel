@@ -29,7 +29,7 @@ from abc import ABC, abstractmethod
 import enum
 
 from ..graph.abc_property_graph import ABCPropertyGraph
-from ..slivers.capacities_labels import Capacities, Labels
+from ..slivers.capacities_labels import Capacities, Labels, ReservationInfo
 from ..slivers.measurement_data import MeasurementData
 
 
@@ -127,6 +127,12 @@ class ModelElement(ABC):
         :return:
         """
 
+    @abstractmethod
+    def get_sliver(self):
+        """
+        Return sliver of appropriate type for this element
+        """
+
     @property
     def name(self):
         return self._name
@@ -216,6 +222,15 @@ class ModelElement(ABC):
     def boot_script(self, value: str):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('boot_script', value)
+
+    @property
+    def reservation_info(self):
+        return self.get_property('reservation_info') if self.__dict__.get('topo', None) is not None else None
+
+    @reservation_info.setter
+    def reservation_info(self, value: ReservationInfo):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('reservation_info', value)
 
     def update_labels(self, **kwargs):
         """

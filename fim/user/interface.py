@@ -156,6 +156,13 @@ class Interface(ModelElement):
                 ret.append(i)
         return ret
 
+    def get_sliver(self) -> InterfaceSliver:
+        """
+        Get a deep sliver representation of this interface from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_interface_sliver(node_id=self.node_id)
+
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         if_sliver = self.topo.graph_model.interface_sliver_from_graph_properties_dict(node_properties)

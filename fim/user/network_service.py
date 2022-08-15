@@ -99,7 +99,7 @@ class NetworkService(ModelElement):
                 exception_thrown = False
                 for i in interfaces:
                     # run through guardrails, then connect
-                    try :
+                    try:
                         self.__service_guardrails(sliver, i)
                         self.connect_interface(interface=i)
                         connected_interfaces.append(i)
@@ -242,6 +242,7 @@ class NetworkService(ModelElement):
             if self.site:
                 raise TopologyException(f"Service {self.name} is multi-site, but site {self.site} was specified in"
                                         f"constructor")
+
     def validate_constraints(self, interfaces):
         """
         Validate service constraints - number of sites, interfaces, instances, properties
@@ -351,8 +352,9 @@ class NetworkService(ModelElement):
         assert name is not None
 
         # check uniqueness
-        if name in self.__list_interfaces().keys():
-            raise TopologyException('Interface names must be unique within a switch fabric')
+        all_names = [n.name for n in self._interfaces]
+        if name in all_names:
+            raise TopologyException(f'Interface {name} is not unique within a network service')
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=itype,
                         **kwargs)
@@ -442,26 +444,30 @@ class NetworkService(ModelElement):
         List all interfaces of the network service as a dictionary
         :return:
         """
-        node_id_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
         ret = dict()
-        for nid in node_id_list:
-            c = self.__get_interface_by_id(nid)
-            ret[c.name] = c
+        for intf in self._interfaces:
+            ret[intf.name] = intf
         return ViewOnlyDict(ret)
 
     def __list_of_interfaces(self) -> Tuple[Interface]:
         """
-        Return a list of all interfaces of network service
+        Return a list of names of interfaces of network service
         :return:
         """
         return tuple(self._interfaces)
 
     @property
     def interface_list(self):
+        """
+        List of names of service interfaces
+        """
         return self.__list_of_interfaces()
 
     @property
     def interfaces(self):
+        """
+        Dictionary name->Interface for all interfaces
+        """
         return self.__list_interfaces()
 
     def __repr__(self):

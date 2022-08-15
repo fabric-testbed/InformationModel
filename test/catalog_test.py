@@ -28,17 +28,18 @@ class CatalogTest(unittest.TestCase):
         c3port = c3ns.interface_info.get_interface(c3ns.interface_info.get_interface_names()[0])
         self.assertEqual(c3port.get_property('capacities').bw, 0)
 
-
     def testInstanceCatalog(self):
         cata = InstanceCatalog()
-        cap = Capacities(ram=20, cpu=1, core=9, disk=110)
+        cap = Capacities(ram=4, core=1, disk=90)
         c = cata.map_capacities_to_instance(cap=cap)
+        print(f'For {cap=} instance is {c}')
         cap1 = cata.get_instance_capacities(instance_type=c)
-        self.assertTrue(cap1.core > cap.core and cap1.ram > cap.ram and cap1.disk > cap.disk)
-        cap = Capacities(ram=20, cpu=1, core=9, disk=110)
+        self.assertTrue(cap1.core >= cap.core and cap1.ram >= cap.ram and cap1.disk >= cap.disk)
+        cap = Capacities(ram=20, core=9, disk=110)
         c = cata.map_capacities_to_instance(cap=cap)
+        print(f'For {cap=} instance is {c}')
         cap1 = cata.get_instance_capacities(instance_type=c)
-        self.assertTrue(cap1.core > cap.core and cap1.ram > cap.ram and cap1.disk > cap.disk)
+        self.assertTrue(cap1.core >= cap.core and cap1.ram >= cap.ram and cap1.disk >= cap.disk)
 
     def testComponentTypeModel(self):
         cata = ComponentCatalog()

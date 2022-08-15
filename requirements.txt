@@ -24,7 +24,7 @@ pycodestyle==2.6.0
 Pygments==2.9.0
 pyparsing==2.4.7
 pytest==7.1.1
-python-dateutil==2.8.1
+python-dateutil==2.8.2
 pytz==2020.1
 PyYAML==5.4
 readme-renderer==29.0

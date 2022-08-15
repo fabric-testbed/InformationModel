@@ -243,6 +243,13 @@ class Component(ModelElement):
     def network_services(self):
         return self.__list_network_services()
 
+    def get_sliver(self) -> ComponentSliver:
+        """
+        Get a deep sliver representation of this component from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_component_sliver(node_id=self.node_id)
+
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         comp_sliver = self.topo.graph_model.component_sliver_from_graph_properties_dict(node_properties)

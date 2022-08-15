@@ -174,6 +174,12 @@ class Link(ModelElement):
             return self._interfaces.copy()
         return None
 
+    def get_sliver(self):
+        """
+        Return a NetworkLinkSliver
+        """
+        return self.topo.graph_model.build_deep_link_sliver(node_id=self.node_id)
+
     @property
     def interface_list(self):
         return self.__list_of_interfaces()
