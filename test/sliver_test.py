@@ -77,7 +77,7 @@ class TestSlivers(unittest.TestCase):
             Labels(vlan_range='1-8000')
 
         with self.assertRaises(LabelException):
-            Labels(asn='600000')
+            Labels(asn='60000000000')
 
         with self.assertRaises(LabelException):
             Labels(vlan='4098')

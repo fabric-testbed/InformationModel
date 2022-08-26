@@ -1015,7 +1015,7 @@ class AdTest(unittest.TestCase):
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
                                            nstype=f.ServiceType.MPLS,
-                                           labels=f.Labels(vlan_range='1-100'))
+                                           labels=f.Labels(vlan_range=['1-100', '201-300']))
         dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
                                              node_id=switch.node_id + '-l3ns',
                                              nstype=f.ServiceType.FABNetv4,

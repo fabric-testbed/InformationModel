@@ -12,6 +12,10 @@ from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSli
 
 
 class Neo4jTests(unittest.TestCase):
+    """
+    Please note this depends on substrate_topology_test.py executing first as it
+    creates graphml files needed here.
+    """
 
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
