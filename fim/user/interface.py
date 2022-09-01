@@ -39,7 +39,9 @@ class Interface(ModelElement):
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
                  parent_node_id: str = None,
-                 itype: InterfaceType = None, **kwargs):
+                 itype: InterfaceType = None,
+                 check_existing: bool = False,
+                 **kwargs):
         """
         Don't call this method yourself, call node.add_interface()
         node_id will be generated if not provided for experiment topologies
@@ -50,6 +52,7 @@ class Interface(ModelElement):
         :param etype: is this supposed to exist or new should be created
         :param parent_node_id: parent network service or parent interface
         :param itype: node type if it is new
+        :param check_existing: check if the Interface exists in the graph
         :param kwargs: any additional properties
         """
         assert name is not None
@@ -76,8 +79,8 @@ class Interface(ModelElement):
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
-                                                         label=ABCPropertyGraph.CLASS_ConnectionPoint):
+            if check_existing and not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
+                                                                            label=ABCPropertyGraph.CLASS_ConnectionPoint):
                 raise TopologyException(f"Interface with this id {node_id} and name {name} doesn't exist")
 
     @property
@@ -152,6 +155,13 @@ class Interface(ModelElement):
             else:
                 ret.append(i)
         return ret
+
+    def get_sliver(self) -> InterfaceSliver:
+        """
+        Get a deep sliver representation of this interface from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_interface_sliver(node_id=self.node_id)
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

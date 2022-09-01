@@ -54,7 +54,9 @@ class Component(ModelElement):
                  ctype: ComponentType = None, comp_model: ComponentModelType = None,
                  parent_node_id: str = None,
                  network_service_node_id: str = None, interface_node_ids: List[str] = None,
-                 interface_labels: List[Labels] = None, **kwargs):
+                 interface_labels: List[Labels] = None,
+                 check_existing: bool = False,
+                 **kwargs):
         """
         Don't call this yourself, use Node.add_component(). Instantiates components based on
         catalog resource file.
@@ -69,6 +71,7 @@ class Component(ModelElement):
         :param network_service_node_id: node id of network_service if one needs to be added (for substrate models only)
         :param interface_node_ids: a list of node ids for expected interfaces (for substrate models only)
         :param interface_labels: a list of Labels structure to associate with each interface
+        :param check_existing: check if a Component exists in the graph
         """
 
         assert name is not None
@@ -110,8 +113,8 @@ class Component(ModelElement):
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            if not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
-                                                         label=ABCPropertyGraph.CLASS_Component):
+            if check_existing and not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
+                                                                            label=ABCPropertyGraph.CLASS_Component):
                 raise TopologyException(f"Component with this id and name {name} doesn't exist")
 
     @property
@@ -239,6 +242,13 @@ class Component(ModelElement):
     @property
     def network_services(self):
         return self.__list_network_services()
+
+    def get_sliver(self) -> ComponentSliver:
+        """
+        Get a deep sliver representation of this component from graph
+        :return:
+        """
+        return self.topo.graph_model.build_deep_component_sliver(node_id=self.node_id)
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)

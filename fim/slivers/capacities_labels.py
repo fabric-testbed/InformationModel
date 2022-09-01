@@ -355,7 +355,7 @@ class Labels(JSONField):
                                          0 < int(v.split('-')[1]) <= 4096 and
                                          int(v.split('-')[0]) < int(v.split('-')[1]) else False),
                        "1-4096"),
-        'asn': ((lambda a: True if 0 < int(a) < 65536 else False), "1-65535")
+        'asn': ((lambda a: True if 0 < int(a) < 2**32 else False), "1-4294967295")
     }
 
     def __init__(self, **kwargs):
@@ -561,7 +561,8 @@ class Flags(JSONField):
     JSON-ified representation of various flags that can be attached to slivers
     """
     def __init__(self, **kwargs):
-        self.auto_config = False
+        self.auto_config = False # primarily for interfaces
+        self.auto_mount = False # primarily for storage components
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):

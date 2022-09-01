@@ -31,6 +31,7 @@ from .base_sliver import BaseSliver
 from .path_info import PathRepresentationType, ERO, PathInfo
 from .gateway import Gateway
 from .interface_info import InterfaceType
+from .topology_diff import TopologyDiff, TopologyDiffTuple
 
 
 class NSLayer(enum.Enum):
@@ -314,6 +315,34 @@ class NetworkServiceSliver(BaseSliver):
         for t in NSLayer:
             if layer == str(t):
                 return t
+
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        if not other_sliver:
+            return None
+
+        super().diff(other_sliver)
+
+        ifs_added = set()
+        ifs_removed = set()
+        if self.interface_info and other_sliver.interface_info:
+            diff_comps = self._dict_diff(self.interface_info.interfaces,
+                                         other_sliver.interface_info.interfaces)
+            ifs_added = set(diff_comps['added'].keys())
+            ifs_removed = set(diff_comps['removed'].keys())
+
+        if not self.interface_info and other_sliver.interface_info:
+            ifs_added = set(other_sliver.interface_info.interfaces.keys())
+
+        if self.interface_info and not other_sliver.interface_info:
+            ifs_removed = set(self.interface_info.interfaces.keys())
+
+        if len(ifs_added) > 0 or len(ifs_removed) > 0:
+            return TopologyDiff(added=TopologyDiffTuple(components=set(), services=set(), interfaces=ifs_added,
+                                                        nodes=set()),
+                                removed=TopologyDiffTuple(components=set(), services=set(),
+                                                          interfaces=ifs_removed, nodes=set()))
+        else:
+            return None
 
 
 class NetworkServiceInfo:

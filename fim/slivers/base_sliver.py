@@ -33,6 +33,7 @@ from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, Res
 from fim.slivers.delegations import Delegations
 from fim.slivers.tags import Tags
 from fim.slivers.measurement_data import MeasurementData
+from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
 
 
 class BaseSliver(ABC):
@@ -63,6 +64,7 @@ class BaseSliver(ABC):
         self.flags = None # various flags
         self.mf_data = None # opaque JSON object limited in length
         self.boot_script = None # string limited in length
+        self.layout = None # opaque JSON object limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -212,6 +214,26 @@ class BaseSliver(ABC):
             # we can set anything the sliver model has a setter for
             self.__getattribute__('set_' + k)(v)
 
+    @staticmethod
+    def _dict_diff(dict_a, dict_b, show_value_diff=False):
+        """
+        supports diffing slivers
+        """
+        result = {'added': {k: dict_b[k] for k in set(dict_b) - set(dict_a)},
+                  'removed': {k: dict_a[k] for k in set(dict_a) - set(dict_b)}}
+        if show_value_diff:
+            common_keys = set(dict_a) & set(dict_b)
+            result['value_diffs'] = {
+                k: (dict_a[k], dict_b[k])
+                for k in common_keys
+                if dict_a[k] != dict_b[k]
+            }
+        return result
+
+    @abstractmethod
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        assert isinstance(self, other_sliver.__class__)
+
     @classmethod
     def list_properties(cls) -> Tuple[str]:
         """
@@ -242,6 +264,17 @@ class BaseSliver(ABC):
         :return:
         """
         return self.__getattribute__('get_' + prop_name)()
+
+    def property_exists(self, prop_name: str):
+        """
+        Does this property have a getter?
+        """
+        try:
+            self.__getattribute__('get_' + prop_name)
+            exists = True
+        except AttributeError:
+            exists = False
+        return exists
 
     def __repr__(self):
         exclude_set = {"get_property", "get_stitch_node"}

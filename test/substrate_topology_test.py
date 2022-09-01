@@ -313,6 +313,7 @@ class AdTest(unittest.TestCase):
                                node_id=sp.node_id + '-DAC')
             link_idx += 1
 
+        self.topo.validate()
         #
         # delegations
         #
@@ -629,6 +630,7 @@ class AdTest(unittest.TestCase):
                                node_id=sp.node_id + '-DAC')
             link_idx += 1
 
+        self.topo.validate()
         #
         # delegations
         #
@@ -931,6 +933,7 @@ class AdTest(unittest.TestCase):
                                node_id=sp.node_id + '-DAC')
             link_idx += 1
 
+        self.topo.validate()
         #
         # delegations
         #
@@ -1012,7 +1015,7 @@ class AdTest(unittest.TestCase):
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
                                            nstype=f.ServiceType.MPLS,
-                                           labels=f.Labels(vlan_range='1-100'))
+                                           labels=f.Labels(vlan_range=['1-100', '201-300']))
         dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
                                              node_id=switch.node_id + '-l3ns',
                                              nstype=f.ServiceType.FABNetv4,
@@ -1129,7 +1132,7 @@ class AdTest(unittest.TestCase):
                                             ltype=f.LinkType.L2Path,
                                             interfaces=[fac2.interface_list[0], # only one interface available
                                                         facility_port_facing_port])
-
+        self.topo.validate()
         delegation1 = 'primary'
         print('RUNNING NETWORK AD DELEGATIONS')
         self.topo.single_delegation(delegation_id=delegation1,
@@ -1474,6 +1477,8 @@ class AdTest(unittest.TestCase):
         # have to reindex pools by delegation
         pools.build_index_by_delegation_id()
         pools.validate_pools()
+
+        self.topo.validate()
 
         # form delegation using pools
         self.topo.single_delegation(delegation_id=delegation1,

@@ -53,6 +53,8 @@ class NetworkService(ModelElement):
                  parent_node_id: str = None,
                  interfaces: List[Interface] = None,
                  nstype: ServiceType = None, technology: str = None,
+                 check_existing: bool = False,
+                 site: str = None,
                  **kwargs):
         """
         Don't call this method yourself, call topology.add_network_service()
@@ -66,12 +68,12 @@ class NetworkService(ModelElement):
         :param interfaces: list of interface objects to connect
         :param nstype: service type if new
         :param technology: service technology
+        :param check_existing: check if Network Service exists in the graph
         :param kwargs: any additional properties
         """
         assert name is not None
         assert topo is not None
 
-        site = None
         if etype == ElementType.NEW:
             # node id myst be specified for new nodes in substrate topologies
             if node_id is None:
@@ -79,40 +81,46 @@ class NetworkService(ModelElement):
             super().__init__(name=name, node_id=node_id, topo=topo)
             if nstype is None:
                 raise TopologyException("When creating new services you must specify ServiceType")
-            # cant use isinstance as it would create circular import dependencies
-            # We do more careful checks for ExperimentTopologies, but for substrate we let things loose
-            if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>" and interfaces:
-                sites = self.__validate_nstype_constraints(nstype, interfaces)
-
-                # if a single-site service
-                if len(sites) == 1:
-                    site = sites.pop()
 
             sliver = NetworkServiceSliver()
             sliver.node_id = self.node_id
             sliver.set_name(self.name)
             sliver.set_type(nstype)
-            sliver.set_site(site)
             # set based on service type
             sliver.set_layer(NetworkServiceSliver.ServiceConstraints[nstype].layer)
             sliver.set_technology(technology)
             sliver.set_properties(**kwargs)
+            sliver.set_site(site)
             self.topo.graph_model.add_network_service_sliver(parent_node_id=parent_node_id, network_service=sliver)
             self._interfaces = list()
+
             if interfaces is not None and len(interfaces) > 0:
+                connected_interfaces = list()
+                exception_thrown = False
                 for i in interfaces:
                     # run through guardrails, then connect
-                    self.__service_guardrails(sliver, i)
-                    self.__connect_interface(interface=i)
+                    try:
+                        self.__service_guardrails(sliver, i)
+                        self.connect_interface(interface=i)
+                        connected_interfaces.append(i)
+                    except TopologyException as e:
+                        # disconnect previously connected interfaces
+                        for ii in connected_interfaces:
+                            self.disconnect_interface(ii)
+                        # remove sliver from the graph
+                        self.topo.graph_model.remove_ns_with_cps_and_links(node_id=self.node_id)
+                        # re-throw the exception
+                        raise TopologyException(str(e))
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            # check that this node exists
-            existing_node_id = self.topo.\
-                graph_model.find_node_by_name(node_name=name,
-                                              label=ABCPropertyGraph.CLASS_NetworkService)
-            if existing_node_id != node_id:
-                raise TopologyException(f'Service name {name} node id does not match the expected node id.')
+            if check_existing:
+                # check that this node exists
+                existing_node_id = self.topo.\
+                    graph_model.find_node_by_name(node_name=name,
+                                                  label=ABCPropertyGraph.CLASS_NetworkService)
+                if existing_node_id != node_id:
+                    raise TopologyException(f'Service name {name} node id does not match the expected node id.')
             # collect a list of interface nodes it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()
@@ -200,12 +208,12 @@ class NetworkService(ModelElement):
             services = self.topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                              ntype=str(nstype))
             if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[self.type].num_instances:
-                raise TopologyException(f"Service type {nstype} cannot have {len(services) + 1} instances. "
+                raise TopologyException(f"Service {self.name} type {nstype} cannot have {len(services) + 1} instances. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
         # check the number of interfaces
         if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
             if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
-                raise TopologyException(f"Service of type {nstype} cannot have {len(interfaces)} interfaces. "
+                raise TopologyException(f"Service {self.name} of type {nstype} cannot have {len(interfaces)} interfaces. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
         sites = set()
         # check the number of sites spanned by this service
@@ -214,13 +222,26 @@ class NetworkService(ModelElement):
             for interface in interfaces:
                 owner = self.topo.get_owner_node(interface)
                 if owner is None:
-                    print(f'Interface {interface=} has no owner')
+                    print(f'In validating service {self.name} interface {interface=} has no owner')
                 sites.add(owner.site)
 
             if len(sites) > NetworkServiceSliver.ServiceConstraints[nstype].num_sites:
-                raise TopologyException(f"Service of type {nstype} cannot span {len(sites)} sites. "
+                raise TopologyException(f"Service {self.name} of type {nstype} cannot span {len(sites)} sites. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
-        return sites
+
+        if len(sites) == 1:
+            # set the site property if possible
+            old_site = self.site
+            if not self.site:
+                self.site = sites.pop()
+
+            if old_site and old_site != self.site:
+                raise TopologyException(f"For service {self.name} originally specified site {old_site} does not"
+                                        f"match the site {self.site} inferred from connected interfaces.")
+        else:
+            if self.site:
+                raise TopologyException(f"Service {self.name} is multi-site, but site {self.site} was specified in"
+                                        f"constructor")
 
     def validate_constraints(self, interfaces):
         """
@@ -260,13 +281,12 @@ class NetworkService(ModelElement):
         :return:
         """
         # - L2P2P service does not work for shared ports
-        # - L2S2S needs to warn that it may not work if the VMs with shared ports land on the same worker
         if sliver.get_type() == ServiceType.L2PTP and \
             interface.type == InterfaceType.SharedPort:
             raise TopologyException(f"Unable to connect interface {interface.name} to service {sliver.get_name()}: "
                                     f"L2P2P service currently doesn't support shared interfaces")
 
-    def __connect_interface(self, *, interface: Interface):
+    def connect_interface(self, interface: Interface):
         """
         Connect a (compute or switch) node interface to network service by transparently
         creating a peer service interface and a link between them
@@ -298,7 +318,7 @@ class NetworkService(ModelElement):
                          interfaces=[interface, peer_if], ltype=ltype)
         self._interfaces.append(peer_if)
 
-    def disconnect_interface(self, *, interface: Interface) -> None:
+    def disconnect_interface(self, interface: Interface) -> None:
         """
         Disconnect a node interface from the network service.
         Transparently remove peer service interface and link between them.
@@ -312,7 +332,8 @@ class NetworkService(ModelElement):
             return
 
         if len(peers) > 1:
-            raise TopologyException(f'List of ServicePort peers for interface {interface} is more than one')
+            raise TopologyException(f'Interface {interface} has more than one peer: {peers}, '
+                                    f'this is a model error, unable to proceed.')
 
         self.topo.graph_model.remove_cp_and_links(node_id=peers[0].node_id)
         # remove from interface list as well
@@ -331,8 +352,9 @@ class NetworkService(ModelElement):
         assert name is not None
 
         # check uniqueness
-        if name in self.__list_interfaces().keys():
-            raise TopologyException('Interface names must be unique within a switch fabric')
+        all_names = [n.name for n in self._interfaces]
+        if name in all_names:
+            raise TopologyException(f'Interface {name} is not unique within a network service')
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=itype,
                         **kwargs)
@@ -422,26 +444,30 @@ class NetworkService(ModelElement):
         List all interfaces of the network service as a dictionary
         :return:
         """
-        node_id_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
         ret = dict()
-        for nid in node_id_list:
-            c = self.__get_interface_by_id(nid)
-            ret[c.name] = c
+        for intf in self._interfaces:
+            ret[intf.name] = intf
         return ViewOnlyDict(ret)
 
     def __list_of_interfaces(self) -> Tuple[Interface]:
         """
-        Return a list of all interfaces of network service
+        Return a list of names of interfaces of network service
         :return:
         """
         return tuple(self._interfaces)
 
     @property
     def interface_list(self):
+        """
+        List of names of service interfaces
+        """
         return self.__list_of_interfaces()
 
     @property
     def interfaces(self):
+        """
+        Dictionary name->Interface for all interfaces
+        """
         return self.__list_interfaces()
 
     def __repr__(self):
@@ -465,6 +491,7 @@ class PortMirrorService(NetworkService):
                  etype: ElementType = ElementType.EXISTING,
                  parent_node_id: str = None, direction: MirrorDirection = MirrorDirection.Both,
                  from_interface_name: str = None, to_interface: Interface = None,
+                 check_existing: bool = False,
                  **kwargs):
         if etype == ElementType.NEW:
             assert to_interface
@@ -486,12 +513,13 @@ class PortMirrorService(NetworkService):
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            # check that this node exists
-            existing_node_id = self.topo.\
-                graph_model.find_node_by_name(node_name=name,
-                                              label=ABCPropertyGraph.CLASS_NetworkService)
-            if existing_node_id != node_id:
-                raise TopologyException(f'Service name {name} node id does not match the expected node id.')
+            if check_existing:
+                # check that this node exists
+                existing_node_id = self.topo.\
+                    graph_model.find_node_by_name(node_name=name,
+                                                  label=ABCPropertyGraph.CLASS_NetworkService)
+                if existing_node_id != node_id:
+                    raise TopologyException(f'Service name {name} node id does not match the expected node id.')
             # collect a list of interface nodes it attaches to
             interface_list = self.topo.graph_model.get_all_ns_or_link_connection_points(link_id=self.node_id)
             name_id_tuples = list()

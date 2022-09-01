@@ -28,6 +28,7 @@ import enum
 
 from .base_sliver import BaseSliver
 from .network_service import NetworkServiceInfo
+from .topology_diff import TopologyDiff
 
 
 @enum.unique
@@ -62,6 +63,9 @@ class ComponentSliver(BaseSliver):
         for t in ComponentType:
             if ctype == str(t):
                 return t
+
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        raise RuntimeError('Not implemented')
 
 
 class AttachedComponentsInfo:

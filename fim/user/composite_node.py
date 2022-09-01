@@ -43,7 +43,7 @@ class CompositeNode(Node):
     node.interface_list - a list of all interfaces
     """
 
-    def __init__(self, *, name: str, node_id: str, topo: Any):
+    def __init__(self, *, name: str, node_id: str, topo: Any, check_existing: bool = False):
         """
         Don't call this method yourself, call topology.add_node()
         node_id will be generated if not provided for experiment topologies
@@ -51,6 +51,7 @@ class CompositeNode(Node):
         :param name:
         :param node_id:
         :param topo:
+        :param check_existing:
         """
         assert name is not None
         assert topo is not None
@@ -58,11 +59,12 @@ class CompositeNode(Node):
 
         # skip one level of constructor
         super(Node, self).__init__(name=name, node_id=node_id, topo=topo)
-        # check that this node exists
-        existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
-                                                                   label=str(ABCPropertyGraph.CLASS_CompositeNode))
-        if existing_node_id != node_id:
-            raise TopologyException(f'Composite Node name {name} is not unique within the topology')
+        if check_existing:
+            # check that this node exists
+            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
+                                                                       label=str(ABCPropertyGraph.CLASS_CompositeNode))
+            if existing_node_id != node_id:
+                raise TopologyException(f'Composite Node name {name} is not unique within the topology')
 
     def __list_components(self) -> ViewOnlyDict:
         """

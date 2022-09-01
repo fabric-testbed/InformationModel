@@ -102,7 +102,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
-        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT,
+        "layout": ABCPropertyGraphConstants.PROP_LAYOUT
     }
 
     @abstractmethod
@@ -947,6 +948,56 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             cs.network_service_info = nsi
         return cs
 
+    def build_deep_interface_sliver(self, *, node_id: str) -> InterfaceSliver:
+        """
+        Build a deep interface sliver from graph
+        :param node_id:
+        :return:
+        """
+        clazzes, props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_ConnectionPoint not in clazzes:
+            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
+                                              msg="Node is not of class Interface")
+        # create top-level sliver
+        isl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(props)
+        return isl
+
+    @staticmethod
+    def build_deep_interface_sliver_from_dict(*, props: Dict[str, Any]) -> InterfaceSliver:
+        """
+        Build a deep interface sliver from graph
+        :param props:
+        :return:
+        """
+        # create top-level sliver
+        isl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(props)
+        return isl
+
+    def build_deep_link_sliver(self, *, node_id: str) -> NetworkLinkSliver:
+        """
+        Build a deep link sliver from graph
+        :param node_id:
+        :return:
+        """
+        clazzes, props = self.get_node_properties(node_id=node_id)
+        if ABCPropertyGraph.CLASS_Link not in clazzes:
+            raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
+                                              msg="Node is not of class Link")
+        # create top-level sliver
+        lsl = ABCPropertyGraph.link_sliver_from_graph_properties_dict(props)
+        return lsl
+
+    @staticmethod
+    def build_deep_link_sliver_from_dict(*, props: Dict[str, Any]) -> NetworkLinkSliver:
+        """
+        Build a deep link sliver from graph
+        :param props:
+        :return:
+        """
+        # create top-level sliver
+        lsl = ABCPropertyGraph.link_sliver_from_graph_properties_dict(props)
+        return lsl
+
     def remove_network_node_with_components_nss_cps_and_links(self, node_id: str):
         """
         Remove a network node, all of components and their interfaces, parent interfaces
@@ -1210,9 +1261,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param parent: parent class
         :return:
         """
-        assert node_id is not None
-        assert rel is not None
-        assert parent is not None
+        #assert node_id is not None
+        #assert rel is not None
+        #assert parent is not None
         parent_ids = self.get_first_neighbor(node_id=node_id, rel=rel,
                                              node_label=parent)
         if len(parent_ids) != 1:
@@ -1226,6 +1277,16 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         Find out and return a list of nodes with StitchNode property
         set to 'true' (in JSON).
         :return:
+        """
+
+    @abstractmethod
+    def get_graph_diff(self, other_graph, label: str):
+        """
+        Return two lists - nodes that are in this graph but NOT in the other graph
+        and node that are in the other graph, but not in this graph, using label
+        as a filter
+        [0] - elements present in self, absent in other (i.e. removed elements)
+        [1] - elements present in other, absent in self (i.e. added elements
         """
 
     def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:

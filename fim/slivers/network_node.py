@@ -29,6 +29,7 @@ from recordclass import recordclass
 
 from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
+from .topology_diff import TopologyDiff, TopologyDiffTuple
 
 
 class NodeType(enum.Enum):
@@ -144,6 +145,49 @@ class NodeSliver(BaseSliver):
 
     def get_location(self) -> Location:
         return self.location
+
+    def diff(self, other_sliver) -> TopologyDiff or None:
+        if not other_sliver:
+            return None
+
+        super().diff(other_sliver)
+
+        comp_added = set()
+        comp_removed = set()
+        ns_added = set()
+        ns_removed = set()
+
+        if self.attached_components_info and other_sliver.attached_components_info:
+            diff_comps = self._dict_diff(self.attached_components_info.devices,
+                                         other_sliver.attached_components_info.devices)
+            comp_added = set(diff_comps['added'].keys())
+            comp_removed = set(diff_comps['removed'].keys())
+
+        if not self.attached_components_info and other_sliver.attached_components_info:
+            comp_added = set(other_sliver.attached_components_info.devices.keys())
+
+        if self.attached_components_info and not other_sliver.attached_components_info:
+            comp_removed = set(self.attached_components_info.devices.keys())
+
+        if self.network_service_info and other_sliver.network_service_info:
+            diff_ns = self._dict_diff(other_sliver.network_service_info.services,
+                                      other_sliver.network_service_info.services)
+            ns_added = set(diff_ns['added'].keys())
+            ns_removed = set(diff_ns['removed'].keys())
+
+        if not self.network_service_info and other_sliver.network_service_info:
+            ns_added = set(other_sliver.network_service_info.services.keys())
+
+        if self.network_service_info and not other_sliver.network_service_info:
+            ns_removed = set(self.network_service_info.services.keys())
+
+        if len(comp_added) > 0 or len(comp_removed) > 0 or len(ns_removed) > 0 or len(ns_added) > 0:
+            return TopologyDiff(added=TopologyDiffTuple(components=comp_added, services=ns_added, interfaces=set(),
+                                                        nodes=set()),
+                                removed=TopologyDiffTuple(components=comp_removed, services=ns_removed,
+                                                          interfaces=set(), nodes=set()))
+        else:
+            return None
 
     @staticmethod
     def type_from_str(ntype: str) -> NodeType or None:

@@ -40,7 +40,7 @@ from ..slivers.network_node import NodeSliver
 from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
-from ..slivers.capacities_labels import CapacityHints, Location, ReservationInfo
+from ..slivers.capacities_labels import CapacityHints, Location
 
 
 class Node(ModelElement):
@@ -58,7 +58,8 @@ class Node(ModelElement):
     """
 
     def __init__(self, *, name: str, node_id: str = None, topo: Any, etype: ElementType = ElementType.EXISTING,
-                 ntype: NodeType = None, site: str = None, ns_info: NetworkServiceInfo = None, **kwargs):
+                 ntype: NodeType = None, site: str = None, ns_info: NetworkServiceInfo = None,
+                 check_existing: bool = False, **kwargs):
         """
         Don't call this method yourself, call topology.add_node()
         node_id will be generated if not provided for experiment topologies
@@ -70,6 +71,7 @@ class Node(ModelElement):
         :param ntype: node type if it is new
         :param site: node site
         :param ns_info: NetworkServiceInfo structure
+        :param check_existing: for an existing node check if it is in the graph
         :param kwargs: any additional properties
         """
         assert name is not None
@@ -100,11 +102,12 @@ class Node(ModelElement):
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
-            # check that this node exists
-            existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
-                                                                       label=str(ABCPropertyGraph.CLASS_NetworkNode))
-            if existing_node_id != node_id:
-                raise TopologyException(f'Node name {name} is not unique within the topology')
+            if check_existing:
+                # check that this node exists
+                existing_node_id = self.topo.graph_model.find_node_by_name(node_name=name,
+                                                                           label=str(ABCPropertyGraph.CLASS_NetworkNode))
+                if existing_node_id != node_id:
+                    raise TopologyException(f'Node name {name} is not unique within the topology')
 
     @property
     def site(self):
@@ -154,15 +157,6 @@ class Node(ModelElement):
             self.set_property('capacity_hints', value)
 
     @property
-    def reservation_info(self):
-        return self.get_property('reservation_info') if self.__dict__.get('topo', None) is not None else None
-
-    @reservation_info.setter
-    def reservation_info(self, value: ReservationInfo):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('reservation_info', value)
-
-    @property
     def location(self):
         return self.get_property('location') if self.__dict__.get('topo', None) is not None else None
 
@@ -204,10 +198,11 @@ class Node(ModelElement):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
         node_sliver = self.topo.graph_model.node_sliver_from_graph_properties_dict(node_properties)
         for rp in req_props:
-            if not node_sliver.get_property(rp):
+            if not node_sliver.property_exists(rp) or \
+                    (node_sliver.property_exists(rp) and not node_sliver.get_property(rp)):
                 raise TopologyException(f"Node of type {nstype} must have property {rp} set")
         for fp in forb_props:
-            if node_sliver.get_property(fp):
+            if node_sliver.property_exists(fp) and node_sliver.get_property(fp):
                 raise TopologyException(f"Node of type {nstype} must NOT have property {fp} set")
 
     def get_sliver(self) -> NodeSliver:

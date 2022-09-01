@@ -23,9 +23,8 @@
 #
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
-
 from abc import ABC
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Set
 import enum
 
 import uuid
@@ -41,12 +40,15 @@ from ..slivers.network_link import LinkType
 from ..slivers.network_service import NSLayer, ServiceType, MirrorDirection
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
+from ..graph.slices.neo4j_asm import Neo4jASM
 from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
 from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
+from ..graph.resources.neo4j_arm import Neo4jARMGraph
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import Capacities, FreeCapacity
+from fim.slivers.capacities_labels import FreeCapacity
 from fim.slivers.interface_info import InterfaceType
+from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
 
 from .model_element import ElementType
 from .node import Node
@@ -69,13 +71,24 @@ class TopologyDetail(enum.Enum):
 class Topology(ABC):
     """
     Base class to define and manipulate a topology over its life cycle.
-    Default constructor and load functions create NetworkX-based ASM graphs.
+    Default constructor and load functions create NetworkX-based ASM graphs. Pass
+    in Neo4jImporter to create a Neo4j-based Topology.
     """
-    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None, importer=None):
 
-        self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
-                                       importer=NetworkXGraphImporter(logger=logger),
-                                       logger=logger)
+        if not importer:
+            self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
+                                           importer=NetworkXGraphImporter(logger=logger),
+                                           logger=logger)
+        else:
+            if isinstance(importer, NetworkXGraphImporter):
+                self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
+                                               importer=importer,
+                                               logger=logger)
+            else:
+                self.graph_model = Neo4jASM(graph_id=str(uuid.uuid4()),
+                                            importer=importer,
+                                            logger=logger)
         if graph_file is not None or graph_string is not None:
             self.load(file_name=graph_file, graph_string=graph_string)
 
@@ -86,10 +99,19 @@ class Topology(ABC):
         :param e:
         :return:
         """
-        assert e is not None
         if isinstance(e, Node) or isinstance(e, Link):
             # nodes or links don't have parents
             return None
+
+        # interfaces have NSs as parents
+        if isinstance(e, Interface):
+            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
+                                                             rel=ABCPropertyGraph.REL_CONNECTS,
+                                                             parent=ABCPropertyGraph.CLASS_NetworkService)
+            if node_id is None:
+                raise TopologyException(f'Interface {e} has no parent')
+            return NetworkService(name=node_name, node_id=node_id, topo=self)
+
         # components have nodes as parents
         if isinstance(e, Component):
             node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
@@ -98,6 +120,7 @@ class Topology(ABC):
             if node_id is None:
                 raise TopologyException(f'Component {e} has no parent')
             return Node(name=node_name, node_id=node_id, topo=self)
+
         # NSs may have nodes or components as parents or be by themselves
         if isinstance(e, NetworkService):
             node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
@@ -119,14 +142,7 @@ class Topology(ABC):
                 return CompositeNode(name=node_name, node_id=node_id, topo=self)
 
             return None
-        # interfaces have NSs as parents
-        if isinstance(e, Interface):
-            node_name, node_id = self.graph_model.get_parent(node_id=e.node_id,
-                                                             rel=ABCPropertyGraph.REL_CONNECTS,
-                                                             parent=ABCPropertyGraph.CLASS_NetworkService)
-            if node_id is None:
-                raise TopologyException(f'Interface {e} has no parent')
-            return NetworkService(name=node_name, node_id=node_id, topo=self)
+
         raise TopologyException(f'Unable to determine parent of element {e}')
 
     def get_owner_node(self, e: ModelElement) -> ModelElement or None:
@@ -136,7 +152,6 @@ class Topology(ABC):
         :param e:
         :return:
         """
-        assert e is not None
         if isinstance(e, Node) or isinstance(e, Link):
             # nodes or links don't have parents
             return None
@@ -191,7 +206,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
@@ -252,11 +266,10 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_network_link(node_id=self._get_link_by_name(name=name).node_id)
 
     def add_network_service(self, *, name: str, node_id: str = None, nstype: ServiceType,
-                            interfaces: List[Interface], technology: str = None, **kwargs) -> NetworkService:
+                            interfaces: List[Interface] = None, technology: str = None, **kwargs) -> NetworkService:
         """
         Add a network service to a topology. Interfaces can be specified upfront or added/removed later
         :param name:
@@ -277,7 +290,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         self.graph_model.remove_ns_with_cps_and_links(node_id=self._get_ns_by_name(name=name).node_id)
 
     def _get_node_by_name(self, name: str) -> Node:
@@ -286,7 +298,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_NetworkNode)
         return Node(name=name, node_id=node_id, topo=self)
@@ -297,7 +308,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_Link)
         return Link(name=name, node_id=node_id, topo=self)
@@ -308,7 +318,6 @@ class Topology(ABC):
         :param name:
         :return:
         """
-        assert name is not None
         node_id = self.graph_model.find_node_by_name(node_name=name,
                                                      label=ABCPropertyGraph.CLASS_NetworkService)
         return NetworkService(name=name, node_id=node_id, topo=self)
@@ -319,9 +328,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def _get_link_by_id(self, node_id: str) -> Link:
@@ -330,9 +337,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def _get_ns_by_id(self, node_id: str) -> NetworkService:
@@ -341,9 +346,7 @@ class Topology(ABC):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         ns = NetworkService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
         if ns.type == ServiceType.PortMirror:
             return PortMirrorService(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
@@ -433,11 +436,13 @@ class Topology(ABC):
                 f.write(graph_string)
         return None
 
-    def load(self, *, file_name: str = None, graph_string: str = None):
+    def load(self, *, file_name: str = None, graph_string: str = None, new_graph_id: str = None):
         """
-        Load the topology from file or string
+        Load the topology from file or string. It is possible to overwrite the graph id if
+        loading from string (but not from file).
         :param file_name:
         :param graph_string:
+        :param new_graph_id:
         :return:
         """
         if file_name is None and graph_string is None:
@@ -445,10 +450,19 @@ class Topology(ABC):
         if file_name is not None:
             nx_pgraph = self.graph_model.importer.import_graph_from_file_direct(graph_file=file_name)
         else:
-            nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
-        self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
-                                       importer=nx_pgraph.importer,
-                                       logger=nx_pgraph.log)
+            if not new_graph_id:
+                nx_pgraph = self.graph_model.importer.import_graph_from_string_direct(graph_string=graph_string)
+            else:
+                nx_pgraph = self.graph_model.importer.import_graph_from_string(graph_string=graph_string,
+                                                                               graph_id=new_graph_id)
+        if isinstance(self.graph_model.importer, NetworkXGraphImporter):
+            self.graph_model = NetworkxASM(graph_id=nx_pgraph.graph_id,
+                                           importer=nx_pgraph.importer,
+                                           logger=nx_pgraph.log)
+        else:
+            self.graph_model = Neo4jASM(graph_id=nx_pgraph.graph_id,
+                                        importer=nx_pgraph.importer,
+                                        logger=nx_pgraph.log)
 
     @staticmethod
     def __print_caplabs__(caps) -> str:
@@ -507,6 +521,35 @@ class Topology(ABC):
             ret[n.name] = n
         return ViewOnlyDict(ret)
 
+    def validate(self):
+        """
+        Validate an experiment or a substrate topology. Throw an exception if rules
+        are violated.
+        :return:
+        """
+        # check nodes
+        for n in self.nodes.values():
+            n.validate_constraints()
+
+        # check network services, interfaces, sites
+        for s in self.network_services.values():
+            service_interfaces = s.interface_list
+            node_interfaces = list()
+            # some services like OVS have node ports, others like Bridge, STS, PTP
+            # have ServicePorts which peer with node ports. Validation code needs
+            # owning nodes for each interface so we search for proper interfaces
+            for si in service_interfaces:
+                if si.type == InterfaceType.ServicePort:
+                    # there should only ever be one peer for a service port
+                    peers = si.get_peers()
+                    if peers is None or len(peers) != 1:
+                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
+                                                f'number of peer interfaces')
+                    node_interfaces.append(si.get_peers()[0])
+                else:
+                    node_interfaces.append(si)
+            s.validate_constraints(node_interfaces)
+
 
 class ExperimentTopology(Topology):
     """
@@ -517,8 +560,8 @@ class ExperimentTopology(Topology):
     topology.interface_list - a read-only list of all interfaces of all nodes
     If you want to operate on top of a Neo4j graph, use the cast() method.
     """
-    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
-        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None, importer=None):
+        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger, importer=importer)
 
     def cast(self, *, asm_graph: ABCASMPropertyGraph):
         """
@@ -527,7 +570,6 @@ class ExperimentTopology(Topology):
         :param asm_graph:
         :return:
         """
-        assert asm_graph is not None
         assert isinstance(asm_graph, ABCASMPropertyGraph)
         self.graph_model = asm_graph
 
@@ -632,33 +674,196 @@ class ExperimentTopology(Topology):
                                to_interface=to_interface, **kwargs)
         return ns
 
-    def validate(self):
-        """
-        Validate the experiment topology. Throw an exception if
-        :return:
-        """
-        # check nodes
-        for n in self.nodes.values():
-            n.validate_constraints()
+    @staticmethod
+    def _generate_set_of_diff_elements(elems, topo: Topology, elemClass):
 
-        # check network services, interfaces, sites
-        for s in self.network_services.values():
-            service_interfaces = s.interface_list
-            node_interfaces = list()
-            # some services like OVS have node ports, others like Bridge, STS, PTP
-            # have ServicePorts which peer with node ports. Validation code needs
-            # owning nodes for each interface so we search for proper interfaces
-            for si in service_interfaces:
-                if si.type == InterfaceType.ServicePort:
-                    # there should only ever be one peer for a service port
-                    peers = si.get_peers()
-                    if peers is None or len(peers) != 1:
-                        raise TopologyException(f'Interface {si} of Network Service {s} has unexpected '
-                                                f'number of peer interfaces')
-                    node_interfaces.append(si.get_peers()[0])
-                else:
-                    node_interfaces.append(si)
-            s.validate_constraints(node_interfaces)
+        return {elemClass(name=x["Name"], node_id=x["NodeID"], topo=topo)
+                for x in elems}
+
+    @staticmethod
+    def _is_parented_component(comp: Component, nodes: Set[Node]):
+        """
+        Is this component parented to any of the nodes?
+        """
+        if not nodes:
+            return False
+        parent_node = comp.topo.get_parent_element(comp)
+        # so we can get early exit
+        for n in nodes:
+            if n.node_id == parent_node.node_id:
+                return True
+        return False
+
+    @staticmethod
+    def _is_parented_interface(intf: Interface, nss: Set[NetworkService]):
+        """
+        Is this Interface parented to the Network Service
+        """
+        if not nss:
+            return False
+        parent_ns = intf.topo.get_parent_element(intf)
+        # so we can get early exit
+        for ns in nss:
+            if ns.node_id == parent_ns.node_id:
+                return True
+        return False
+
+    @staticmethod
+    def _is_parented_ns(ns: NetworkService, parents: Set[Node or Component]):
+        """
+        Is this Network Service parented to a node or component
+        """
+        if not parents:
+            return False
+        parent_node = ns.topo.get_parent_element(ns)
+        if parent_node:
+            # so we get early exit
+            for n in parents:
+                if n.node_id == parent_node.node_id:
+                    return True
+        return False
+
+    @staticmethod
+    def _exclude_parented_elements(nodes: Set[Node], nss: Set[NetworkService],
+                                   components: Set[Component], interfaces: Set[Interface]):
+        """
+        for lists of graph nodes (AnotB or BnotA) exclude parented components,
+        network services and interfaces
+        - components listed as part of nodes should be excluded
+        - nss listed as part of added nodes should be excluded
+        - interfaces listed as part of added or excluded network services should also be excluded
+        """
+
+        excluded_components = {c for c in components if ExperimentTopology._is_parented_component(c, nodes)}
+        excluded_nss = {ns for ns in nss if ExperimentTopology._is_parented_ns(ns, nodes.union(excluded_components))}
+        excluded_interfaces = {i for i in interfaces if ExperimentTopology._is_parented_interface(i, nss.union(excluded_nss))}
+        return nodes, nss - excluded_nss, components - excluded_components, interfaces - excluded_interfaces
+
+    def diff(self, t) -> TopologyDiff:
+        """
+        Do a diff of two topologies assuming they are both in Neo4j (will not work with NetworkX backend)
+        """
+        nodes_diff = self.graph_model.get_graph_diff(t.graph_model, ABCPropertyGraph.CLASS_NetworkNode)
+        ns_diff = self.graph_model.get_graph_diff(t.graph_model, ABCPropertyGraph.CLASS_NetworkService)
+        component_diff = self.graph_model.get_graph_diff(t.graph_model, ABCPropertyGraph.CLASS_Component)
+        interface_diff = self.graph_model.get_graph_diff(t.graph_model, ABCPropertyGraph.CLASS_ConnectionPoint)
+
+        # convert to appropriate types to make easier to operate on
+        # FIXME: Facility?
+        nodes_removed = self._generate_set_of_diff_elements(nodes_diff[0], self, Node)
+        nodes_added = self._generate_set_of_diff_elements(nodes_diff[1], t, Node)
+
+        # FIXME: MirrorService?
+        nss_removed = self._generate_set_of_diff_elements(ns_diff[0], self, NetworkService)
+        nss_added = self._generate_set_of_diff_elements(ns_diff[1], t, NetworkService)
+
+        components_removed = self._generate_set_of_diff_elements(component_diff[0], self, Component)
+        components_added = self._generate_set_of_diff_elements(component_diff[1], t, Component)
+
+        interfaces_removed = self._generate_set_of_diff_elements(interface_diff[0], self, Interface)
+        interfaces_added = self._generate_set_of_diff_elements(interface_diff[1], t, Interface)
+
+        nodes_added, nss_added, components_added, interfaces_added = \
+            ExperimentTopology._exclude_parented_elements(nodes_added, nss_added,
+                                                          components_added, interfaces_added)
+
+        nodes_removed, nss_removed, components_removed, interfaces_removed = \
+            ExperimentTopology._exclude_parented_elements(nodes_removed, nss_removed,
+                                                          components_removed, interfaces_removed)
+
+        return TopologyDiff(added=TopologyDiffTuple(nodes=nodes_added,
+                                                    components=components_added,
+                                                    services=nss_added,
+                                                    interfaces=interfaces_added),
+                            removed=TopologyDiffTuple(nodes=nodes_removed,
+                                                      components=components_removed,
+                                                      services=nss_removed,
+                                                      interfaces=interfaces_removed))
+
+    def _prune_node(self, node: Node):
+        """
+        Prune this node, its components, network services and interfaces
+        """
+        self.graph_model.remove_network_node_with_components_nss_cps_and_links(node_id=node.node_id)
+
+    def _prune_ns(self, ns: NetworkService):
+        """
+        Prune this network service and its interfaces
+        """
+        self.graph_model.remove_ns_with_cps_and_links(node_id=ns.node_id)
+
+    def _prune_components(self, c: Component):
+        """
+        Prune this component, its network services and interfaces
+        """
+        self.graph_model.remove_component_with_nss_cps_and_links(node_id=c.node_id)
+
+    def _prune_interface(self, i: Interface):
+        """
+        Prune this interface
+        """
+        self.graph_model.remove_cp_and_links(node_id=i.node_id)
+
+    def prune(self, reservation_state):
+        """
+        Prune the topology of any elements with reservation_info.reservation_state matching
+        the provided.
+        """
+        #
+        # for all nodes, network services, components and interfaces collect them
+        #
+        nodes = set()
+        components = set()
+        nss = set()
+        seennss = set()
+        interfaces = set()
+        for n in self.nodes.values():
+            nsl = n.get_sliver()
+            if nsl.get_reservation_info() and \
+                    nsl.get_reservation_info().reservation_state == reservation_state:
+                nodes.add(n)
+            for c in n.components.values():
+                csl = c.get_sliver()
+                if csl.get_reservation_info() and \
+                        csl.get_reservation_info().reservation_state == reservation_state:
+                    components.add(c)
+                for ns in c.network_services.values():
+                    seennss.add(ns)
+                    nsl = ns.get_sliver()
+                    if nsl.get_reservation_info() and \
+                            nsl.get_reservation_info().reservation_state == reservation_state:
+                        nss.add(ns)
+                    for i in ns.interface_list:
+                        isl = i.get_sliver()
+                        if isl.get_reservation_info() and \
+                                isl.get_reservation_info().reservation_state == reservation_state:
+                            interfaces.add(i)
+
+        # top level network services only, we visited others already
+        for ns in self.network_services.values():
+            if ns not in seennss:
+                nsl = ns.get_sliver()
+                if nsl.get_reservation_info() and \
+                        nsl.get_reservation_info().reservation_state == reservation_state:
+                    nss.add(ns)
+                for i in ns.interface_list:
+                    isl = i.get_sliver()
+                    if isl.get_reservation_info() and \
+                            isl.get_reservation_info().reservation_state == reservation_state:
+                        interfaces.add(i)
+
+        # all deletes are supposed to be idempotent
+        for n in nodes:
+            self._prune_node(n)
+
+        for c in components:
+            self._prune_components(c)
+
+        for ns in nss:
+            self._prune_ns(ns)
+
+        for i in interfaces:
+            self._prune_interface(i)
 
 
 class SubstrateTopology(Topology):
@@ -670,8 +875,8 @@ class SubstrateTopology(Topology):
     topology.interface_list - a read-only list of all interfaces of all nodes
     """
 
-    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None):
-        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger)
+    def __init__(self, graph_file: str = None, graph_string: str = None, logger=None, importer=None):
+        super().__init__(graph_file=graph_file, graph_string=graph_string, logger=logger, importer=importer)
 
     def as_arm(self):
         """
@@ -679,8 +884,12 @@ class SubstrateTopology(Topology):
         rather recast into ARM, so any changes to the model propagate back to the topology.
         :return:
         """
-        return NetworkXARMGraph(graph=self.graph_model,
-                                logger=self.graph_model.log)
+        if isinstance(self.graph_model, NetworkxASM):
+            return NetworkXARMGraph(graph=self.graph_model,
+                                    logger=self.graph_model.log)
+        else:
+            return Neo4jARMGraph(graph=self.graph_model,
+                                 logger=self.graph_model.log)
 
     @staticmethod
     def __copy_to_delegations(e: ModelElement, atype: DelegationType,
@@ -692,8 +901,6 @@ class SubstrateTopology(Topology):
         :param e:
         :return:
         """
-        assert e is not None
-        assert delegation_id is not None
         if e.get_property("stitch_node"):
             return None
         if atype == DelegationType.CAPACITY:
@@ -811,9 +1018,7 @@ class AdvertizedTopology(Topology):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         claz, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         if claz[0] == ABCPropertyGraph.CLASS_CompositeNode:
             return CompositeNode(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
         elif claz[0] == ABCPropertyGraph.CLASS_NetworkNode:
@@ -825,9 +1030,7 @@ class AdvertizedTopology(Topology):
         :param node_id:
         :return:
         """
-        assert node_id is not None
         _, node_props = self.graph_model.get_node_properties(node_id=node_id)
-        assert node_props.get(ABCPropertyGraph.PROP_NAME, None) is not None
         return Link(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=node_id, topo=self)
 
     def __list_sites(self) -> ViewOnlyDict:
