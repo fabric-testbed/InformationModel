@@ -202,10 +202,23 @@ class Topology(ABC):
 
     def remove_node(self, name: str):
         """
-        Remove node and all its components, its interfaces and interfaces of components
+        Remove node and all its components, its interfaces and interfaces of components.
+        Remove a matching ServicePort if connected to a NetworkService.
         :param name:
         :return:
         """
+        if name not in self.nodes.keys():
+            raise TopologyException(f'Node {name} is not in this topology.')
+        for i in self.nodes[name].interface_list:
+            # disconnect if connected
+            peers = i.get_peers(itype=InterfaceType.ServicePort)
+            if peers:
+                if len(peers) == 1:
+                    # disconnect from its parent service
+                    self.get_parent_element(peers[0]).disconnect_interface(i)
+                else:
+                    raise TopologyException(f'Interface {i.name} has more than one peer, this is a model error.')
+
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
