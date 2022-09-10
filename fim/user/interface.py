@@ -132,7 +132,7 @@ class Interface(ModelElement):
     def list_properties() -> Tuple[str]:
         return InterfaceSliver.list_properties()
 
-    def get_peers(self, itype: InterfaceType = None):
+    def get_peers(self, itype: InterfaceType = None) -> List[Any] or None:
         """
         Find 'peer' interfaces connected across a Link. Returns a list of Interface objects
         (matching optional itype if specified, otherwise all).
