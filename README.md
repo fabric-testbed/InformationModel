@@ -130,8 +130,8 @@ In order to support tests of Neo4j-implemented models, Neo4j should be running i
 ```console
 $ mkdir -p neo4j/data neo4j/imports
 $ docker run -p7474:7474 -p7687:7687 -e NEO4J_AUTH=neo4j/password \
-  -v $(pwd)/neo4j/data:/data -v $(pwd)/neo4j/imports:/imports \
-  fabrictestbed/neo4j-apoc
+    -v $(pwd)/neo4j/data:/data -v $(pwd)/neo4j/imports:/imports \
+    fabrictestbed/neo4j-apoc
 ```
 
 Wait for Neo4j Docker container to start up, and then run pytest:
