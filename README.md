@@ -134,7 +134,7 @@ $ docker run -p7474:7474 -p7687:7687 -e NEO4J_AUTH=neo4j/password \
     fabrictestbed/neo4j-apoc
 ```
 
-Wait for Neo4j Docker container to start up, and then run pytest:
+Wait for neo4j-apoc Docker container to start up, and then run pytest:
 
 ```console
 $ pytest [-s] test
