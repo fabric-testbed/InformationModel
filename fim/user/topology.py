@@ -42,7 +42,9 @@ from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.slices.neo4j_asm import Neo4jASM
 from ..graph.abc_property_graph import ABCPropertyGraph, GraphFormat
-from ..graph.resources.networkx_arm import NetworkXARMGraph, NetworkXGraphImporter
+from ..graph.resources.networkx_arm import NetworkXARMGraph
+from ..graph.networkx_property_graph import NetworkXGraphImporter
+from ..graph.networkx_property_graph_disjoint import NetworkXGraphImporterDisjoint
 from ..graph.resources.neo4j_arm import Neo4jARMGraph
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
@@ -81,7 +83,8 @@ class Topology(ABC):
                                            importer=NetworkXGraphImporter(logger=logger),
                                            logger=logger)
         else:
-            if isinstance(importer, NetworkXGraphImporter):
+            if isinstance(importer, NetworkXGraphImporter) or \
+                    isinstance(importer, NetworkXGraphImporterDisjoint):
                 self.graph_model = NetworkxASM(graph_id=str(uuid.uuid4()),
                                                importer=importer,
                                                logger=logger)

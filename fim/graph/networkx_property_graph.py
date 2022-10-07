@@ -34,6 +34,7 @@ import json
 import tempfile
 import networkx as nx
 import networkx_query as nxq
+from threading import Lock
 
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
     PropertyGraphQueryException, ABCGraphImporter, GraphFormat
@@ -309,6 +310,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
     def get_all_nodes_by_class(self, *, label: str) -> List[str]:
         assert label is not None
         my_graph = self.storage.get_graph(self.graph_id)
+        ret = list()
         graph_nodes = list(nxq.search_nodes(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
@@ -316,7 +318,6 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
                                                         label]}
                                             ]
                                             }))
-        ret = list()
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
@@ -567,6 +568,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
 
         real_node_a = self._find_node(node_id=node_a, graph_id=self.graph_id)
         real_node_b = self._find_node(node_id=node_b, graph_id=self.graph_id)
+
         if props is not None:
             self.storage.get_graph(self.graph_id).add_edge(real_node_a, real_node_b, Class=rel, **props)
         else:
@@ -685,70 +687,103 @@ class NetworkXGraphStorage:
             self.graphs = nx.Graph()
             self.start_id = 1
             self.log = logger
+            self.lock = Lock()
 
         def add_graph(self, graph_id: str, graph: nx.Graph) -> None:
-            # check this graph_id isn't already present
-            existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
-            if len(existing_graph_nodes) > 0:
-                # graph already present, delete it so we can replace
-                self.del_graph(graph_id)
-            # relabel incoming graph nodes to integers, then merge
-            temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
-            # set/overwrite GraphID property on all nodes
-            for n in list(temp_graph.nodes()):
-                if not temp_graph.nodes[n].get(ABCPropertyGraph.NODE_ID, None):
-                    raise PropertyGraphImportException(graph_id=graph_id,
-                                                       msg="Some nodes are missing NodeID property, unable to import")
-                temp_graph.nodes[n][ABCPropertyGraph.GRAPH_ID] = graph_id
-            self.start_id = self.start_id + len(temp_graph.nodes())
-            self.graphs.add_nodes_from(temp_graph.nodes(data=True))
-            self.graphs.add_edges_from(temp_graph.edges(data=True))
+            self.lock.acquire()
+            try:
+                # check this graph_id isn't already present
+                existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
+                if len(existing_graph_nodes) > 0:
+                    # graph already present, delete it so we can replace
+                    self.__del_graph_nl(graph_id)
+                # relabel incoming graph nodes to integers, then merge
+                temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
+                # set/overwrite GraphID property on all nodes
+                for n in list(temp_graph.nodes()):
+                    if not temp_graph.nodes[n].get(ABCPropertyGraph.NODE_ID, None):
+                        raise PropertyGraphImportException(graph_id=graph_id,
+                                                           msg="Some nodes are missing NodeID property, unable to import")
+                    temp_graph.nodes[n][ABCPropertyGraph.GRAPH_ID] = graph_id
+                self.start_id = self.start_id + len(temp_graph.nodes())
+                self.graphs.add_nodes_from(temp_graph.nodes(data=True))
+                self.graphs.add_edges_from(temp_graph.edges(data=True))
+            except Exception as e:
+                raise e
+            finally:
+                self.lock.release()
 
         def add_graph_direct(self, graph_id: str, graph: nx.Graph) -> None:
-            # check this graph_id isn't already present
-            existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
-            if len(existing_graph_nodes) > 0:
-                # graph already present, delete so we can replace
-                self.del_graph(graph_id)
-            # relabel incoming graph nodes to integers, then merge
-            temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
-            self.start_id = self.start_id + len(temp_graph.nodes())
-            self.graphs.add_nodes_from(temp_graph.nodes(data=True))
-            self.graphs.add_edges_from(temp_graph.edges(data=True))
+            self.lock.acquire()
+            try:
+                # check this graph_id isn't already present
+                existing_graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
+                if len(existing_graph_nodes) > 0:
+                    # graph already present, delete so we can replace
+                    self.__del_graph_nl(graph_id)
+                # relabel incoming graph nodes to integers, then merge
+                temp_graph = nx.convert_node_labels_to_integers(graph, first_label=self.start_id)
+                self.start_id = self.start_id + len(temp_graph.nodes())
+                self.graphs.add_nodes_from(temp_graph.nodes(data=True))
+                self.graphs.add_edges_from(temp_graph.edges(data=True))
+            except Exception as e:
+                raise e
+            finally:
+                self.lock.release()
 
-        def del_graph(self, graph_id: str) -> None:
+        def __del_graph_nl(self, graph_id: str) -> None:
+            # non-locking version
             # find all nodes of this graph and remove them
             graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
             if graph_nodes is not None and len(graph_nodes) > 0:
                 self.graphs.remove_nodes_from(graph_nodes)
 
+        def del_graph(self, graph_id: str) -> None:
+            self.lock.acquire()
+            self.__del_graph_nl(graph_id)
+            self.lock.release()
+
         def extract_graph(self, graph_id: str) -> nx.Graph or None:
-            # extract copy of graph from store or return None
-            graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
-            if len(graph_nodes) == 0:
-                return None
-            # get adjacency (only gets edges and their properties)
-            edge_dict = nx.to_dict_of_dicts(self.graphs, graph_nodes)
-            # create new graph from edges
-            ret = nx.from_dict_of_dicts(edge_dict)
-            for n in graph_nodes:
-                # merge node dictionaries
-                ret.nodes[n].update(self.graphs.nodes[n])
-            return ret
+            self.lock.acquire()
+            try:
+                # extract copy of graph from store or return None
+                graph_nodes = list(nxq.search_nodes(self.graphs, {'eq': [ABCPropertyGraph.GRAPH_ID, graph_id]}))
+                if len(graph_nodes) == 0:
+                    return None
+                # get adjacency (only gets edges and their properties)
+                edge_dict = nx.to_dict_of_dicts(self.graphs, graph_nodes)
+                # create new graph from edges
+                ret = nx.from_dict_of_dicts(edge_dict)
+                for n in graph_nodes:
+                    # merge node dictionaries
+                    ret.nodes[n].update(self.graphs.nodes[n])
+                return ret
+            except Exception as e:
+                raise e
+            finally:
+                self.lock.release()
 
         def get_graph(self, graph_id) -> nx.Graph:
             # return the store for all graphs (graph_id is ignored)
             return self.graphs
 
         def del_all_graphs(self) -> None:
+            self.lock.acquire()
             self.graphs.clear()
+            self.lock.release()
 
         def add_blank_node_to_graph(self, graph_id, **attrs) -> int:
             # add a new node into a graph, return internal
             # int id of the added node
-            self.graphs.add_node(self.start_id, GraphID=graph_id, **attrs)
-            self.start_id = self.start_id + 1
-            return self.start_id - 1
+            self.lock.acquire()
+            try:
+                self.graphs.add_node(self.start_id, GraphID=graph_id, **attrs)
+                self.start_id = self.start_id + 1
+                return self.start_id - 1
+            except Exception as e:
+                raise e
+            finally:
+                self.lock.release()
 
     storage_instance = None
 
