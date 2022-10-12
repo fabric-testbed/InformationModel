@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
   long_description = fh.read()
 
 with open("requirements.txt", "r") as fh:
-  requirements = fh.read()
+  install_requires = fh.read()
 
 setuptools.setup(
   name="fabric_fim",
@@ -24,7 +24,7 @@ setuptools.setup(
     "Operating System :: OS Independent",
   ],
   python_requires=">=3.7",
-  install_requires=requirements,
+  install_requires=install_requires,
   setup_requires=[
     "setuptools >= 65.4.1",
     "wheel >= 0.37.1",
