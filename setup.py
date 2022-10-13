@@ -26,7 +26,7 @@ setuptools.setup(
   python_requires=">=3.7",
   install_requires=install_requires,
   setup_requires=[
-    "setuptools >= 65.4.1",
-    "wheel >= 0.37.1",
+    "setuptools>=65.4.1",
+    "wheel>=0.37.1",
   ],
 )
