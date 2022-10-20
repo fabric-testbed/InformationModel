@@ -87,11 +87,13 @@ class ServiceType(enum.Enum):
     L2PTP = enum.auto() # FABRIC Port-to-Port service
     L2Multisite = enum.auto() # FABRIC multi-site service
     L2Bridge = enum.auto() # FABRIC L2 bridge within a site
+    L2Cloud = enum.auto() # FABRIC L2 cloud connect
     FABNetv4 = enum.auto() # FABRIC IPv4 routed network
     FABNetv6 = enum.auto() # FABRIC IPv6 routed network
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
     VLAN = enum.auto() # a local VLAN (internal to site)
+    L3Cloud = enum.auto() # FABRIC L3 cloud connect
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -190,6 +192,14 @@ class NetworkServiceSliver(BaseSliver):
                                                                             'mirror_direction',
                                                                             'controller_url'],
                                                       required_interface_types=[]),
+        ServiceType.L2Cloud: ServiceConstraintRecord(layer=NSLayer.L2, num_interfaces=NO_LIMIT, num_sites=1,
+                                                      num_instances=NO_LIMIT,
+                                                      desc='An L2 Cloud service within a single FABRIC site.',
+                                                      required_properties=[],
+                                                      forbidden_properties=['mirror_port',
+                                                                            'mirror_direction',
+                                                                            'controller_url'],
+                                                      required_interface_types=[]),
         ServiceType.FABNetv4: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
                                                       num_instances=NO_LIMIT,
                                                       desc='A routed IPv4 (RFC1918 addressed) FABRIC network.',
@@ -213,6 +223,14 @@ class NetworkServiceSliver(BaseSliver):
                                                                              'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
                                                         required_interface_types=[InterfaceType.DedicatedPort]),
+        ServiceType.L3Cloud: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                      num_instances=NO_LIMIT,
+                                                      desc='An L3 Cloud service within a single FABRIC site.',
+                                                      required_properties=[],
+                                                      forbidden_properties=['mirror_port',
+                                                                            'mirror_direction',
+                                                                            'controller_url'],
+                                                      required_interface_types=[]),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                    num_instances=NO_LIMIT,
                                                    desc='A L3 VPN service connecting to FABRIC.',
@@ -236,6 +254,7 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
+        self.local_asn = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -299,6 +318,12 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_mirror_direction(self) -> MirrorDirection:
         return self.mirror_direction
+    
+    def set_asn(self, local_asn: str):
+        self.local_asn = local_asn
+        
+    def get_asn(self) -> str:
+        return self.local_asn
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:
