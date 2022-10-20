@@ -138,6 +138,7 @@ class Capacities(JSONField):
         self.burst_size = 0
         self.unit = 0
         self.mtu = 0
+        self.jumbo = 0
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
@@ -376,6 +377,8 @@ class Labels(JSONField):
         self.local_name = None
         self.local_type = None
         self.device_name = None
+        self.peers = None
+        self.cloud_account_id = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
