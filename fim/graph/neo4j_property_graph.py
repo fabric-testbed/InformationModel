@@ -642,6 +642,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
         self.import_dir = import_dir
         try:
             self.driver = GraphDatabase.driver(self.url, auth=(user, pswd))
+            # per https://neo4j.com/developer-blog/neo4j-driver-best-practices/
+            self.driver.verify_connectivity()
         except Exception as e:
             msg = f"Unable to connect to Neo4j: {str(e)}"
             raise PropertyGraphImportException(graph_id=None, msg=msg)
@@ -650,6 +652,10 @@ class Neo4jGraphImporter(ABCGraphImporter):
         else:
             self.log = logger
         self._add_indexes()
+
+    def __del__(self):
+        if self.driver:
+            self.driver.close()
 
     def _add_indexes(self):
         """
@@ -664,13 +670,14 @@ class Neo4jGraphImporter(ABCGraphImporter):
         index_dict = json.load(f)
         f.close()
         self.log.info('Adding Neo4j indexes')
-        for index_name, index_cmd in index_dict.items():
-            with self.driver.session() as session:
-                try:
+        with self.driver.session() as session:
+            try:
+                for index_name, index_cmd in index_dict.items():
                     session.run(index_cmd)
-                except:
-                    # ignore exceptions
-                    pass
+            except:
+                self.log.warning(f'Failed to add index {index_name}, proceeding')
+                # ignore exceptions
+                pass
 
     def _prep_graph(self, graph: str, graph_id: str = None) -> Tuple[str, str, str]:
         """
