@@ -182,6 +182,12 @@ Generally the utility is good for e.g. loading a graph file: `python fim_util.py
 merging multiple advertisements: `python fim_util.py -m -f <file1> -f <file2>`. Most options take multiple `-f`
 and related options so can e.g. load multiple files at once.
 
+When testing large graphs, note that by default Neo4j visualizes the first 300 nodes in a browser. If you
+want to see a full graph, increase this limit (at neo4j prompt):
+```
+:config initialNodeDisplay: 5000
+```
+
 ## Neo4j Performance Considerations
 For performance reasons it is critical that every instance of Neo4j has appropriate indexes created. 
 Neo4j label `GraphNode` is hard-coded within FIM - every graph node has this label and another label is created
