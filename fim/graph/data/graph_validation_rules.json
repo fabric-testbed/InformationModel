@@ -28,8 +28,8 @@
     "msg": "All NetworkServices must be of type P4, OVS, MPLS, VLAN, L2Path, L2Bridge, L2PTP, L2STS, FABNetv4, FABNetv6, L3VPN or PortMirror"
   },
   {
-    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"Wave\", \"Patch\", \"L2Path\"])",
-    "msg": "All Links must be of type DAC, Patch or Wave"
+    "rule": "MATCH (n:Link {GraphID: $graphId}) RETURN ALL(r IN collect(n) WHERE r.Type IN [\"L1Path\", \"L2Path\", \"Patch\"])",
+    "msg": "All Links must be of type L1Path, L2Path or Patch"
   },
   {
     "rule": "MATCH(n:Component {GraphID: $graphId}) -[:has]- (m:GraphNode {GraphID: $graphId}) WHERE m.Class=\"NetworkNode\" or m.Class=\"CompositeNode\" with count(n) AS vcs match(c:Component {GraphID: $graphId}) with vcs, count(c) AS cs return cs = vcs",
