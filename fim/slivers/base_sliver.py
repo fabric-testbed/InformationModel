@@ -26,7 +26,7 @@
 """
 Base class for all sliver types
 """
-from typing import Any, Tuple, List, Dict
+from typing import Any, Tuple
 from abc import ABC, abstractmethod
 import re
 
@@ -34,7 +34,7 @@ from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, Res
 from fim.slivers.delegations import Delegations
 from fim.slivers.tags import Tags
 from fim.slivers.measurement_data import MeasurementData
-from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
+from fim.slivers.topology_diff import TopologyDiff
 
 
 class BaseSliver(ABC):
@@ -77,8 +77,8 @@ class BaseSliver(ABC):
         assert(resource_name is None or isinstance(resource_name, str))
         m = re.match(self.NAME_REGEX, resource_name)
         if not m:
-            raise RuntimeError(f"Sliver name {resource_name} doesn't match the expected "
-                               f"regular expression {self.NAME_REGEX}")
+            raise ValueError(f"Sliver name {resource_name} doesn't match the expected "
+                             f"regular expression {self.NAME_REGEX}")
         self.resource_name = resource_name
 
     def get_name(self):

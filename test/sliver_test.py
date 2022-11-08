@@ -114,6 +114,31 @@ class TestSlivers(unittest.TestCase):
         with self.assertRaises(GatewayException):
             Gateway(Labels(ipv4="192.168.1.1"))
 
+    def testNaming(self):
+
+        s = NodeSliver()
+
+        bad_name = 'cant have spaces'
+
+        with self.assertRaises(ValueError):
+            s.set_name(bad_name)
+
+        s = ComponentSliver()
+
+        bad_name = 'cant have a plus +'
+
+        with self.assertRaises(ValueError):
+            s.set_name(bad_name)
+
+        s = NetworkServiceSliver()
+
+        bad_name = 'cant have a :'
+
+        with self.assertRaises(ValueError):
+            s.set_name(bad_name)
+
+
+
 
 
 
