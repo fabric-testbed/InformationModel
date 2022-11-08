@@ -66,6 +66,9 @@ NodeConstraintRecord = recordclass('NodeConstraintRecord',
 
 
 class NodeSliver(BaseSliver):
+
+    NAME_REGEX = r'^[\w\-\.]{2,255}$'
+
     NodeConstraints = {
         NodeType.Server: NodeConstraintRecord(required_properties=['site'],
                                               forbidden_properties=[]),

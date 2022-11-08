@@ -115,6 +115,8 @@ ServiceConstraintRecord = recordclass('ServiceConstraintRecord',
 
 class NetworkServiceSliver(BaseSliver):
 
+    NAME_REGEX = r'^[\w\-_\.]{2,255}$'
+
     # whenever there is no limit, num is set to 0
     NO_LIMIT = 0
     """

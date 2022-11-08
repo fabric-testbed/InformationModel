@@ -64,6 +64,8 @@ LinkConstraintRecord = recordclass('LinkConstraintRecord',
 
 class NetworkLinkSliver(BaseSliver):
 
+    NAME_REGEX = r'^[\w\-+_/\.\ :]{2,255}$'
+
     """
     Services can be limited by the number of interfaces/connection points they can connect
     The number of sites they may connect and the number of instances they may have in a slice.
