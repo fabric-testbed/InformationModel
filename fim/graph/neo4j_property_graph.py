@@ -670,14 +670,21 @@ class Neo4jGraphImporter(ABCGraphImporter):
         index_dict = json.load(f)
         f.close()
         self.log.info('Adding Neo4j indexes')
+        excount = 0
+        incount = 0
         with self.driver.session() as session:
-            try:
-                for index_name, index_cmd in index_dict.items():
+            for index_name, index_cmd in index_dict.items():
+                incount += 1
+                try:
                     session.run(index_cmd)
-            except:
-                self.log.warning(f'Failed to add index {index_name}, proceeding')
-                # ignore exceptions
-                pass
+                except:
+                    excount += 1
+                    # ignore exceptions
+                    pass
+        if excount:
+            self.log.warning(f'There were {excount} exceptions when adding {incount} indexes, '
+                             f'most likely because the indexes are '
+                             f'already installed. If in doubt you can use ":schema" command to see them.')
 
     def _prep_graph(self, graph: str, graph_id: str = None) -> Tuple[str, str, str]:
         """
