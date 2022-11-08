@@ -92,6 +92,8 @@ class ServiceType(enum.Enum):
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
     VLAN = enum.auto() # a local VLAN (internal to site)
+    FABNetv4Ext = enum.auto() # externally reachable IPv4 service
+    FABNetv6Ext = enum.auto() # externally reachable IPv6 service
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -222,7 +224,25 @@ class NetworkServiceSliver(BaseSliver):
                                                    forbidden_properties=['mirror_port',
                                                                          'mirror_direction',
                                                                          'controller_url'],
-                                                   required_interface_types=[])
+                                                   required_interface_types=[]),
+        ServiceType.FABNetv4Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv4 publicly addressed FABRIC '
+                                                              'network capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[]),
+        ServiceType.FABNetv6Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv6 publicly addressed FABRIC network '
+                                                              'capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[])
     }
 
     def __init__(self):
