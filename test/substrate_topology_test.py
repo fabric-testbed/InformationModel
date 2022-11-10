@@ -1115,13 +1115,18 @@ class AdTest(unittest.TestCase):
                                 interfaces=[renc_lbnl, lbnl_renc],
                                 node_id=renc_lbnl.node_id + '-Wave')
 
-        # add two separate facility nodes (and associated network services and interfaces)
+        # add three separate facility nodes (and associated network services and interfaces)
         fac1 = self.topo.add_facility(name='RENCI-DTN', node_id='RENCI-DTN-id', site='RENC',
                                       capacities=f.Capacities(mtu=1500, bw=10))
         fac2 = self.topo.add_facility(name='RENCI-BEN', node_id='RENCI-BEN-id', site='RENC',
                                       labels=f.Labels(ipv4_range='192.168.1.1-192.168.1.10',
                                                       vlan_range='1-100'),
                                       capacities=f.Capacities(mtu=9000))
+        fac3 = self.topo.add_facility(name='RENCI-Cloud', node_id='RENCI-Cloud-id', site='RENC',
+                                      nstype=f.ServiceType.L3VPN,
+                                      nslabels=f.Labels(account_id='amazon_account', asn='123456', ipv4='192.168.1.1'),
+                                      nspeer_labels=f.Labels(asn='65442', bgp_key='secretkey', ipv4='192.168.1.2'))
+        self.assertEqual(fac3.network_services['RENCI-Cloud-ns'].peer_labels.bgp_key, 'secretkey')
 
         # connect them to links along with the port facing the facility
         fac1_port_link = self.topo.add_link(name='RENCI-DC-link1', node_id='RENCI-DC-link1-id',
@@ -1131,6 +1136,10 @@ class AdTest(unittest.TestCase):
         fac2_port_link = self.topo.add_link(name='RENCI-DC-link2', node_id='RENCI-DC-link2-id',
                                             ltype=f.LinkType.L2Path,
                                             interfaces=[fac2.interface_list[0], # only one interface available
+                                                        facility_port_facing_port])
+        fac3_port_link = self.topo.add_link(name='RENCI-DC-link3', node_id='RENCI-DC-link3-id',
+                                            ltype=f.LinkType.L2Path,
+                                            interfaces=[fac3.interface_list[0],
                                                         facility_port_facing_port])
         self.topo.validate()
         delegation1 = 'primary'
@@ -1297,7 +1306,7 @@ class AdTest(unittest.TestCase):
                                         ctype=f.ComponentType.SharedNIC,
                                         details='Shared NIC: Mellanox Technologies MT28908 Family [ConnectX-6]')
 
-        gpu_shnic_lab = gpuw.components[gpuw.name + '-shnic'].interfaces[gpuw.name + '-shnic' + '-p1'].get_property('labels')
+        gpu_shnic_lab = gpuw.components[gpuw.name + '-shnic'].interfaces[gpuw.name + '-shnic' + '-p1'].labels
         print(f'Shared NIC labels {gpu_shnic_lab}')
         self.assertTrue(isinstance(gpu_shnic_lab.local_name, list))
         self.assertEqual(gpu_shnic_lab.local_name, ["p1", "p1", "p1", "p1"])
