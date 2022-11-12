@@ -355,12 +355,12 @@ class Labels(JSONField):
         'account_id': (r'[\w\-/\.]{3,100}', "Azure/GCP/AWS/Oracle account")
     }
     LAMBDA_VALIDATORS = {
-        'vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
-        'inner_vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
-        'vlan_range': ((lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
-                                          0 < int(v.split('-')[1]) <= 4096 and
-                                          int(v.split('-')[0]) < int(v.split('-')[1]) else False),
-                       "1-4096"),
+        'vlan': ((lambda v: True if 0 <= int(v) <= 4096 else False), "0-4096"),
+        'inner_vlan': ((lambda v: True if 0 <= int(v) <= 4096 else False), "0-4096"),
+        'vlan_range': ((lambda v: True if 0 <= int(v.split('-')[0]) <= 4096 and
+                                          0 <= int(v.split('-')[1]) <= 4096 and
+                                          int(v.split('-')[0]) <= int(v.split('-')[1]) else False),
+                       "0-4096"),
         'asn': ((lambda a: True if 0 < int(a) < 2**32 else False), "1-4294967295")
     }
 
