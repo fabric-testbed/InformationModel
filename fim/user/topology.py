@@ -48,7 +48,7 @@ from ..graph.networkx_property_graph_disjoint import NetworkXGraphImporterDisjoi
 from ..graph.resources.neo4j_arm import Neo4jARMGraph
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import FreeCapacity, Labels
+from fim.slivers.capacities_labels import FreeCapacity
 from fim.slivers.interface_info import InterfaceType
 from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
 
@@ -225,8 +225,7 @@ class Topology(ABC):
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
-    def add_facility(self, *, name: str, node_id: str = None, site: str, nstype: ServiceType = ServiceType.VLAN,
-                     nslabels: Labels or None = None, nspeer_labels: Labels or None = None, **kwargs) -> Node:
+    def add_facility(self, *, name: str, node_id: str = None, site: str, **kwargs) -> Node:
         """
         Add a facility node with VLAN service and FacilityPort interface as a single construct.
         Works for aggregate topologies and experiment topologies the same way.
@@ -234,15 +233,12 @@ class Topology(ABC):
         :param name: name of facility (must match the advertisement)
         :param node_id : optional node id of the facility node (all other node ids are derived if provided)
         :param site: site of the facility (must match the advertisement)
-        :param nstype: alternative type of network service in Facility (defaults to VLAN)
-        :param nslabels: additional labels for network service (defaults to None)
-        :param nspeer_labels: additional peer_labels for network service (defaults to None)
         :kwargs: parameters for the interface of the facility (bandwidth, mtu, LAN tags etc)
         """
         # should work with deep sliver reconstruction
         facn = self.add_node(name=name, node_id=node_id, site=site, ntype=NodeType.Facility)
         facs = facn.add_network_service(name=name + '-ns', node_id=node_id + '-ns' if node_id else None,
-                                        nstype=nstype, labels=nslabels, peer_labels=nspeer_labels)
+                                        nstype=ServiceType.VLAN)
         faci = facs.add_interface(name=name + '-int', node_id=node_id + '-int' if node_id else None,
                                   itype=InterfaceType.FacilityPort, **kwargs)
 
