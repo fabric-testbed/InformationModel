@@ -69,7 +69,6 @@ class ABCPropertyGraphConstants(ABC):
     PROP_GATEWAY = "Gateway"
     PROP_MIRROR_PORT = "MirrorPort"
     PROP_MIRROR_DIRECTION = "MirrorDirection"
-    PROP_PEER_LABELS = "PeerLabels"
     PROP_TAGS = "Tags"
     PROP_FLAGS = "Flags"
     PROP_MEAS_DATA = "MeasurementData"
@@ -80,7 +79,7 @@ class ABCPropertyGraphConstants(ABC):
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
                            PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO, PROP_STRUCTURAL_INFO,
                            PROP_ERO, PROP_PATH_INFO, PROP_CAPACITY_HINTS, PROP_GATEWAY,
-                           PROP_TAGS, PROP_FLAGS, PROP_MEAS_DATA, PROP_LAYOUT, PROP_PEER_LABELS]
+                           PROP_TAGS, PROP_FLAGS, PROP_MEAS_DATA, PROP_LAYOUT]
     # these properties cannot be unset
     NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS, PROP_NAME]
 

@@ -62,7 +62,7 @@ Follow this link into [fim/README.md](fim/README.md) to explore.
 
 ## Development environment
 
-The recommended way is to set up your development environment using `virtualenvwrapper` after checking
+The recommended way is to set up your development environment using `virtualenv` after checking
 out the code:
 ```bash
 $ git clone git@github.com:fabric-testbed/InformationModel.git
@@ -72,19 +72,9 @@ $ workon infomodel
 (infomodel) $
 ```
 
-You can also use the built-in `venv` tool that comes with newer versions of Python as follows:
-```
-$ git clone git@github.com:fabric-testbed/InformationModel.git
-$ cd InformationModel
-$ python3 -m venv venv
-$ source ./venv/bin/activate
-$ pip install --upgrade pip setuptools
-(venv) $
-``` 
-
 Depending on which parts of FIM you are developing you may need to have 
 [Neo4j-APOC docker container](https://github.com/fabric-testbed/fabric-docker-images/tree/master/neo4j-apoc) running.
-Working on any models whose names start with `Neo4j` generally requires using the Neo4j Docker. 
+Working on any models whose names start with `Neo4j` generally requires using the Neo4j Docker.
 
 Models which start with `NetworkX` operate on in-memory models using NetworkX toolkit and don't require the Neo4j Docker.
 Higher-level abstractions under `fim.user` can all be debugged and tested with in-memory NetworkX models, although they

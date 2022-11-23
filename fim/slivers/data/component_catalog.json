@@ -37,9 +37,9 @@
     }
   },
   {
-    "Model": "OpenStack-vNIC",
-    "Type": "SharedNIC",
-    "Details": "OpenStack virtual vNIC typically 1Gbps",
+    "Model": "OpenStack",
+    "Type": "SmartNIC",
+    "Details": "OpenStack virtual NIC typically 1Gbps",
     "Interfaces": {
       "p1": "1"
     }

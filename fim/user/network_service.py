@@ -37,7 +37,6 @@ from fim.user.interface import Interface, InterfaceType
 from fim.user.link import Link, LinkType
 from fim.slivers.network_service import NetworkServiceSliver, ServiceType, NSLayer, ERO, PathInfo, MirrorDirection
 from fim.slivers.gateway import Gateway
-from fim.slivers.capacities_labels import Labels
 
 
 class NetworkService(ModelElement):
@@ -182,33 +181,6 @@ class NetworkService(ModelElement):
     @property
     def gateway(self):
         return self.get_property('gateway') if self.__dict__.get('topo', None) is not None else None
-
-    @property
-    def mirror_port(self):
-        return self.get_property('mirror_port') if self.__dict__.get('topo', None) is not None else None
-
-    @mirror_port.setter
-    def mirror_port(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('mirror_port', value)
-
-    @property
-    def mirror_direction(self):
-        return self.get_property('mirror_direction') if self.__dict__.get('topo', None) is not None else None
-
-    @mirror_direction.setter
-    def mirror_direction(self, value):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('mirror_direction', value)
-
-    @property
-    def peer_labels(self):
-        return self.get_property('peer_labels') if self.__dict__.get('topo', None) is not None else None
-
-    @peer_labels.setter
-    def peer_labels(self, value: Labels):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('peer_labels', value)
 
     @gateway.setter
     def gateway(self, gateway: Gateway):
