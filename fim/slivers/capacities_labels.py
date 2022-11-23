@@ -331,14 +331,14 @@ class Labels(JSONField):
         'ipv4': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
                  "192.168.1.1"),
         'ipv4_range': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)-'
-                       r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+                      r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
                        "192.168.1.1-192.168.1.10"),
         'ipv4_subnet': (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[\d]{1,2}',
                         "192.168.1.0/24"),
         'ipv6': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
                  "2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
         'ipv6_range': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}-(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}',
-                       "2001:0db8:85a3:0000:0000:8a2e:0370:7334-2001:0db8:85a3:0000:0000:8a2e:0370:8334"),
+                      "2001:0db8:85a3:0000:0000:8a2e:0370:7334-2001:0db8:85a3:0000:0000:8a2e:0370:8334"),
         # we allow fewer than 128 (and not necessarily 64) bits to be specified, unlike ipv6 address
         # where we require the full 128 even if some of them are just ':::'
         'ipv6_subnet': (r'(?:[a-fA-F0-9]{0,4}:){0,7}[a-fA-F0-9]{0,4}/[\d]{1,2}',
@@ -346,20 +346,14 @@ class Labels(JSONField):
         'asn': (r'[\d]+', "12345"),
         'vlan': (r'[\d]{1,4}', "1234"),
         'vlan_range': (r'[\d]{1,4}-[\d]{1,4}', "100-200"),
-        'inner_vlan': (r'[\d]{1,4}', "1234"),
-        'bgp_key': (r'[\w\-+_/\.:]{6,150}', "Amazon or other bgp key"),
-        # Azure UUID "3e2480b2-b4d5-3456-976a-7b0de65a1b62"
-        # GCP <random>/<vlan-attachment-region>/<edge-availability-domain> "7e51371e-1234-40b5-b844-2e3efefaee59/us-central1/2"
-        # AWS 12 digits
-        # Oracle ocid1.<RESOURCE TYPE>.<REALM>.[REGION][.FUTURE USE].<UNIQUE ID> "ocid1.instance.oc1.phx.abuw4ljrlsfiqw6vzzxb67hyypt4pkodawglp3wqxjqofakrwvou52gb6s5a"
-        'account_id': (r'[\w\-/\.]{3,100}', "Azure/GCP/AWS/Oracle account")
+        'inner_vlan': (r'[\d]{1,4}', "1234")
     }
     LAMBDA_VALIDATORS = {
         'vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
         'inner_vlan': ((lambda v: True if 0 < int(v) <= 4096 else False), "1-4096"),
         'vlan_range': ((lambda v: True if 0 < int(v.split('-')[0]) <= 4096 and
-                                          0 < int(v.split('-')[1]) <= 4096 and
-                                          int(v.split('-')[0]) < int(v.split('-')[1]) else False),
+                                         0 < int(v.split('-')[1]) <= 4096 and
+                                         int(v.split('-')[0]) < int(v.split('-')[1]) else False),
                        "1-4096"),
         'asn': ((lambda a: True if 0 < int(a) < 2**32 else False), "1-4294967295")
     }
@@ -382,8 +376,6 @@ class Labels(JSONField):
         self.local_name = None
         self.local_type = None
         self.device_name = None
-        self.bgp_key = None
-        self.account_id = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):

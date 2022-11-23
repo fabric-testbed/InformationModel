@@ -188,7 +188,6 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.network_services), 1)
         self.topo.remove_network_service(name='s1')
         self.assertEqual(len(self.topo.network_services), 0)
-        self.n4j_imp.delete_all_graphs()
 
     def testNetworkServices(self):
         n1 = self.topo.add_node(name='Node1', site='RENC')
@@ -380,7 +379,6 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.network_services), 5)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
-        self.n4j_imp.delete_all_graphs()
 
     def testDeepSliver(self):
         self.topo.add_node(name='n1', site='RENC')
@@ -403,7 +401,6 @@ class SliceTest(unittest.TestCase):
         self.assertNotEqual(deep_sliver1.interface_info, None)
         self.assertEqual(len(deep_sliver1.interface_info.interfaces), 1)
         print(f'Network deep sliver interfaces: {deep_sliver1.interface_info.interfaces}')
-        self.n4j_imp.delete_all_graphs()
 
     def testSerDes(self):
         self.topo.add_node(name='n1', site='RENC')
@@ -414,7 +411,6 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(t1.graph_model.graph_id, self.topo.graph_model.graph_id)
         self.assertTrue('n1' in t1.nodes.keys())
         self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
-        self.n4j_imp.delete_all_graphs()
 
     def testSerDes1(self):
         # more thorough serialization-deserialization test
@@ -431,7 +427,6 @@ class SliceTest(unittest.TestCase):
         self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
         print(f'LIST COMPONENTS of n1 {t1.nodes["n1"].components}')
         print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
-        self.n4j_imp.delete_all_graphs()
 
     def testSerDes2(self):
         # more thorough serialization-deserialization test
@@ -632,28 +627,4 @@ class SliceTest(unittest.TestCase):
         generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
         asm_graph = Neo4jASMFactory.create(generic_graph)
         asm_graph.validate_graph()
-        self.n4j_imp.delete_all_graphs()
-
-    def testL3VPNService(self):
-        t = self.topo
-
-        n1 = t.add_node(name='n1', site='MASS')
-        n1.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
-        n2 = t.add_node(name='n2', site='RENC')
-        n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
-
-        t.add_network_service(name='ns1', nstype=ServiceType.L3VPN,
-                              interfaces=[n1.interface_list[0], n2.interface_list[0]],
-                              # you can also specify ipv4/ipv6 addresses, subnets as usual
-                              labels=Labels(asn='654342'),
-                              peer_labels=Labels(account_id='secretaccount', asn='123456'))
-        t.validate()
-
-        slice_graph = t.serialize()
-
-        # Import it in the neo4j as ASM
-        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
-        asm_graph = Neo4jASMFactory.create(generic_graph)
-        asm_graph.validate_graph()
-
         self.n4j_imp.delete_all_graphs()
