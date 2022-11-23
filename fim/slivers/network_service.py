@@ -32,6 +32,7 @@ from .path_info import PathRepresentationType, ERO, PathInfo
 from .gateway import Gateway
 from .interface_info import InterfaceType
 from .topology_diff import TopologyDiff, TopologyDiffTuple
+from .capacities_labels import Labels
 
 
 class NSLayer(enum.Enum):
@@ -92,6 +93,8 @@ class ServiceType(enum.Enum):
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
     VLAN = enum.auto() # a local VLAN (internal to site)
+    FABNetv4Ext = enum.auto() # externally reachable IPv4 service
+    FABNetv6Ext = enum.auto() # externally reachable IPv6 service
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -222,7 +225,25 @@ class NetworkServiceSliver(BaseSliver):
                                                    forbidden_properties=['mirror_port',
                                                                          'mirror_direction',
                                                                          'controller_url'],
-                                                   required_interface_types=[])
+                                                   required_interface_types=[]),
+        ServiceType.FABNetv4Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv4 publicly addressed FABRIC '
+                                                              'network capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[]),
+        ServiceType.FABNetv6Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv6 publicly addressed FABRIC network '
+                                                              'capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[])
     }
 
     def __init__(self):
@@ -238,6 +259,8 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
+        # note that these aren't considered 'delegateable'
+        self.peer_labels = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -301,6 +324,13 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_mirror_direction(self) -> MirrorDirection:
         return self.mirror_direction
+
+    def set_peer_labels(self, lab: Labels) -> None:
+        assert(lab is None or isinstance(lab, Labels))
+        self.peer_labels = lab
+
+    def get_peer_labels(self) -> Labels:
+        return self.peer_labels
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:

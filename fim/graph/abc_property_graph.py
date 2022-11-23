@@ -99,6 +99,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
+        "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
@@ -612,6 +613,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
         if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
+        if hasattr(sliver, 'peer_labels') and sliver.peer_labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_PEER_LABELS] = sliver.peer_labels.to_json()
 
         return prop_dict
 
@@ -785,7 +788,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
-                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
+                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None)),
+                          peer_labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_PEER_LABELS, None))
                           )
         return ns
 
