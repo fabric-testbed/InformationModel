@@ -259,8 +259,7 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
-        # note that these aren't considered 'delegateable'
-        self.peer_labels = None
+
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -324,13 +323,6 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_mirror_direction(self) -> MirrorDirection:
         return self.mirror_direction
-
-    def set_peer_labels(self, lab: Labels) -> None:
-        assert(lab is None or isinstance(lab, Labels))
-        self.peer_labels = lab
-
-    def get_peer_labels(self) -> Labels:
-        return self.peer_labels
 
     @staticmethod
     def type_from_str(ltype: str) -> ServiceType or None:

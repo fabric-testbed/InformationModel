@@ -1119,13 +1119,14 @@ class AdTest(unittest.TestCase):
         fac1 = self.topo.add_facility(name='RENCI-DTN', node_id='RENCI-DTN-id', site='RENC',
                                       capacities=f.Capacities(mtu=1500, bw=10))
         fac2 = self.topo.add_facility(name='RENCI-BEN', node_id='RENCI-BEN-id', site='RENC',
+                                      # labels and capacities go onto facility interface
                                       labels=f.Labels(ipv4_range='192.168.1.1-192.168.1.10',
                                                       vlan_range='1-100'),
                                       capacities=f.Capacities(mtu=9000))
         fac3 = self.topo.add_facility(name='RENCI-Cloud', node_id='RENCI-Cloud-id', site='RENC',
                                       nstype=f.ServiceType.L3VPN,
-                                      nslabels=f.Labels(account_id='amazon_account', asn='123456', ipv4='192.168.1.1'),
-                                      nspeer_labels=f.Labels(asn='65442', bgp_key='secretkey', ipv4='192.168.1.2'))
+                                      # nslabels go onto facility network service
+                                      nslabels=f.Labels(asn='123456'))
         self.assertEqual(fac3.network_services['RENCI-Cloud-ns'].peer_labels.bgp_key, 'secretkey')
 
         # connect them to links along with the port facing the facility

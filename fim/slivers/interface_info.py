@@ -29,6 +29,7 @@ import enum
 
 from .base_sliver import BaseSliver
 from .topology_diff import TopologyDiff
+from .capacities_labels import Labels
 
 
 class InterfaceType(enum.Enum):
@@ -61,6 +62,15 @@ class InterfaceSliver(BaseSliver):
     def __init__(self):
         # addresses are stored on labels, bandwidth on capacities
         super().__init__()
+        # note that these are used in ASMs, not delegateable
+        self.peer_labels = None
+
+    def set_peer_labels(self, lab: Labels) -> None:
+        assert(lab is None or isinstance(lab, Labels))
+        self.peer_labels = lab
+
+    def get_peer_labels(self) -> Labels:
+        return self.peer_labels
 
     @staticmethod
     def type_from_str(ntype: str) -> InterfaceType:

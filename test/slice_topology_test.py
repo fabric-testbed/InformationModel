@@ -634,7 +634,7 @@ class SliceTest(unittest.TestCase):
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
 
-    def testL3VPNService(self):
+    def testL3VPNWithCloudService(self):
         t = self.topo
 
         n1 = t.add_node(name='n1', site='MASS')
@@ -642,18 +642,38 @@ class SliceTest(unittest.TestCase):
         n2 = t.add_node(name='n2', site='RENC')
         n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
 
-        t.add_network_service(name='ns1', nstype=ServiceType.L3VPN,
+        ns1 = t.add_network_service(name='ns1', nstype=ServiceType.L3VPN,
                               interfaces=[n1.interface_list[0], n2.interface_list[0]],
                               # you can also specify ipv4/ipv6 addresses, subnets as usual
-                              labels=Labels(asn='654342'),
-                              peer_labels=Labels(account_id='secretaccount', asn='123456'))
+                              labels=Labels(asn='654342', ipv4_subnet='192.168.1.1/24'))
+
+        # add facility
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10),
+                                      labels=f.Labels(vlan='100'))
+        # facility needs to be connected via a service (in this case AL2S stand-in)
+        al2s = self.topo.add_network_service(name='al2s', nstype=f.ServiceType.L3VPN,
+                                             interfaces=[fac1.interface_list[0]])
+
+        al2s.peer(ns1, labels=Labels(asn='12345', bgp_key='secret', ipv4_subnet='192.168.1.1/24'))
+        # normally called by orchestrator, but generally idempotent
+        ns1.copy_to_peer_labels()
+
+        # check values set on copy
+        self.assertEqual(ns1.interfaces[ns1.name + '-' + al2s.name].peer_labels.bgp_key, 'secret')
+
         t.validate()
 
         slice_graph = t.serialize()
+        #t.serialize("peered-slice.graphml")
 
         # Import it in the neo4j as ASM
         generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
         asm_graph = Neo4jASMFactory.create(generic_graph)
         asm_graph.validate_graph()
+
+        # unpeer
+        ns1.unpeer(al2s)
+        t.validate()
+        #t.serialize("peered-slice.graphml")
 
         self.n4j_imp.delete_all_graphs()

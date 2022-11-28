@@ -613,8 +613,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
         if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
-        if hasattr(sliver, 'peer_labels') and sliver.peer_labels is not None:
-            prop_dict[ABCPropertyGraph.PROP_PEER_LABELS] = sliver.peer_labels.to_json()
 
         return prop_dict
 
@@ -626,6 +624,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
+
+        if hasattr(sliver, 'peer_labels') and sliver.peer_labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_PEER_LABELS] = sliver.peer_labels.to_json()
 
         return prop_dict
 
@@ -788,8 +789,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
-                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None)),
-                          peer_labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_PEER_LABELS, None))
+                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
         return ns
 
@@ -802,6 +802,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         isl = InterfaceSliver()
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(isl, d)
+        isl.set_properties(peer_labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_PEER_LABELS, None)))
         return isl
 
     def build_deep_node_sliver(self, *, node_id: str) -> NodeSliver:
