@@ -571,6 +571,7 @@ class Flags(JSONField):
     def __init__(self, **kwargs):
         self.auto_config = False # primarily for interfaces
         self.auto_mount = False # primarily for storage components
+        self.ipv4_management = False # request ipv4 management IP
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
@@ -582,7 +583,7 @@ class Flags(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise FlagException(f"Unable to set field {k} of location, no such field available")
+                raise FlagException(f"Unable to set field {k} of flags, no such field available")
         return self
 
     def to_json(self) -> str:

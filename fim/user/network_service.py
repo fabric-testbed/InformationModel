@@ -97,7 +97,6 @@ class NetworkService(ModelElement):
 
             if interfaces is not None and len(interfaces) > 0:
                 connected_interfaces = list()
-                exception_thrown = False
                 for i in interfaces:
                     # run through guardrails, then connect
                     try:
@@ -200,15 +199,6 @@ class NetworkService(ModelElement):
     def mirror_direction(self, value):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('mirror_direction', value)
-
-    @property
-    def peer_labels(self):
-        return self.get_property('peer_labels') if self.__dict__.get('topo', None) is not None else None
-
-    @peer_labels.setter
-    def peer_labels(self, value: Labels):
-        if self.__dict__.get('topo', None) is not None:
-            self.set_property('peer_labels', value)
 
     @gateway.setter
     def gateway(self, gateway: Gateway):
@@ -333,6 +323,7 @@ class NetworkService(ModelElement):
         if peer_ids is not None:
             raise TopologyException(f'Interface {interface} is already connected to another service.')
         # create a peer interface, create a link between them
+        # FIXME: copy labels from the interface into peer_labels (only needed in L3VPN, but why not?)
         peer_if = Interface(name='-'.join([parent.name, interface.name]),
                             parent_node_id=self.node_id,
                             etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.ServicePort)
@@ -401,6 +392,56 @@ class NetworkService(ModelElement):
         node_id = self.topo.graph_model.find_connection_point_by_name(parent_node_id=self.node_id,
                                                                       iname=name)
         self.topo.graph_model.remove_cp_and_links(node_id=node_id)
+
+    def peer(self, ns, **kwargs) -> None:
+        """
+        Supported in ASMs. Peer this network service to another. A few constraints are enforced like services being
+        of the same type. Both services will have ServicePort interfaces facing each other over a link.
+        :param ns: opposite network service
+        :param kwargs: typically labels and capacities to put on the interface facing the other service
+        """
+        assert(isinstance(ns, NetworkService))
+        self_iface = self.add_interface(name=self.name + '-' + ns.name, itype=InterfaceType.ServicePort, **kwargs)
+        other_iface = ns.add_interface(name=ns.name + '-' + self.name, itype=InterfaceType.ServicePort)
+        # link them together with L2Path
+        peer_link = Link(name=self_iface.name + '-link', topo=self.topo, etype=ElementType.NEW,
+                         interfaces=[self_iface, other_iface], ltype=LinkType.L2Path)
+        # update interface lists
+        self._interfaces.append(self_iface)
+        ns._interfaces.append(other_iface)
+
+    def unpeer(self, ns) -> None:
+        """
+        Supported primarily in ASMs.
+        Do the opposite of peer() - remove the ServicePort interfaces connecting these two services and the
+        link between them
+        """
+        assert(isinstance(ns, NetworkService))
+        # see if they peer
+        sp = self.topo.graph_model.get_nodes_on_shortest_path(node_a=self.node_id, node_z=ns.node_id)
+        if len(sp) == 0:
+            raise TopologyException(f"Network services {self.name} and {ns.name} do not peer!")
+        # remove ConnectionPoints and link between them
+        self.topo.graph_model.remove_cp_and_links(node_id=sp[1])
+        ns.topo.graph_model.remove_cp_and_links(node_id=sp[-2])
+        # update interface lists
+        self._interfaces = list(filter((lambda x: x.node_id != sp[1]), self._interfaces))
+        ns._interfaces = list(filter((lambda x: x.node_id != sp[-2]), self._interfaces))
+
+    def copy_to_peer_labels(self) -> None:
+        """
+        This generally is only needed for a few service types like L3VPN and only on ASMs.
+        This call copies Labels property from ConnectionPoints/Interfaces that
+        are peers of ServicePorts of this service to PeerLabels property of ServicePorts.
+        Generally expected to be executed by Orchestrator on ASMs.
+        """
+        # for each service interface, locate its peer, copy Labels to PeerLabels
+        for srv_if in self.interface_list:
+            peer_ifs = srv_if.get_peers()
+            if not peer_ifs:
+                continue
+            # generally the first one is all we need
+            srv_if.peer_labels = peer_ifs[0].labels
 
     def get_property(self, pname: str) -> Any:
         """

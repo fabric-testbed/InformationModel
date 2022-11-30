@@ -16,7 +16,7 @@ import fim.graph.abc_property_graph as abcpg
 import fim.slivers.path_info as pinfo
 import fim.slivers.gateway as gw
 import fim.slivers.tags as tgs
-import fim.slivers.measurement_data as mdata
+import fim.slivers.json_data as jdata
 
 # push some definitions up to simplify import management
 
@@ -53,5 +53,7 @@ Gateway = gw.Gateway
 PathInfo = pinfo.PathInfo
 ERO = pinfo.ERO
 Tags = tgs.Tags
-MeasurementData = mdata.MeasurementData
+MeasurementData = jdata.MeasurementData
+UserData = jdata.UserData
+LayoutData = jdata.LayoutData
 FreeCapacity = caplab.FreeCapacity

@@ -33,7 +33,7 @@ import re
 from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, ReservationInfo, StructuralInfo, Flags
 from fim.slivers.delegations import Delegations
 from fim.slivers.tags import Tags
-from fim.slivers.measurement_data import MeasurementData
+from fim.slivers.json_data import MeasurementData, UserData, LayoutData
 from fim.slivers.topology_diff import TopologyDiff
 
 
@@ -64,8 +64,9 @@ class BaseSliver(ABC):
         self.tags = None # list of strings, limited in length
         self.flags = None # various flags
         self.mf_data = None # opaque JSON object limited in length
+        self.user_data = None # opaque JSON object limited in length
+        self.layout_data = None # opaque JSON object limited in length
         self.boot_script = None # string limited in length
-        self.layout = None # opaque JSON object limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -199,6 +200,22 @@ class BaseSliver(ABC):
 
     def get_mf_data(self) -> MeasurementData or None:
         return self.mf_data
+
+    def set_user_data(self, user_data: UserData or None) -> None:
+        assert(user_data is None or
+               isinstance(user_data, UserData))
+        self.user_data = user_data
+
+    def get_user_data(self) -> UserData or None:
+        return self.user_data
+
+    def set_layout_data(self, layout_data: LayoutData or None) -> None:
+        assert(layout_data is None or
+               isinstance(layout_data, LayoutData))
+        self.layout_data = layout_data
+
+    def get_layout_data(self) -> LayoutData or None:
+        return self.layout_data
 
     def set_boot_script(self, boot_script: str):
         assert(boot_script is None or

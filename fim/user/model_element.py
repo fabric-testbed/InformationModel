@@ -30,7 +30,7 @@ import enum
 
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..slivers.capacities_labels import Capacities, Labels, ReservationInfo
-from ..slivers.measurement_data import MeasurementData
+from ..slivers.json_data import MeasurementData, UserData, LayoutData
 
 
 class ElementType(enum.Enum):
@@ -213,6 +213,32 @@ class ModelElement(ABC):
                 self.set_property('mf_data', value)
             else:
                 self.set_property('mf_data', MeasurementData(value))
+
+    @property
+    def user_data(self):
+        d = self.get_property('user_data') if self.__dict__.get('topo', None) is not None else None
+        return d.data if d is not None else None
+
+    @user_data.setter
+    def user_data(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            if value is None or isinstance(value, UserData):
+                self.set_property('user_data', value)
+            else:
+                self.set_property('user_data', UserData(value))
+
+    @property
+    def layout_data(self):
+        d = self.get_property('layout_data') if self.__dict__.get('topo', None) is not None else None
+        return d.data if d is not None else None
+
+    @layout_data.setter
+    def layout_data(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            if value is None or isinstance(value, LayoutData):
+                self.set_property('layout_data', value)
+            else:
+                self.set_property('layout_data', LayoutData(value))
 
     @property
     def boot_script(self):
