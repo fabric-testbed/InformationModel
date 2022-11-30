@@ -959,17 +959,27 @@ class AdTest(unittest.TestCase):
         switch = self.topo.add_node(name=dp_switch_name_id(site, switch_ip)[0], model=switch_model,
                                     node_id=dp_switch_name_id(site, switch_ip)[1], site=site,
                                     ntype=f.NodeType.Switch)
-        # stitch node is true here because MPLS service shares definition with site
         dp_ns = switch.add_network_service(name=switch.name+'-ns',
                                            node_id=switch.node_id + '-ns',
                                            nstype=f.ServiceType.MPLS,
                                            labels=f.Labels(vlan_range='1-100'))
-        # stitch node is false here because L3 service is not shared with site definition of switch
         dp_l3ns = switch.add_network_service(name=switch.name + '-l3ns',
                                              node_id=switch.node_id + '-l3ns',
                                              nstype=f.ServiceType.FABNetv4,
                                              labels=f.Labels(ipv4_range='192.168.1.1-192.168.1.255',
                                                              vlan_range='100-200'))
+        # FABNetv4Ext - externally connected
+        dp_l3nsext = switch.add_network_service(name=switch.name + '-l3nsext',
+                                                node_id=switch.node_id + '-l3nsext',
+                                                nstype=f.ServiceType.FABNetv4Ext,
+                                                labels=f.Labels(ipv4_subnet=['123.1.15.1/24', '122.2.16.1/24'],
+                                                                vlan_range='100-200'))
+        dp_l3vpn = switch.add_network_service(name=switch.name + '-l3vpn',
+                                              node_id=switch.node_id + '-l3vpn',
+                                              nstype=f.ServiceType.L3VPN,
+                                              # the IP range is what orchestrator uses to pick link endpoint addresses
+                                              # for peering
+                                              labels=f.Labels(asn='12345', ipv4_subnet='10.100.10.1/16'))
 
         # add ports
         port_caps = f.Capacities(bw=100)
@@ -1127,7 +1137,7 @@ class AdTest(unittest.TestCase):
                                       nstype=f.ServiceType.L3VPN,
                                       # nslabels go onto facility network service
                                       nslabels=f.Labels(asn='123456'))
-        self.assertEqual(fac3.network_services['RENCI-Cloud-ns'].peer_labels.bgp_key, 'secretkey')
+        self.assertEqual(fac3.network_services['RENCI-Cloud-ns'].labels.asn, '123456')
 
         # connect them to links along with the port facing the facility
         fac1_port_link = self.topo.add_link(name='RENCI-DC-link1', node_id='RENCI-DC-link1-id',

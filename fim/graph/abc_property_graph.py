@@ -47,7 +47,7 @@ from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
 from fim.slivers.tags import Tags
-from fim.slivers.measurement_data import MeasurementData
+from fim.slivers.json_data import MeasurementData, UserData, LayoutData
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, MirrorDirection
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
@@ -101,10 +101,11 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
+        "layout_data": ABCPropertyGraphConstants.PROP_LAYOUT_DATA,
+        "user_data": ABCPropertyGraphConstants.PROP_USER_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
-        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT,
-        "layout": ABCPropertyGraphConstants.PROP_LAYOUT
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
     }
 
     @abstractmethod
@@ -517,6 +518,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         # this is already a JSON dict
         if hasattr(sliver, 'mf_data') and sliver.mf_data is not None:
             prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
+        # this is already a JSON dict
+        if hasattr(sliver, 'user_data') and sliver.user_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_USER_DATA] = sliver.user_data.data
+        # this is already a JSON dict
+        if hasattr(sliver, 'layout_data') and sliver.layout_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_LAYOUT_DATA] = sliver.layout_data.data
         if hasattr(sliver, 'tags') and sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
         if hasattr(sliver, 'flags') and sliver.flags is not None:
@@ -729,6 +736,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
                                                       if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
                                                          is not None else None,
+                              user_data=UserData(d[ABCPropertyGraph.PROP_USER_DATA])
+                                                  if d.get(ABCPropertyGraph.PROP_USER_DATA, None)
+                                                     is not None else None,
+                              layout_data=LayoutData(d[ABCPropertyGraph.PROP_LAYOUT_DATA])
+                                                  if d.get(ABCPropertyGraph.PROP_LAYOUT_DATA, None)
+                                                     is not None else None,
                               boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                               )
 
