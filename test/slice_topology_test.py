@@ -212,8 +212,9 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(n1.tags, None)
 
         # flags on model elements
-        n1.flags = f.Flags(auto_config=True)
+        n1.flags = f.Flags(auto_config=True, ipv4_management=True)
         self.assertTrue(n1.flags.auto_config)
+        self.assertTrue(n1.flags.ipv4_management)
         n1.flags = None
         self.assertEqual(n1.flags, None)
 
