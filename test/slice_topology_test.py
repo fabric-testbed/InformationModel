@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import json
 
@@ -12,6 +13,8 @@ from fim.slivers.json_data import MeasurementDataError, UserDataError, LayoutDat
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.component_catalog import ComponentModelType
 from fim.slivers.network_service import ServiceType, MirrorDirection
+from fim.slivers.maintenance_mode import MaintenanceInfo, MaintenanceState, \
+    MaintenanceEntry, MaintenanceModeException
 
 
 class SliceTest(unittest.TestCase):
@@ -637,6 +640,20 @@ class SliceTest(unittest.TestCase):
 
         n1 = t.add_node(name='n1', site='MASS')
         n2 = t.add_node(name='n2', site='UKY')
+
+        # maintenance mode - the object needs to be constructed prior to being assigned to the property
+        minfo = MaintenanceInfo()
+        minfo.add(name=n1.name, minfo=MaintenanceEntry(state=MaintenanceState.Active))
+        n1.maintenance_info = minfo
+
+        self.assertEqual(n1.maintenance_info.get(n1.name).state, MaintenanceState.Active)
+        # check it is finalized
+        self.assertEqual(n1.maintenance_info._lock, True)
+
+        # try to modify after assignment
+        with self.assertRaises(MaintenanceModeException):
+            n1.maintenance_info.add(name='n3', minfo=MaintenanceEntry(state=MaintenanceState.PreMaint,
+                                                                      deadline=datetime.datetime.now()))
 
         # measurement data on model elements (nodes, links, components, interfaces, network services)
         # can be set simply as json string (string length not to exceed 1M)

@@ -30,6 +30,7 @@ from recordclass import recordclass
 from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
 from .topology_diff import TopologyDiff, TopologyDiffTuple
+from fim.slivers.maintenance_mode import MaintenanceInfo
 
 
 class NodeType(enum.Enum):
@@ -99,6 +100,7 @@ class NodeSliver(BaseSliver):
         self.network_service_info = None
         self.site = None
         self.location = None
+        self.maintenance_info = None
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -148,6 +150,15 @@ class NodeSliver(BaseSliver):
 
     def get_location(self) -> Location:
         return self.location
+
+    def set_maintenance_info(self, maintenance_info: MaintenanceInfo):
+        assert(maintenance_info is None or isinstance(maintenance_info, MaintenanceInfo))
+        if maintenance_info:
+            maintenance_info.finalize()
+        self.maintenance_info = maintenance_info
+
+    def get_maintenance_info(self) -> MaintenanceInfo:
+        return self.maintenance_info
 
     def diff(self, other_sliver) -> TopologyDiff or None:
         if not other_sliver:

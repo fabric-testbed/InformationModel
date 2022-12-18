@@ -51,6 +51,7 @@ from fim.slivers.json_data import MeasurementData, UserData, LayoutData
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, MirrorDirection
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
+from fim.slivers.maintenance_mode import MaintenanceInfo
 
 
 class GraphFormat(Enum):
@@ -105,7 +106,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "user_data": ABCPropertyGraphConstants.PROP_USER_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
-        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT
+        "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT,
+        "maintenance_info": ABCPropertyGraphConstants.PROP_MAINTENANCE_INFO
     }
 
     @abstractmethod
@@ -557,6 +559,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if hasattr(sliver, 'location') and sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
+        if hasattr(sliver, 'maintenance_info') and sliver.maintenance_info is not None:
+            prop_dict[ABCPropertyGraph.PROP_MAINTENANCE_INFO] = sliver.maintenance_info.to_json()
 
         return prop_dict
 
@@ -760,7 +764,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
+                         maintenance_info=
+                         MaintenanceInfo.from_json(d.get(ABCPropertyGraph.PROP_MAINTENANCE_INFO, None))
                          )
         return n
 
