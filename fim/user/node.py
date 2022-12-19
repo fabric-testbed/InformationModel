@@ -41,6 +41,7 @@ from ..slivers.network_node import NodeType
 from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
 from ..slivers.capacities_labels import CapacityHints, Location
+from ..slivers.maintenance_mode import MaintenanceInfo
 
 
 class Node(ModelElement):
@@ -164,6 +165,19 @@ class Node(ModelElement):
     def location(self, value: Location):
         if self.__dict__.get('topo', None) is not None:
             self.set_property('location', value)
+
+    @property
+    def maintenance_info(self):
+        """
+        Do not try to manipulate maintenance_info (PerNodeMaintenanceInfo) via this property,
+        assign a complete object or unset
+        """
+        return self.get_property('maintenance_info') if self.__dict__.get('topo', None) is not None else None
+
+    @maintenance_info.setter
+    def maintenance_info(self, value: MaintenanceInfo):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('maintenance_info', value)
 
     @property
     def components(self):

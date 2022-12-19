@@ -101,7 +101,7 @@ class JSONData(ABC):
 
 class MeasurementData(JSONData):
 
-    MAX_SIZE = 10240
+    MAX_SIZE = 4096
 
     def __init__(self, data: Any or None):
         super().__init__(data, MeasurementDataError)
@@ -109,7 +109,7 @@ class MeasurementData(JSONData):
 
 class UserData(JSONData):
 
-    MAX_SIZE = 10240
+    MAX_SIZE = 2048
 
     def __init__(self, data: Any or None):
         super().__init__(data, UserDataError)

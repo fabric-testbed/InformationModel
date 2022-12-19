@@ -9,6 +9,7 @@ from fim.slivers.path_info import ERO, PathInfo, Path
 from fim.slivers.capacities_labels import Capacities, Labels, CapacityHints, Location, LabelException, Flags
 from fim.slivers.tags import Tags
 from fim.slivers.gateway import Gateway, GatewayException
+from fim.slivers.maintenance_mode import MaintenanceInfo, MaintenanceState, MaintenanceEntry
 
 
 class TestSlivers(unittest.TestCase):
@@ -45,11 +46,16 @@ class TestSlivers(unittest.TestCase):
         self.assertEqual(len(acs.get_devices_by_type(ComponentType.SmartNIC)), 1)
 
     def testNodeSliver(self):
+        minfo = MaintenanceInfo()
+        minfo.add('node1', minfo=MaintenanceEntry(state=MaintenanceState.Active))
         ns = NodeSliver()
         ns.set_properties(name='node1', type=NodeType.Server,
-                          management_ip='192.168.1.1')
+                          management_ip='192.168.1.1',
+                          maintenance_info=minfo)
         with self.assertRaises(ValueError) as ve:
             ns.set_property('management_ip', '192.168.1.x')
+
+        self.assertEqual(ns.get_maintenance_info().get('node1').state, MaintenanceState.Active)
 
     def testNetworkServiceSliver(self):
         ns = NetworkServiceSliver()
