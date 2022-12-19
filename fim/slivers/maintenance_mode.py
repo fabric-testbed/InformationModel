@@ -153,6 +153,29 @@ class MaintenanceInfo:
         t._nodes = self._nodes.copy()
         return t
 
+    def list_names(self) -> List[str]:
+        """
+        List the names of the nodes in maintenance
+        """
+        return list(self._nodes.keys())
+
+    def list_details(self) -> List[Tuple[str, Any]]:
+        """
+        Return a list of tuples with node name and maintenance state details
+        """
+        return list(self._nodes.copy().items())
+
+    def iter(self):
+        """
+        Generate an item iterator on a finalized object, so you can do
+        for i in minfo.iter():
+          print(i)
+        """
+        if not self._lock:
+            raise MaintenanceModeException("Object should be finalized prior to attempting iteration")
+        for i in self._nodes.items():
+            yield i
+
     @classmethod
     def from_json(cls, json_string: str):
         """
