@@ -12,6 +12,7 @@ from fim.slivers.attached_components import ComponentType
 from fim.slivers.network_service import ServiceType
 from fim.user.topology import TopologyDiff, TopologyDiffTuple
 from fim.slivers.capacities_labels import ReservationInfo
+from fim.logging.log_collector import LogCollector
 
 WITH_PROFILER = False
 
@@ -189,6 +190,17 @@ class ModifyTest(unittest.TestCase):
         if WITH_PROFILER: self.pr.enable()
         diff_res = self.topoA.diff(self.topoB)
         if WITH_PROFILER: self.pr.disable()
+
+        # log added
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=diff_res)
+        print('----- LOG DIFF TEST ----')
+        print(diff_res.added)
+        print(lc)
+        self.assertIn('RENCI-DTN', lc.attributes['facilities'])
+        self.assertIn('RENC', lc.attributes['sites'])
+        self.assertIn('UKY', lc.attributes['sites'])
+        print('----- END LOG TEST ---- ')
 
         ModifyTest.compare_diffs(diff_res, self.diff)
 

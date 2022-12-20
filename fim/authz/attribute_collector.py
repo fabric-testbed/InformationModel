@@ -166,14 +166,13 @@ class ResourceAuthZAttributes:
         elif isinstance(sliver, NodeSliver):
             self._collect_attributes_from_node_sliver(sliver)
 
-
     def _collect_attributes_from_topo(self, topo: ExperimentTopology):
         for n in topo.nodes.values():
             self._collect_attributes_from_node(n)
         for ns in topo.network_services.values():
             self._collect_attributes_from_ns(ns)
         for fac in topo.facilities.values():
-            self._attributes[self.RESOURCE_FACILITY_PORT] = fac.name
+            self._attributes[self.RESOURCE_FACILITY_PORT].append(fac.name)
 
     def _collect_attributes_from_node(self, node: Node):
         self._collect_attributes_from_node_sliver(node.get_sliver())
