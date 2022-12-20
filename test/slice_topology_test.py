@@ -10,11 +10,12 @@ from fim.slivers.gateway import Gateway
 from fim.slivers.capacities_labels import Labels
 from fim.user.model_element import TopologyException
 from fim.slivers.json_data import MeasurementDataError, UserDataError, LayoutDataError
-from fim.slivers.attached_components import ComponentType
+from fim.logging.log_collector import LogCollector
 from fim.slivers.component_catalog import ComponentModelType
 from fim.slivers.network_service import ServiceType, MirrorDirection
 from fim.slivers.maintenance_mode import MaintenanceInfo, MaintenanceState, \
     MaintenanceEntry, MaintenanceModeException
+from fim.slivers.capacities_labels import Capacities
 
 
 class SliceTest(unittest.TestCase):
@@ -475,7 +476,7 @@ class SliceTest(unittest.TestCase):
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
-        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4))
         self.topo.add_node(name='n2', site='RENC')
         self.topo.add_node(name='n3', site='UKY')
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
@@ -489,6 +490,38 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
         self.topo.validate()
+
+        # test log on topology
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo)
+        print('----LOG TOPO TEST-----')
+        print(f'with {lc}')
+        print('----END TOPO LOG TEST-----')
+        self.assertEqual(lc.attributes['vm_count'], 3)
+        self.assertIn(('L2STS', 0), lc.attributes['services'])
+        self.assertIn('UKY', lc.attributes['sites'])
+        self.assertIn('RENC', lc.attributes['sites'])
+        self.assertEqual(lc.attributes['core_count'], 4)
+
+        # test log on Node
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo.nodes['n1'])
+        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['vm_count'], 1)
+        self.assertIn('RENC', lc.attributes['sites'])
+        print('----LOG NODE TEST-----')
+        print(f'with {lc}')
+        print('----END NODE LOG TEST-----')
+
+        # test log on NodeSliver
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo.nodes['n1'].get_sliver())
+        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['vm_count'], 1)
+        self.assertIn('RENC', lc.attributes['sites'])
+        print('----LOG NODE SLIVER TEST-----')
+        print(f'with {lc}')
+        print('----END NODE LOG SLIVER TEST-----')
 
         # Import it in the neo4j as ASM
         slice_graph = self.topo.serialize()
@@ -616,6 +649,12 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(ns1.interfaces[ns1.name + '-' + al2s.name].peer_labels.bgp_key, 'secret')
 
         t.validate()
+
+        print('---- LOG TEST FACILITY ----')
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=t)
+        print(lc)
+        print('----- END LOG TEST -----')
 
         slice_graph = t.serialize()
         #t.serialize("peered-slice.graphml")
