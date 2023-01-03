@@ -21,7 +21,7 @@ class Neo4jTests(unittest.TestCase):
              "user": "neo4j",
              "pass": "password",
              "import_host_dir": "neo4j/imports/",
-             "import_dir": "/imports"}
+             "import_dir": "/import"}
 
     def setUp(self) -> None:
         self.n4j_imp = Neo4jGraphImporter(url=self.neo4j["url"], user=self.neo4j["user"],
