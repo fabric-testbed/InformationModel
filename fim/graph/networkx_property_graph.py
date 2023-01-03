@@ -36,6 +36,8 @@ import networkx as nx
 import networkx_query as nxq
 from threading import Lock
 
+
+from fim.graph.graph_util import GraphML
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
     PropertyGraphQueryException, ABCGraphImporter, GraphFormat
 from .networkx_mixin import NetworkXMixin
@@ -371,6 +373,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         if graph is not None:
             if format == GraphFormat.GRAPHML:
                 graph_string = '\n'.join(nx.generate_graphml(graph))
+                graph_string = GraphML.networkx_to_neo4j(graph_string)
             elif format == GraphFormat.JSON_NODELINK:
                 json_object = nx.readwrite.node_link_data(graph)
                 graph_string = json.dumps(json_object)
