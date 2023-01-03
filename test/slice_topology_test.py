@@ -24,7 +24,7 @@ class SliceTest(unittest.TestCase):
              "user": "neo4j",
              "pass": "password",
              "import_host_dir": "neo4j/imports/",
-             "import_dir": "/imports"}
+             "import_dir": "/import"}
 
     def setUp(self) -> None:
         self.topo = f.ExperimentTopology()
