@@ -40,15 +40,15 @@
     "msg": "Links can only connect to ConnectionPoints"
   },
   {
-    "rule": "MATCH (n:NetworkService {GraphID: $graphId}) WHERE n.Type = \"Patch\" or n.Type=\"L2Path\" or n.Type=\"L2PTP\" WITH collect(size([(n) -[:connects]- () | n.NodeID ])) AS sizes RETURN sizes IS null or all(s in sizes where s=2)",
+    "rule": "MATCH (n:NetworkService {GraphID: $graphId}) WHERE n.Type = \"Patch\" or n.Type=\"L2Path\" or n.Type=\"L2PTP\" WITH collect(size((n) -[:connects]- ())) AS sizes RETURN sizes IS null or all(s in sizes where s=2)",
     "msg": "Patch, L2Path or L2PTP link type can only connect two ConnectionPoints"
   },
   {
-    "rule": "MATCH (n:NetworkService {GraphID: $graphId}) WHERE n.Type = \"PortMirror\" WITH collect(size([(n) -[:connects]- () | n.NodeID ])) AS sizes RETURN sizes IS null or all(s in sizes where s=1)",
+    "rule": "MATCH (n:NetworkService {GraphID: $graphId}) WHERE n.Type = \"PortMirror\" WITH collect(size((n) -[:connects]- ())) AS sizes RETURN sizes IS null or all(s in sizes where s=1)",
     "msg": "PortMirror link type can only connect one ConnectionPoint"
   },
   {
-    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) where n.Type = \"ServicePort\" WITH collect(size([(n) -[:connects]- (:Link) -[:connects]- (:ConnectionPoint) | n.NodeID])) AS sizes RETURN sizes IS null or all(s in sizes where s=1)",
+    "rule": "MATCH (n:ConnectionPoint {GraphID: $graphId}) where n.Type = \"ServicePort\" WITH collect(size((n) -[:connects]- (:Link) -[:connects]- (:ConnectionPoint))) AS sizes RETURN sizes IS null or all(s in sizes where s=1)",
     "msg": "There should always be one peer for each ServicePort"
   }
 ]

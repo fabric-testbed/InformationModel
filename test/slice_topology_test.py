@@ -24,7 +24,7 @@ class SliceTest(unittest.TestCase):
              "user": "neo4j",
              "pass": "password",
              "import_host_dir": "neo4j/imports/",
-             "import_dir": "/imports"}
+             "import_dir": "/import"}
 
     def setUp(self) -> None:
         self.topo = f.ExperimentTopology()
@@ -493,6 +493,23 @@ class SliceTest(unittest.TestCase):
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
 
+    def testBasicOneSiteSliceNeo4jImp(self):
+        # Produce same graph as above but using Neo4j instead of NetworkX and serialize to file
+        # This is used to compare serializations between NetworkX and Neo4j
+        topo = f.ExperimentTopology(importer=self.n4j_imp)
+        topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        topo.add_node(name='n2', site='RENC')
+        topo.add_node(name='n3', site='RENC')
+        topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        topo.nodes['n1'].add_component(model_type=f.ComponentModelType.NVME_P4510, name='drive1')
+        topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        topo.nodes['n2'].add_component(model_type=f.ComponentModelType.GPU_RTX6000, name='gpu1')
+        topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+        topo.add_network_service(name='bridge1', nstype=f.ServiceType.L2Bridge,
+                                      interfaces=self.topo.interface_list)
+        topo.serialize(file_name='single-site-neo4jimp.graphml')
+        topo.validate()
+
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
         self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4))
@@ -882,3 +899,4 @@ class SliceTest(unittest.TestCase):
         # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
         n1.layout_data = None
         self.assertIsNone(n1.layout_data)
+
