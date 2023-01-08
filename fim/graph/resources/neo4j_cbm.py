@@ -316,7 +316,7 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                                          f"{comp_props}}}) | n.NodeID])>={str(v)}")
             query = node_query + " and ".join(component_clauses) + " RETURN collect(n.NodeID) as candidate_ids"
 
-        print(f'**** Resulting query {query=}')
+        #print(f'**** Resulting query {query=}')
 
         with self.driver.session() as session:
 
