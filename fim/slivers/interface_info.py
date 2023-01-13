@@ -83,6 +83,7 @@ class InterfaceSliver(BaseSliver):
     def diff(self, other_sliver) -> TopologyDiff or None:
         raise RuntimeError('Not implemented')
 
+
 class InterfaceInfo:
     def __init__(self):
         self.interfaces = {}

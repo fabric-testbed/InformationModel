@@ -28,11 +28,26 @@
 Definitions of topology differences for modify operations - used in topology and sliver diff methods
 """
 import dataclasses
-from typing import Any
+from typing import Any, Tuple
+from enum import Flag, auto
+
+
+class WhatsModifiedFlag(Flag):
+    """
+    As we work on enabling more and more modifications, this list will grow
+    """
+    NONE = 0
+    LABELS = auto()
+    CAPACITIES = auto()
+    USER_DATA = auto()
 
 
 @dataclasses.dataclass
 class TopologyDiffTuple:
+    """
+    Note that in case of diffs between topologies these sets contain
+    network elements. In case of diffs between slivers they contain slivers
+    """
     nodes: set[Any]
     components: set[Any]
     services: set[Any]
@@ -40,6 +55,23 @@ class TopologyDiffTuple:
 
 
 @dataclasses.dataclass
+class TopologyDiffModifiedTuple:
+    """
+    Note that in case of diffs between topologies these lists contain
+    network elements. In case of diffs between slivers they contain slivers
+    """
+    nodes: list[Tuple[Any, WhatsModifiedFlag]]
+    components: list[Tuple[Any, WhatsModifiedFlag]]
+    services: list[Tuple[Any, WhatsModifiedFlag]]
+    interfaces: list[Tuple[Any, WhatsModifiedFlag]]
+
+
+@dataclasses.dataclass
 class TopologyDiff:
+    """
+    Note that for added and removed the sets are just tuple of sets of Elements,
+    while for modified it is a tuple of lists of tuples [Element, WhatsModifiedFlag]
+    """
     added: TopologyDiffTuple
     removed: TopologyDiffTuple
+    modified: TopologyDiffModifiedTuple

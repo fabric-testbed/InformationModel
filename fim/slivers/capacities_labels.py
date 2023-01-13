@@ -193,6 +193,8 @@ class Capacities(JSONField):
         return True
 
     def __eq__(self, other):
+        if not other:
+            return False
         assert isinstance(other, Capacities)
         for f, v in self.__dict__.items():
             if v != other.__dict__[f]:
