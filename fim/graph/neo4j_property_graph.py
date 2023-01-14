@@ -257,6 +257,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
         query = f"MATCH (s:GraphNode {{GraphID: $graphId, NodeID: $nodeId}}) " \
             f"SET s+= {{ {all_props} }} RETURN properties(s)"
+
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeId=node_id)
             if val is None or len(val.value()) == 0:
@@ -618,6 +619,60 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             # A not B means element was removed
             # B not A means element was added
             return val.data()['AnotB'], val.data()['BnotA']
+
+    def get_graph_property_diff(self, other_graph, label: str):
+        assert other_graph is not None
+        assert label is not None
+        assert property is not None
+
+        # alternative query
+        # FIXME: figure out which one is faster
+        #query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) " \
+        #        f"WHERE n.NodeID = n1.NodeID AND " \
+        #        f"(" \
+        #        f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
+        #       f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
+        #        f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+        #        f"OR " \
+        #        f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
+        #        f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
+        #        f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+        #        f"OR " \
+        #        f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
+        #        f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
+        #        f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+        #        f") " \
+        #        f"RETURN collect(n) as nodes"
+
+        query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
+                f"n.NodeID = n1.NodeID AND " \
+                f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
+                f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
+                f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+                f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
+                f"UNION " \
+                f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
+                f"n.NodeID = n1.NodeID AND " \
+                f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
+                f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
+                f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+                f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
+                f"UNION " \
+                f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
+                f"n.NodeID = n1.NodeID AND " \
+                f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
+                f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
+                f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+                f"RETURN collect(n) as nodes, collect(n1) as nodes1 "
+
+        with self.driver.session() as session:
+            val = session.run(query, graphIdA=self.graph_id, graphIdB=other_graph.graph_id)
+            vd = val.data()
+            if vd is None:
+                raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                                  node_id=None, msg=f"Unable to property diff with graph "
+                                                                    f"{other_graph.graph_id}")
+            return vd[0]['nodes'], vd[0]['nodes1']
 
 
 class Neo4jGraphImporter(ABCGraphImporter):

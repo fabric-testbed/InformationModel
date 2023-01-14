@@ -519,13 +519,13 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
         # this is already a JSON dict
         if hasattr(sliver, 'mf_data') and sliver.mf_data is not None:
-            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
+            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.json
         # this is already a JSON dict
         if hasattr(sliver, 'user_data') and sliver.user_data is not None:
-            prop_dict[ABCPropertyGraph.PROP_USER_DATA] = sliver.user_data.data
+            prop_dict[ABCPropertyGraph.PROP_USER_DATA] = sliver.user_data.json
         # this is already a JSON dict
         if hasattr(sliver, 'layout_data') and sliver.layout_data is not None:
-            prop_dict[ABCPropertyGraph.PROP_LAYOUT_DATA] = sliver.layout_data.data
+            prop_dict[ABCPropertyGraph.PROP_LAYOUT_DATA] = sliver.layout_data.json
         if hasattr(sliver, 'tags') and sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
         if hasattr(sliver, 'flags') and sliver.flags is not None:
@@ -1306,11 +1306,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
     @abstractmethod
     def get_graph_diff(self, other_graph, label: str):
         """
-        Return two lists - nodes that are in this graph but NOT in the other graph
+        Return two lists nodes (with all properties) that are in this graph but NOT in the other graph
         and node that are in the other graph, but not in this graph, using label
         as a filter
         [0] - elements present in self, absent in other (i.e. removed elements)
         [1] - elements present in other, absent in self (i.e. added elements
+        """
+
+    @abstractmethod
+    def get_graph_property_diff(self, other_graph, label: str):
+        """
+        Return two lists of nodes (with all properties, from both graphs) that are present in both
+        this and other graph where the several specific properties are different
         """
 
     def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:

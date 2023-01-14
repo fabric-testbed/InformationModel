@@ -29,7 +29,7 @@ from recordclass import recordclass
 
 from fim.slivers.capacities_labels import Location
 from .base_sliver import BaseSliver
-from .topology_diff import TopologyDiff, TopologyDiffTuple
+from .topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 from fim.slivers.maintenance_mode import MaintenanceInfo
 
 
@@ -170,36 +170,69 @@ class NodeSliver(BaseSliver):
         comp_removed = set()
         ns_added = set()
         ns_removed = set()
+        comp_modified = list()
+        ns_modified = list()
+
+        # see if we ourselves have modified properties
+        self_modified = list()
+        self_modified_flags = self.prop_diff(other_sliver)
+        if self.prop_diff(other_sliver) != WhatsModifiedFlag.NONE:
+            self_modified.append((self, self_modified_flags))
 
         if self.attached_components_info and other_sliver.attached_components_info:
             diff_comps = self._dict_diff(self.attached_components_info.devices,
                                          other_sliver.attached_components_info.devices)
-            comp_added = set(diff_comps['added'].keys())
-            comp_removed = set(diff_comps['removed'].keys())
+            comp_added = set(diff_comps['added'].values())
+            comp_removed = set(diff_comps['removed'].values())
+            # there are common components (by name) so we check their properties
+            comp_common = self._dict_common(self.attached_components_info.devices,
+                                            other_sliver.attached_components_info.devices)
+            for cA in comp_common.values():
+                cB = other_sliver.attached_components_info.get_device(cA.resource_name)
+                # compare properties
+                flag = cA.prop_diff(cB)
+                if flag != WhatsModifiedFlag.NONE:
+                    comp_modified.append((cA, flag))
 
         if not self.attached_components_info and other_sliver.attached_components_info:
-            comp_added = set(other_sliver.attached_components_info.devices.keys())
+            comp_added = set(other_sliver.attached_components_info.devices.values())
 
         if self.attached_components_info and not other_sliver.attached_components_info:
-            comp_removed = set(self.attached_components_info.devices.keys())
+            comp_removed = set(self.attached_components_info.devices.values())
 
         if self.network_service_info and other_sliver.network_service_info:
             diff_ns = self._dict_diff(other_sliver.network_service_info.services,
                                       other_sliver.network_service_info.services)
-            ns_added = set(diff_ns['added'].keys())
-            ns_removed = set(diff_ns['removed'].keys())
+            ns_added = set(diff_ns['added'].values())
+            ns_removed = set(diff_ns['removed'].values())
+            # there are common network services so we check their properties
+            ns_common = self._dict_common(self.network_service_info.services,
+                                          other_sliver.network_service_info.services)
+            for nsA in ns_common.values():
+                nsB = other_sliver.network_service_info.get_network_service(nsA.resource_name)
+                # compare properties
+                flag = nsA.prop_diff(nsB)
+                if flag != WhatsModifiedFlag.NONE:
+                    ns_modified.append((nsA, flag))
 
         if not self.network_service_info and other_sliver.network_service_info:
-            ns_added = set(other_sliver.network_service_info.services.keys())
+            ns_added = set(other_sliver.network_service_info.services.values())
 
         if self.network_service_info and not other_sliver.network_service_info:
-            ns_removed = set(self.network_service_info.services.keys())
+            ns_removed = set(self.network_service_info.services.values())
 
-        if len(comp_added) > 0 or len(comp_removed) > 0 or len(ns_removed) > 0 or len(ns_added) > 0:
+        if len(comp_added) > 0 or len(comp_removed) > 0 or \
+                len(ns_removed) > 0 or len(ns_added) > 0 or \
+                len(comp_modified) > 0 or len(ns_modified) > 0:
             return TopologyDiff(added=TopologyDiffTuple(components=comp_added, services=ns_added, interfaces=set(),
                                                         nodes=set()),
                                 removed=TopologyDiffTuple(components=comp_removed, services=ns_removed,
-                                                          interfaces=set(), nodes=set()))
+                                                          interfaces=set(), nodes=set()),
+                                modified=TopologyDiffModifiedTuple(
+                                    nodes=self_modified,
+                                    components=comp_modified,
+                                    services=ns_modified,
+                                    interfaces=list()))
         else:
             return None
 

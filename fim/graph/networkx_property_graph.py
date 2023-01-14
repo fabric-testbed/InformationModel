@@ -669,6 +669,9 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
     def get_graph_diff(self, other_graph, label: str):
         raise RuntimeError("Not implementable with this backend.")
 
+    def get_graph_property_diff(self, other_graph, label: str) -> List[str]:
+        raise RuntimeError("Not implementable with this backend.")
+
 
 class NetworkXGraphStorage:
     """

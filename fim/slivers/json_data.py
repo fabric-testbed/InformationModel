@@ -69,17 +69,17 @@ class JSONData(ABC):
 
         if data is not None and isinstance(data, str):
             if len(data) > self.MAX_SIZE:
-                raise excep(f'MeasurementData JSON string is too long ({len(data)} > {self.MAX_SIZE}B')
+                raise excep(f'Data JSON string is too long ({len(data)} > {self.MAX_SIZE}B')
             try:
                 json.loads(data)
             except json.JSONDecodeError:
-                raise excep(f'Unable to decode measurement data {data} as valid JSON ')
+                raise excep(f'Unable to decode data {data} as valid JSON ')
             self._data = data
         elif data is not None:
             try:
                 self._data = json.dumps(data)
                 if len(self._data) > self.MAX_SIZE:
-                    raise excep(f'MeasurementData object is too large: '
+                    raise excep(f'Data object is too large: '
                                                f'{len(self._data)} > {self.MAX_SIZE}B')
             except TypeError:
                 raise excep(f'Unable to encode data as valid JSON')
@@ -88,8 +88,18 @@ class JSONData(ABC):
 
     @property
     def data(self):
+        """
+        Return as object
+        """
         if self._data is not None:
             return json.loads(self._data)
+        return self._data
+
+    @property
+    def json(self):
+        """
+        Return as JSON
+        """
         return self._data
 
     def __str__(self):

@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 from abc import ABC
-from typing import List, Tuple, Any, Set
+from typing import List, Tuple, Any, Set, Tuple
 import enum
 
 import uuid
@@ -50,7 +50,7 @@ from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
 from fim.slivers.capacities_labels import FreeCapacity, Labels
 from fim.slivers.interface_info import InterfaceType
-from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
+from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 
 from .model_element import ElementType
 from .node import Node
@@ -696,7 +696,8 @@ class ExperimentTopology(Topology):
     @staticmethod
     def _generate_set_of_diff_elements(elems, topo: Topology, elemClass):
 
-        return {elemClass(name=x["Name"], node_id=x["NodeID"], topo=topo)
+        return {elemClass(name=x[ABCPropertyGraph.PROP_NAME],
+                          node_id=x[ABCPropertyGraph.NODE_ID], topo=topo)
                 for x in elems}
 
     @staticmethod
@@ -758,6 +759,35 @@ class ExperimentTopology(Topology):
         excluded_interfaces = {i for i in interfaces if ExperimentTopology._is_parented_interface(i, nss.union(excluded_nss))}
         return nodes, nss - excluded_nss, components - excluded_components, interfaces - excluded_interfaces
 
+    def _generate_list_of_modified_elements(self, other_topo: Topology, label: str, elemClass) -> List[Tuple[Any, WhatsModifiedFlag]]:
+        """
+        Generate list of tuples <element, WhatsModifiedFlag> for NetworkNodes, NetworkServices, Components and Interfaces.
+        Note that elements are in reference to self topology.
+        """
+        ret = list()
+        flags_dict = dict()
+        # looks at Labels, Capacities and UserData
+        graph_nodes, graph_nodes1 = self.graph_model.get_graph_property_diff(other_topo.graph_model, label)
+        # sanity check
+        assert len(graph_nodes) == len(graph_nodes1)
+        # now need to generate flags and to avoid extra querying we compare property values returned by the query
+        for n in zip(graph_nodes, graph_nodes1):
+            # compare Labels, Capacities and UserData properties. This coupling to the query code which also
+            # checks these properties is a bit unpleasant but avoids extra querying
+            flags = WhatsModifiedFlag.NONE
+            if n[0].get(ABCPropertyGraph.PROP_LABELS) != n[1].get(ABCPropertyGraph.PROP_LABELS):
+                flags |= WhatsModifiedFlag.LABELS
+            if n[0].get(ABCPropertyGraph.PROP_CAPACITIES) != n[1].get(ABCPropertyGraph.PROP_CAPACITIES):
+                flags |= WhatsModifiedFlag.CAPACITIES
+            if n[0].get(ABCPropertyGraph.PROP_USER_DATA) != n[1].get(ABCPropertyGraph.PROP_USER_DATA):
+                flags |= WhatsModifiedFlag.USER_DATA
+            # append a tuple <element, flags> to the list, notice that element is created in reference
+            # to self topology, which is the original
+            elem = elemClass(name=n[0][ABCPropertyGraph.PROP_NAME], node_id=n[0][ABCPropertyGraph.NODE_ID], topo=self)
+            ret.append((elem, flags))
+
+        return ret
+
     def diff(self, t) -> TopologyDiff:
         """
         Do a diff of two topologies assuming they are both in Neo4j (will not work with NetworkX backend)
@@ -790,6 +820,20 @@ class ExperimentTopology(Topology):
             ExperimentTopology._exclude_parented_elements(nodes_removed, nss_removed,
                                                           components_removed, interfaces_removed)
 
+        # check for modified properties
+        modified_nodes = self._generate_list_of_modified_elements(t,
+                                                                  ABCPropertyGraph.CLASS_NetworkNode,
+                                                                  Node)
+        modified_nss = self._generate_list_of_modified_elements(t,
+                                                                ABCPropertyGraph.CLASS_NetworkService,
+                                                                NetworkService)
+        modified_components = self._generate_list_of_modified_elements(t,
+                                                                       ABCPropertyGraph.CLASS_Component,
+                                                                       Component)
+        modified_interfaces = self._generate_list_of_modified_elements(t,
+                                                                       ABCPropertyGraph.CLASS_ConnectionPoint,
+                                                                       Interface)
+
         return TopologyDiff(added=TopologyDiffTuple(nodes=nodes_added,
                                                     components=components_added,
                                                     services=nss_added,
@@ -797,7 +841,13 @@ class ExperimentTopology(Topology):
                             removed=TopologyDiffTuple(nodes=nodes_removed,
                                                       components=components_removed,
                                                       services=nss_removed,
-                                                      interfaces=interfaces_removed))
+                                                      interfaces=interfaces_removed),
+                            modified=TopologyDiffModifiedTuple(
+                                nodes=modified_nodes,
+                                components=modified_components,
+                                services=modified_nss,
+                                interfaces=modified_interfaces
+                            ))
 
     def _prune_node(self, node: Node):
         """
