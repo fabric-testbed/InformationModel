@@ -631,39 +631,39 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         #query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) " \
         #        f"WHERE n.NodeID = n1.NodeID AND " \
         #        f"(" \
-        #        f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
-        #       f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
-        #        f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+        #        f"((n.Labels IS NOT NULL AND n1.Labels IS NOT NULL AND n.Labels <> n1.Labels) OR " \
+        #        f"(n.Labels IS NOT NULL AND n1.Labels IS NULL) OR " \
+        #        f"(n.Labels IS NULL AND n1.Labels IS NOT NULL)) " \
         #        f"OR " \
-        #        f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
-        #        f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
-        #        f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+        #        f"((n.Capacities IS NOT NULL AND n1.Capacities IS NOT NULL AND n.Capacities <> n1.Capacities) OR " \
+        #        f"(n.Capacities IS NOT NULL AND n1.Capacities IS NULL) OR " \
+        #        f"(n.Capacities IS NULL AND n1.Capacities IS NOT NULL)) " \
         #        f"OR " \
-        #        f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
-        #        f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
-        #        f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+        #        f"((n.UserData IS NOT NULL AND n1.UserData IS NOT NULL AND n.UserData <> n1.UserData) OR " \
+        #        f"(n.UserData IS NOT NULL AND n1.UserData IS NULL) OR " \
+        #        f"(n.UserData IS NULL AND n1.UserData IS NOT NULL)) " \
         #        f") " \
         #        f"RETURN collect(n) as nodes"
 
         query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
-                f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
-                f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+                f"((n.Labels IS NOT NULL AND n1.Labels IS NOT NULL AND n.Labels <> n1.Labels) OR " \
+                f"(n.Labels IS NOT NULL AND n1.Labels IS NULL) OR " \
+                f"(n.Labels IS NULL AND n1.Labels IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
                 f"UNION " \
                 f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
-                f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
-                f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+                f"((n.Capacities IS NOT NULL AND n1.Capacities IS NOT NULL AND n.Capacities <> n1.Capacities) OR " \
+                f"(n.Capacities IS NOT NULL AND n1.Capacities IS NULL) OR " \
+                f"(n.Capacities IS NULL AND n1.Capacities IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
                 f"UNION " \
                 f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
-                f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
-                f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+                f"((n.UserData IS NOT NULL AND n1.UserData IS NOT NULL AND n.UserData <> n1.UserData) OR " \
+                f"(n.UserData IS NOT NULL AND n1.UserData IS NULL) OR " \
+                f"(n.UserData IS NULL AND n1.UserData IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 "
 
         with self.driver.session() as session:

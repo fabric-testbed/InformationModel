@@ -25,7 +25,7 @@ class ModifyTest(unittest.TestCase):
              "user": "neo4j",
              "pass": "password",
              "import_host_dir": "neo4j/imports/",
-             "import_dir": "/import"}
+             "import_dir": "/imports"}
 
     def initialTopo(self):
         """
