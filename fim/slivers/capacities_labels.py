@@ -354,7 +354,8 @@ class Labels(JSONField):
         # GCP <random>/<vlan-attachment-region>/<edge-availability-domain> "7e51371e-1234-40b5-b844-2e3efefaee59/us-central1/2"
         # AWS 12 digits
         # Oracle ocid1.<RESOURCE TYPE>.<REALM>.[REGION][.FUTURE USE].<UNIQUE ID> "ocid1.instance.oc1.phx.abuw4ljrlsfiqw6vzzxb67hyypt4pkodawglp3wqxjqofakrwvou52gb6s5a"
-        'account_id': (r'[\w\-/\.]{3,100}', "Azure/GCP/AWS/Oracle account")
+        'account_id': (r'[\w\-/\.]{3,100}', "Azure/GCP/AWS/Oracle account"),
+        'region': (r'[\w\-\.]{3,100}', "Azure/GCP/AWS/Oracle region identifier")
     }
     LAMBDA_VALIDATORS = {
         'vlan': ((lambda v: True if 0 <= int(v) <= 4096 else False), "0-4096"),
@@ -386,6 +387,7 @@ class Labels(JSONField):
         self.device_name = None
         self.bgp_key = None
         self.account_id = None
+        self.region = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
