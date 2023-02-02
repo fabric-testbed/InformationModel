@@ -49,6 +49,8 @@ class ComponentType(enum.Enum):
 
 class ComponentSliver(BaseSliver):
 
+    NAME_REGEX = r'^[\w\-_\.\ ]{2,255}$'
+
     def __init__(self):
         super().__init__()
         self.network_service_info = None

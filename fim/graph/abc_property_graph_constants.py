@@ -69,17 +69,21 @@ class ABCPropertyGraphConstants(ABC):
     PROP_GATEWAY = "Gateway"
     PROP_MIRROR_PORT = "MirrorPort"
     PROP_MIRROR_DIRECTION = "MirrorDirection"
+    PROP_PEER_LABELS = "PeerLabels"
     PROP_TAGS = "Tags"
     PROP_FLAGS = "Flags"
     PROP_MEAS_DATA = "MeasurementData"
+    PROP_USER_DATA = "UserData"
+    PROP_LAYOUT_DATA = "LayoutData"
     PROP_BOOT_SCRIPT = "BootScript"
-    PROP_LAYOUT = "Layout"
+    PROP_MAINTENANCE_INFO = "MaintenanceInfo"
     # these properties get validated to be valid JSON objects whenever someone validates the graph
     JSON_PROPERTY_NAMES = [PROP_LABELS, PROP_CAPACITIES, PROP_LABEL_DELEGATIONS,
                            PROP_CAPACITY_DELEGATIONS, PROP_LABEL_ALLOCATIONS,
                            PROP_CAPACITY_ALLOCATIONS, PROP_RESERVATION_INFO, PROP_STRUCTURAL_INFO,
                            PROP_ERO, PROP_PATH_INFO, PROP_CAPACITY_HINTS, PROP_GATEWAY,
-                           PROP_TAGS, PROP_FLAGS, PROP_MEAS_DATA, PROP_LAYOUT]
+                           PROP_TAGS, PROP_FLAGS, PROP_MEAS_DATA, PROP_USER_DATA, PROP_LAYOUT_DATA,
+                           PROP_PEER_LABELS, PROP_MAINTENANCE_INFO]
     # these properties cannot be unset
     NO_UNSET_PROPERTIES = [GRAPH_ID, NODE_ID, PROP_TYPE, PROP_CLASS, PROP_NAME]
 

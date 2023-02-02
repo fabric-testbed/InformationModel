@@ -24,7 +24,7 @@
 #
 # Author: Ilya Baldin (ibaldin@renci.org)
 from abc import ABC
-from typing import List, Tuple, Any, Set
+from typing import List, Tuple, Any, Set, Tuple
 import enum
 
 import uuid
@@ -48,9 +48,9 @@ from ..graph.networkx_property_graph_disjoint import NetworkXGraphImporterDisjoi
 from ..graph.resources.neo4j_arm import Neo4jARMGraph
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import FreeCapacity
+from fim.slivers.capacities_labels import FreeCapacity, Labels
 from fim.slivers.interface_info import InterfaceType
-from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
+from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 
 from .model_element import ElementType
 from .node import Node
@@ -205,14 +205,28 @@ class Topology(ABC):
 
     def remove_node(self, name: str):
         """
-        Remove node and all its components, its interfaces and interfaces of components
+        Remove node and all its components, its interfaces and interfaces of components.
+        Remove a matching ServicePort if connected to a NetworkService.
         :param name:
         :return:
         """
+        if name not in self.nodes.keys():
+            raise TopologyException(f'Node {name} is not in this topology.')
+        for i in self.nodes[name].interface_list:
+            # disconnect if connected
+            peers = i.get_peers(itype=InterfaceType.ServicePort)
+            if peers:
+                if len(peers) == 1:
+                    # disconnect from its parent service
+                    self.get_parent_element(peers[0]).disconnect_interface(i)
+                else:
+                    raise TopologyException(f'Interface {i.name} has more than one peer, this is a model error.')
+
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
-    def add_facility(self, *, name: str, node_id: str = None, site: str, **kwargs) -> Node:
+    def add_facility(self, *, name: str, node_id: str = None, site: str, nstype: ServiceType = ServiceType.VLAN,
+                     nslabels: Labels or None = None, **kwargs) -> Node:
         """
         Add a facility node with VLAN service and FacilityPort interface as a single construct.
         Works for aggregate topologies and experiment topologies the same way.
@@ -220,12 +234,14 @@ class Topology(ABC):
         :param name: name of facility (must match the advertisement)
         :param node_id : optional node id of the facility node (all other node ids are derived if provided)
         :param site: site of the facility (must match the advertisement)
+        :param nstype: alternative type of network service in Facility (defaults to VLAN)
+        :param nslabels: additional labels for facility network service (defaults to None)
         :kwargs: parameters for the interface of the facility (bandwidth, mtu, LAN tags etc)
         """
         # should work with deep sliver reconstruction
         facn = self.add_node(name=name, node_id=node_id, site=site, ntype=NodeType.Facility)
         facs = facn.add_network_service(name=name + '-ns', node_id=node_id + '-ns' if node_id else None,
-                                        nstype=ServiceType.VLAN)
+                                        nstype=nstype, labels=nslabels)
         faci = facs.add_interface(name=name + '-int', node_id=node_id + '-int' if node_id else None,
                                   itype=InterfaceType.FacilityPort, **kwargs)
 
@@ -680,7 +696,8 @@ class ExperimentTopology(Topology):
     @staticmethod
     def _generate_set_of_diff_elements(elems, topo: Topology, elemClass):
 
-        return {elemClass(name=x["Name"], node_id=x["NodeID"], topo=topo)
+        return {elemClass(name=x[ABCPropertyGraph.PROP_NAME],
+                          node_id=x[ABCPropertyGraph.NODE_ID], topo=topo)
                 for x in elems}
 
     @staticmethod
@@ -742,6 +759,35 @@ class ExperimentTopology(Topology):
         excluded_interfaces = {i for i in interfaces if ExperimentTopology._is_parented_interface(i, nss.union(excluded_nss))}
         return nodes, nss - excluded_nss, components - excluded_components, interfaces - excluded_interfaces
 
+    def _generate_list_of_modified_elements(self, other_topo: Topology, label: str, elemClass) -> List[Tuple[Any, WhatsModifiedFlag]]:
+        """
+        Generate list of tuples <element, WhatsModifiedFlag> for NetworkNodes, NetworkServices, Components and Interfaces.
+        Note that elements are in reference to self topology.
+        """
+        ret = list()
+        flags_dict = dict()
+        # looks at Labels, Capacities and UserData
+        graph_nodes, graph_nodes1 = self.graph_model.get_graph_property_diff(other_topo.graph_model, label)
+        # sanity check
+        assert len(graph_nodes) == len(graph_nodes1)
+        # now need to generate flags and to avoid extra querying we compare property values returned by the query
+        for n in zip(graph_nodes, graph_nodes1):
+            # compare Labels, Capacities and UserData properties. This coupling to the query code which also
+            # checks these properties is a bit unpleasant but avoids extra querying
+            flags = WhatsModifiedFlag.NONE
+            if n[0].get(ABCPropertyGraph.PROP_LABELS) != n[1].get(ABCPropertyGraph.PROP_LABELS):
+                flags |= WhatsModifiedFlag.LABELS
+            if n[0].get(ABCPropertyGraph.PROP_CAPACITIES) != n[1].get(ABCPropertyGraph.PROP_CAPACITIES):
+                flags |= WhatsModifiedFlag.CAPACITIES
+            if n[0].get(ABCPropertyGraph.PROP_USER_DATA) != n[1].get(ABCPropertyGraph.PROP_USER_DATA):
+                flags |= WhatsModifiedFlag.USER_DATA
+            # append a tuple <element, flags> to the list, notice that element is created in reference
+            # to self topology, which is the original
+            elem = elemClass(name=n[0][ABCPropertyGraph.PROP_NAME], node_id=n[0][ABCPropertyGraph.NODE_ID], topo=self)
+            ret.append((elem, flags))
+
+        return ret
+
     def diff(self, t) -> TopologyDiff:
         """
         Do a diff of two topologies assuming they are both in Neo4j (will not work with NetworkX backend)
@@ -774,6 +820,20 @@ class ExperimentTopology(Topology):
             ExperimentTopology._exclude_parented_elements(nodes_removed, nss_removed,
                                                           components_removed, interfaces_removed)
 
+        # check for modified properties
+        modified_nodes = self._generate_list_of_modified_elements(t,
+                                                                  ABCPropertyGraph.CLASS_NetworkNode,
+                                                                  Node)
+        modified_nss = self._generate_list_of_modified_elements(t,
+                                                                ABCPropertyGraph.CLASS_NetworkService,
+                                                                NetworkService)
+        modified_components = self._generate_list_of_modified_elements(t,
+                                                                       ABCPropertyGraph.CLASS_Component,
+                                                                       Component)
+        modified_interfaces = self._generate_list_of_modified_elements(t,
+                                                                       ABCPropertyGraph.CLASS_ConnectionPoint,
+                                                                       Interface)
+
         return TopologyDiff(added=TopologyDiffTuple(nodes=nodes_added,
                                                     components=components_added,
                                                     services=nss_added,
@@ -781,7 +841,13 @@ class ExperimentTopology(Topology):
                             removed=TopologyDiffTuple(nodes=nodes_removed,
                                                       components=components_removed,
                                                       services=nss_removed,
-                                                      interfaces=interfaces_removed))
+                                                      interfaces=interfaces_removed),
+                            modified=TopologyDiffModifiedTuple(
+                                nodes=modified_nodes,
+                                components=modified_components,
+                                services=modified_nss,
+                                interfaces=modified_interfaces
+                            ))
 
     def _prune_node(self, node: Node):
         """

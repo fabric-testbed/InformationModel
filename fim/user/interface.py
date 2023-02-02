@@ -32,6 +32,7 @@ from .model_element import ModelElement, ElementType, TopologyException
 
 from ..slivers.interface_info import InterfaceType, InterfaceSliver
 from ..graph.abc_property_graph import ABCPropertyGraph
+from ..slivers.capacities_labels import Labels
 
 
 class Interface(ModelElement):
@@ -90,6 +91,15 @@ class Interface(ModelElement):
     def add_child_interface(self):
         raise TopologyException("Not implemented")
 
+    @property
+    def peer_labels(self):
+        return self.get_property('peer_labels') if self.__dict__.get('topo', None) is not None else None
+
+    @peer_labels.setter
+    def peer_labels(self, value: Labels):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('peer_labels', value)
+
     def get_property(self, pname: str) -> Any:
         """
         Retrieve a interface property
@@ -132,7 +142,7 @@ class Interface(ModelElement):
     def list_properties() -> Tuple[str]:
         return InterfaceSliver.list_properties()
 
-    def get_peers(self, itype: InterfaceType = None):
+    def get_peers(self, itype: InterfaceType = None) -> List[Any] or None:
         """
         Find 'peer' interfaces connected across a Link. Returns a list of Interface objects
         (matching optional itype if specified, otherwise all).

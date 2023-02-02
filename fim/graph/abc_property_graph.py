@@ -47,10 +47,11 @@ from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
 from fim.slivers.path_info import PathInfo, ERO
 from fim.slivers.tags import Tags
-from fim.slivers.measurement_data import MeasurementData
+from fim.slivers.json_data import MeasurementData, UserData, LayoutData
 from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo, NSLayer, MirrorDirection
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
+from fim.slivers.maintenance_mode import MaintenanceInfo
 
 
 class GraphFormat(Enum):
@@ -99,11 +100,14 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
+        "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
+        "layout_data": ABCPropertyGraphConstants.PROP_LAYOUT_DATA,
+        "user_data": ABCPropertyGraphConstants.PROP_USER_DATA,
         "tags": ABCPropertyGraphConstants.PROP_TAGS,
         "flags": ABCPropertyGraphConstants.PROP_FLAGS,
         "boot_script": ABCPropertyGraphConstants.PROP_BOOT_SCRIPT,
-        "layout": ABCPropertyGraphConstants.PROP_LAYOUT
+        "maintenance_info": ABCPropertyGraphConstants.PROP_MAINTENANCE_INFO
     }
 
     @abstractmethod
@@ -515,7 +519,13 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_STITCH_NODE] = json.dumps(sliver.stitch_node)
         # this is already a JSON dict
         if hasattr(sliver, 'mf_data') and sliver.mf_data is not None:
-            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.data
+            prop_dict[ABCPropertyGraph.PROP_MEAS_DATA] = sliver.mf_data.json
+        # this is already a JSON dict
+        if hasattr(sliver, 'user_data') and sliver.user_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_USER_DATA] = sliver.user_data.json
+        # this is already a JSON dict
+        if hasattr(sliver, 'layout_data') and sliver.layout_data is not None:
+            prop_dict[ABCPropertyGraph.PROP_LAYOUT_DATA] = sliver.layout_data.json
         if hasattr(sliver, 'tags') and sliver.tags is not None:
             prop_dict[ABCPropertyGraph.PROP_TAGS] = sliver.tags.to_json()
         if hasattr(sliver, 'flags') and sliver.flags is not None:
@@ -549,6 +559,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_SITE] = sliver.site
         if hasattr(sliver, 'location') and sliver.location is not None:
             prop_dict[ABCPropertyGraph.PROP_LOCATION] = sliver.location.to_json()
+        if hasattr(sliver, 'maintenance_info') and sliver.maintenance_info is not None:
+            prop_dict[ABCPropertyGraph.PROP_MAINTENANCE_INFO] = sliver.maintenance_info.to_json()
 
         return prop_dict
 
@@ -623,6 +635,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         prop_dict = ABCPropertyGraph.base_sliver_to_graph_properties_dict(sliver)
+
+        if hasattr(sliver, 'peer_labels') and sliver.peer_labels is not None:
+            prop_dict[ABCPropertyGraph.PROP_PEER_LABELS] = sliver.peer_labels.to_json()
 
         return prop_dict
 
@@ -725,6 +740,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
                                                       if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
                                                          is not None else None,
+                              user_data=UserData(d[ABCPropertyGraph.PROP_USER_DATA])
+                                                  if d.get(ABCPropertyGraph.PROP_USER_DATA, None)
+                                                     is not None else None,
+                              layout_data=LayoutData(d[ABCPropertyGraph.PROP_LAYOUT_DATA])
+                                                  if d.get(ABCPropertyGraph.PROP_LAYOUT_DATA, None)
+                                                     is not None else None,
                               boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                               )
 
@@ -743,7 +764,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                          allocation_constraints=d.get(ABCPropertyGraph.PROP_ALLOCATION_CONSTRAINTS, None),
                          service_endpoint=d.get(ABCPropertyGraph.PROP_SERVICE_ENDPOINT, None),
                          site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
-                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None))
+                         location=Location.from_json(d.get(ABCPropertyGraph.PROP_LOCATION, None)),
+                         maintenance_info=
+                         MaintenanceInfo.from_json(d.get(ABCPropertyGraph.PROP_MAINTENANCE_INFO, None))
                          )
         return n
 
@@ -798,6 +821,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         isl = InterfaceSliver()
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(isl, d)
+        isl.set_properties(peer_labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_PEER_LABELS, None)))
         return isl
 
     def build_deep_node_sliver(self, *, node_id: str) -> NodeSliver:
@@ -1282,11 +1306,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
     @abstractmethod
     def get_graph_diff(self, other_graph, label: str):
         """
-        Return two lists - nodes that are in this graph but NOT in the other graph
+        Return two lists nodes (with all properties) that are in this graph but NOT in the other graph
         and node that are in the other graph, but not in this graph, using label
         as a filter
         [0] - elements present in self, absent in other (i.e. removed elements)
         [1] - elements present in other, absent in self (i.e. added elements
+        """
+
+    @abstractmethod
+    def get_graph_property_diff(self, other_graph, label: str):
+        """
+        Return two lists of nodes (with all properties, from both graphs) that are present in both
+        this and other graph where the several specific properties are different
         """
 
     def find_peer_connection_points(self, *, node_id: str) -> List[str] or None:

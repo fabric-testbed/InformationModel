@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import json
 
@@ -8,10 +9,13 @@ from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.gateway import Gateway
 from fim.slivers.capacities_labels import Labels
 from fim.user.model_element import TopologyException
-from fim.slivers.measurement_data import MeasurementDataError
-from fim.slivers.attached_components import ComponentType
+from fim.slivers.json_data import MeasurementDataError, UserDataError, LayoutDataError
+from fim.logging.log_collector import LogCollector
 from fim.slivers.component_catalog import ComponentModelType
 from fim.slivers.network_service import ServiceType, MirrorDirection
+from fim.slivers.maintenance_mode import MaintenanceInfo, MaintenanceState, \
+    MaintenanceEntry, MaintenanceModeException
+from fim.slivers.capacities_labels import Capacities
 
 
 class SliceTest(unittest.TestCase):
@@ -188,6 +192,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.network_services), 1)
         self.topo.remove_network_service(name='s1')
         self.assertEqual(len(self.topo.network_services), 0)
+        self.n4j_imp.delete_all_graphs()
 
     def testNetworkServices(self):
         n1 = self.topo.add_node(name='Node1', site='RENC')
@@ -211,8 +216,9 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(n1.tags, None)
 
         # flags on model elements
-        n1.flags = f.Flags(auto_config=True)
+        n1.flags = f.Flags(auto_config=True, ipv4_management=True)
         self.assertTrue(n1.flags.auto_config)
+        self.assertTrue(n1.flags.ipv4_management)
         n1.flags = None
         self.assertEqual(n1.flags, None)
 
@@ -227,56 +233,6 @@ class SliceTest(unittest.TestCase):
         self.assertTrue("bash" in n1.boot_script)
         n1.boot_script = None
         self.assertIsNone(n1.boot_script)
-
-        # measurement data on model elements (nodes, links, components, interfaces, network services)
-        # can be set simply as json string (string length not to exceed 1M)
-        n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
-        # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
-        # an object
-        mf_object1 = n1.mf_data
-        self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
-        # when nothing is set, it is None
-        self.assertEqual(n2.mf_data, None)
-
-        # you can also set it as MeasurementData object
-        my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
-        n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
-
-        # you can also just pass a JSON serializable object to MeasurementData constructor:
-        n1.mf_data = f.MeasurementData(my_meas_data_object)
-        # or even an serializable object itself. Either way the limit of 1M on the JSON string
-        # length is enforced
-        n1.mf_data = my_meas_data_object
-
-        # for most uses, just set the object
-        my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
-        n1.mf_data = my_meas_data_object
-
-        # you get back your object (in this case a dict)
-        self.assertTrue(isinstance(n1.mf_data, dict))
-        mf_object2 = n1.mf_data
-        self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
-
-        class MyClass:
-            def __init__(self, val):
-                self.val = val
-
-        # this is not a valid object - json.dumps() will fail on it
-        bad_meas_data_object = {'key1': MyClass(3)}
-        with self.assertRaises(MeasurementDataError):
-            n1.mf_data = bad_meas_data_object
-
-        # also cannot use bad strings
-        with self.assertRaises(MeasurementDataError):
-            # you cannot assign non-json string to measurement data either as MeasurementData object
-            n1.mf_data = f.MeasurementData("not parsable json")
-        with self.assertRaises(MeasurementDataError):
-            # or directly as string
-            n1.mf_data = 'random string'
-
-        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
-        n1.mf_data = None
-        self.assertIsNone(n1.mf_data)
 
         gpu1 = n1.components['gpu1']
         nic1 = n1.components['nic1']
@@ -379,6 +335,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.network_services), 5)
 
         #self.topo.add_link(name='l3', ltype=f.LinkType.L2Bridge, interfaces=self.topo.interface_list)
+        self.n4j_imp.delete_all_graphs()
 
     def testDeepSliver(self):
         self.topo.add_node(name='n1', site='RENC')
@@ -401,6 +358,7 @@ class SliceTest(unittest.TestCase):
         self.assertNotEqual(deep_sliver1.interface_info, None)
         self.assertEqual(len(deep_sliver1.interface_info.interfaces), 1)
         print(f'Network deep sliver interfaces: {deep_sliver1.interface_info.interfaces}')
+        self.n4j_imp.delete_all_graphs()
 
     def testSerDes(self):
         self.topo.add_node(name='n1', site='RENC')
@@ -411,6 +369,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(t1.graph_model.graph_id, self.topo.graph_model.graph_id)
         self.assertTrue('n1' in t1.nodes.keys())
         self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
+        self.n4j_imp.delete_all_graphs()
 
     def testSerDes1(self):
         # more thorough serialization-deserialization test
@@ -427,6 +386,7 @@ class SliceTest(unittest.TestCase):
         self.assertTrue('nic1' in t1.nodes['n1'].components.keys())
         print(f'LIST COMPONENTS of n1 {t1.nodes["n1"].components}')
         print(f'LIST COMPONENTS of n2 {t1.nodes["n2"].components}')
+        self.n4j_imp.delete_all_graphs()
 
     def testSerDes2(self):
         # more thorough serialization-deserialization test
@@ -516,7 +476,7 @@ class SliceTest(unittest.TestCase):
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
-        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4))
         self.topo.add_node(name='n2', site='RENC')
         self.topo.add_node(name='n3', site='UKY')
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
@@ -530,6 +490,38 @@ class SliceTest(unittest.TestCase):
         self.topo.serialize(file_name='two-site.json', fmt=f.GraphFormat.JSON_NODELINK)
         self.topo.serialize(file_name='two-site.cyt.json', fmt=f.GraphFormat.CYTOSCAPE)
         self.topo.validate()
+
+        # test log on topology
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo)
+        print('----LOG TOPO TEST-----')
+        print(f'with {lc}')
+        print('----END TOPO LOG TEST-----')
+        self.assertEqual(lc.attributes['vm_count'], 3)
+        self.assertIn(('L2STS', 0), lc.attributes['services'])
+        self.assertIn('UKY', lc.attributes['sites'])
+        self.assertIn('RENC', lc.attributes['sites'])
+        self.assertEqual(lc.attributes['core_count'], 4)
+
+        # test log on Node
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo.nodes['n1'])
+        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['vm_count'], 1)
+        self.assertIn('RENC', lc.attributes['sites'])
+        print('----LOG NODE TEST-----')
+        print(f'with {lc}')
+        print('----END NODE LOG TEST-----')
+
+        # test log on NodeSliver
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=self.topo.nodes['n1'].get_sliver())
+        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['vm_count'], 1)
+        self.assertIn('RENC', lc.attributes['sites'])
+        print('----LOG NODE SLIVER TEST-----')
+        print(f'with {lc}')
+        print('----END NODE LOG SLIVER TEST-----')
 
         # Import it in the neo4j as ASM
         slice_graph = self.topo.serialize()
@@ -628,3 +620,224 @@ class SliceTest(unittest.TestCase):
         asm_graph = Neo4jASMFactory.create(generic_graph)
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
+
+    def testL3VPNWithCloudService(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+        n2 = t.add_node(name='n2', site='RENC')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SharedNIC_ConnectX_6)
+
+        ns1 = t.add_network_service(name='ns1', nstype=ServiceType.L3VPN,
+                              interfaces=[n1.interface_list[0], n2.interface_list[0]],
+                              # you can also specify ipv4/ipv6 addresses, subnets as usual
+                              labels=Labels(asn='654342', ipv4_subnet='192.168.1.1/24'))
+
+        # add facility
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC', capacities=f.Capacities(bw=10),
+                                      labels=f.Labels(vlan='100'))
+        # facility needs to be connected via a service (in this case AL2S stand-in)
+        al2s = self.topo.add_network_service(name='al2s', nstype=f.ServiceType.L3VPN,
+                                             interfaces=[fac1.interface_list[0]])
+
+        al2s.peer(ns1, labels=Labels(asn='12345', bgp_key='secret', ipv4_subnet='192.168.1.1/24'))
+        # normally called by orchestrator, but generally idempotent
+        ns1.copy_to_peer_labels()
+
+        # check values set on copy
+        self.assertEqual(ns1.interfaces[ns1.name + '-' + al2s.name].peer_labels.bgp_key, 'secret')
+
+        t.validate()
+
+        print('---- LOG TEST FACILITY ----')
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=t)
+        print(lc)
+        print('----- END LOG TEST -----')
+
+        slice_graph = t.serialize()
+        #t.serialize("peered-slice.graphml")
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+
+        # unpeer
+        ns1.unpeer(al2s)
+        t.validate()
+        #t.serialize("peered-slice.graphml")
+
+        self.n4j_imp.delete_all_graphs()
+
+    def test_json_data(self):
+        """
+        Test various JSON data blobs - MF DATA, User Data and Layout Data
+        """
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n2 = t.add_node(name='n2', site='UKY')
+
+        # maintenance mode - the object needs to be constructed prior to being assigned to the property
+        minfo = MaintenanceInfo()
+        minfo.add(name=n1.name, minfo=MaintenanceEntry(state=MaintenanceState.Active))
+        n1.maintenance_info = minfo
+
+        self.assertEqual(n1.maintenance_info.get(n1.name).state, MaintenanceState.Active)
+        # check it is finalized
+        self.assertEqual(n1.maintenance_info._lock, True)
+
+        # try to modify after assignment
+        with self.assertRaises(MaintenanceModeException):
+            n1.maintenance_info.add(name='n3', minfo=MaintenanceEntry(state=MaintenanceState.PreMaint,
+                                                                      deadline=datetime.datetime.now()))
+
+        # measurement data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string length not to exceed 1M)
+        n1.mf_data = json.dumps({'k1': ['some', 'measurement', 'configuration']})
+        # you are guaranteed that whatever is on mf_data is JSON parsable and can be reconstituted into
+        # an object
+        mf_object1 = n1.mf_data
+        self.assertTrue(mf_object1['k1'] == ['some', 'measurement', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.mf_data, None)
+
+        # you can also set it as MeasurementData object
+        my_meas_data_object = {'key1': {'key2': ['v1', 2]}}
+        n1.mf_data = f.MeasurementData(json.dumps(my_meas_data_object))
+
+        # you can also just pass a JSON serializable object to MeasurementData constructor:
+        n1.mf_data = f.MeasurementData(my_meas_data_object)
+        # or even an serializable object itself. Either way the limit of 1M on the JSON string
+        # length is enforced
+        n1.mf_data = my_meas_data_object
+
+        # for most uses, just set the object
+        my_meas_data_object = {'key1': {'key2': ['some', 'config', 'info']}}
+        n1.mf_data = my_meas_data_object
+
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.mf_data, dict))
+        mf_object2 = n1.mf_data
+        self.assertTrue(mf_object2['key1'] == {'key2': ['some', 'config', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_meas_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(MeasurementDataError):
+            n1.mf_data = bad_meas_data_object
+
+        # also cannot use bad strings
+        with self.assertRaises(MeasurementDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.mf_data = f.MeasurementData("not parsable json")
+        with self.assertRaises(MeasurementDataError):
+            # or directly as string
+            n1.mf_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.mf_data = None
+        self.assertIsNone(n1.mf_data)
+
+        # user data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string length not to exceed 1M)
+        n1.user_data = json.dumps({'k1': ['some', 'user', 'configuration']})
+        # you are guaranteed that whatever is on user_data is JSON parsable and can be reconstituted into
+        # an object
+        user_object1 = n1.user_data
+        self.assertTrue(user_object1['k1'] == ['some', 'user', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.user_data, None)
+
+        # you can also set it as UserData object
+        my_user_data_object = {'key1': {'user2': ['v1', 2]}}
+        n1.user_data = f.UserData(json.dumps(my_user_data_object))
+
+        # you can also just pass a JSON serializable object to UserData constructor:
+        n1.user_data = f.UserData(my_user_data_object)
+        # or even an serializable object itself.
+        n1.user_data = my_user_data_object
+
+        # for most uses, just set the object
+        my_user_data_object = {'key1': {'key2': ['some', 'user', 'info']}}
+        n1.user_data = my_user_data_object
+
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.user_data, dict))
+        user_object2 = n1.user_data
+        self.assertTrue(user_object2['key1'] == {'key2': ['some', 'user', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_user_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(UserDataError):
+            n1.user_data = bad_user_data_object
+
+        # also cannot use bad strings
+        with self.assertRaises(UserDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.user_data = f.UserData("not parsable json")
+        with self.assertRaises(UserDataError):
+            # or directly as string
+            n1.user_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.user_data = None
+        self.assertIsNone(n1.user_data)
+
+        # layout data on model elements (nodes, links, components, interfaces, network services)
+        # can be set simply as json string (string length not to exceed 1M)
+        n1.layout_data = json.dumps({'k1': ['some', 'layout', 'configuration']})
+        # you are guaranteed that whatever is on layout_data is JSON parsable and can be reconstituted into
+        # an object
+        layout_object1 = n1.layout_data
+        self.assertTrue(layout_object1['k1'] == ['some', 'layout', 'configuration'])
+        # when nothing is set, it is None
+        self.assertEqual(n2.layout_data, None)
+
+        # you can also set it as LayoutData object
+        my_layout_data_object = {'key1': {'layout2': ['v1', 2]}}
+        n1.layout_data = f.LayoutData(json.dumps(my_layout_data_object))
+
+        # you can also just pass a JSON serializable object to LayoutData constructor:
+        n1.layout_data = f.LayoutData(my_layout_data_object)
+        # or even an serializable object itself.
+        n1.layout_data = my_layout_data_object
+
+        # for most uses, just set the object
+        my_layout_data_object = {'key1': {'key2': ['some', 'layout', 'info']}}
+        n1.layout_data = my_layout_data_object
+
+        # you get back your object (in this case a dict)
+        self.assertTrue(isinstance(n1.layout_data, dict))
+        layout_object2 = n1.layout_data
+        self.assertTrue(layout_object2['key1'] == {'key2': ['some', 'layout', 'info']})
+
+        class MyClass:
+            def __init__(self, val):
+                self.val = val
+
+        # this is not a valid object - json.dumps() will fail on it
+        bad_layout_data_object = {'key1': MyClass(3)}
+        with self.assertRaises(LayoutDataError):
+            n1.layout_data = bad_layout_data_object
+
+        # also cannot use bad strings
+        with self.assertRaises(LayoutDataError):
+            # you cannot assign non-json string to measurement data either as MeasurementData object
+            n1.layout_data = f.LayoutData("not parsable json")
+        with self.assertRaises(LayoutDataError):
+            # or directly as string
+            n1.layout_data = 'random string'
+
+        # most settable properties can be unset by setting them to None (there are exceptions, like e.g. name)
+        n1.layout_data = None
+        self.assertIsNone(n1.layout_data)

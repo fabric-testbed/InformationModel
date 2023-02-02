@@ -26,14 +26,15 @@
 """
 Base class for all sliver types
 """
-from typing import Any, Tuple, List, Dict
+from typing import Any, Tuple
 from abc import ABC, abstractmethod
+import re
 
 from fim.slivers.capacities_labels import Capacities, CapacityHints, Labels, ReservationInfo, StructuralInfo, Flags
 from fim.slivers.delegations import Delegations
 from fim.slivers.tags import Tags
-from fim.slivers.measurement_data import MeasurementData
-from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple
+from fim.slivers.json_data import MeasurementData, UserData, LayoutData
+from fim.slivers.topology_diff import TopologyDiff, WhatsModifiedFlag
 
 
 class BaseSliver(ABC):
@@ -63,8 +64,9 @@ class BaseSliver(ABC):
         self.tags = None # list of strings, limited in length
         self.flags = None # various flags
         self.mf_data = None # opaque JSON object limited in length
+        self.user_data = None # opaque JSON object limited in length
+        self.layout_data = None # opaque JSON object limited in length
         self.boot_script = None # string limited in length
-        self.layout = None # opaque JSON object limited in length
 
     def set_type(self, resource_type):
         self.resource_type = resource_type
@@ -74,6 +76,10 @@ class BaseSliver(ABC):
 
     def set_name(self, resource_name: str):
         assert(resource_name is None or isinstance(resource_name, str))
+        m = re.match(self.NAME_REGEX, resource_name)
+        if not m:
+            raise ValueError(f"Sliver name {resource_name} doesn't match the expected "
+                             f"regular expression {self.NAME_REGEX}")
         self.resource_name = resource_name
 
     def get_name(self):
@@ -195,6 +201,22 @@ class BaseSliver(ABC):
     def get_mf_data(self) -> MeasurementData or None:
         return self.mf_data
 
+    def set_user_data(self, user_data: UserData or None) -> None:
+        assert(user_data is None or
+               isinstance(user_data, UserData))
+        self.user_data = user_data
+
+    def get_user_data(self) -> UserData or None:
+        return self.user_data
+
+    def set_layout_data(self, layout_data: LayoutData or None) -> None:
+        assert(layout_data is None or
+               isinstance(layout_data, LayoutData))
+        self.layout_data = layout_data
+
+    def get_layout_data(self) -> LayoutData or None:
+        return self.layout_data
+
     def set_boot_script(self, boot_script: str):
         assert(boot_script is None or
                (isinstance(boot_script, str) and len(boot_script) < self.BOOST_SCRIPT_SIZE))
@@ -230,9 +252,44 @@ class BaseSliver(ABC):
             }
         return result
 
+    @staticmethod
+    def _dict_common(dict_a, dict_b):
+        """
+        common keys between slivers, returns slivers from first dict that match
+        """
+        result = {k: dict_a[k] for k in set(dict_a) & set(dict_b)}
+        return result
+
     @abstractmethod
     def diff(self, other_sliver) -> TopologyDiff or None:
         assert isinstance(self, other_sliver.__class__)
+
+    def prop_diff(self, other_sliver) -> WhatsModifiedFlag:
+        """
+        Return a flag describing differences in property values
+        between this and other sliver
+        """
+        assert isinstance(self, other_sliver.__class__)
+        flags = WhatsModifiedFlag.NONE
+        if self.get_labels() != other_sliver.get_labels():
+            flags |= WhatsModifiedFlag.LABELS
+        if self.get_capacities() != other_sliver.get_capacities():
+            flags |= WhatsModifiedFlag.CAPACITIES
+        if self.get_user_data() != other_sliver.get_user_data():
+            flags |= WhatsModifiedFlag.USER_DATA
+        return flags
+
+    def __eq__(self, other):
+        """
+        Note this is a weak comparison by name and node_id only. Properties may be
+        different and it will still return True
+        """
+        if not isinstance(other, BaseSliver):
+            return False
+        return other.resource_name == self.resource_name and other.node_id == self.node_id
+
+    def __hash__(self):
+        return hash((self.resource_name, self.node_id if self.node_id else "NONE"))
 
     @classmethod
     def list_properties(cls) -> Tuple[str]:
@@ -283,7 +340,7 @@ class BaseSliver(ABC):
             if k.startswith('get_') and k not in exclude_set:
                 print_set.append(k[4:])
         print_set.sort()
-        print_vals = dict()
+        print_vals = {'node_id': self.node_id if self.node_id else "NONE"}
         for p in print_set:
             try:
                 pval = self.get_property(p)

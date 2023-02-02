@@ -37,6 +37,14 @@
     }
   },
   {
+    "Model": "OpenStack-vNIC",
+    "Type": "SharedNIC",
+    "Details": "OpenStack virtual vNIC typically 1Gbps",
+    "Interfaces": {
+      "p1": "1"
+    }
+  },
+  {
     "Model": "P4510",
     "Type": "NVME",
     "Details": "Dell Express Flash NVMe P4510 1TB SFF",

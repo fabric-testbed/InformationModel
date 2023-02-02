@@ -1,7 +1,7 @@
-matplotlib>=3.5.1
+matplotlib>=3.6.0
 neo4j>=4.1.0
-networkx>=2.8
-networkx-query>=1.0.1
-PyYAML>=5.4
-recordclass>=0.14.3
-requests>=2.27.1
+networkx>=2.8.7
+networkx_query>=1.0.1
+PyYAML>=6.0
+recordclass>=0.17.5
+requests>=2.28.1

@@ -10,8 +10,11 @@ import fim.user as f
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.network_service import ServiceType
-from fim.user.topology import TopologyDiff, TopologyDiffTuple
+from fim.user.topology import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 from fim.slivers.capacities_labels import ReservationInfo
+from fim.logging.log_collector import LogCollector
+from fim.slivers.capacities_labels import Labels, Capacities
+from fim.slivers.json_data import UserData
 
 WITH_PROFILER = False
 
@@ -29,15 +32,17 @@ class ModifyTest(unittest.TestCase):
         Define an initial topology before modify
         """
         nA = self.topoA.add_node(name='NodeA', site='RENC')
+        nA.labels = Labels(local_name="Bob")
+        nA.user_data = UserData([1, 2, 3, "a"])
         nic1 = nA.add_component(name='nic1', ctype=ComponentType.SmartNIC, model='ConnectX-6')
         nic3 = nA.add_component(name='nic3', ctype=ComponentType.SharedNIC, model='ConnectX-6')
-        nC = self.topoA.add_node(name='NodeC', site='RENC')
+        nC = self.topoA.add_node(name='NodeC', site='RENC', labels=Labels(local_name="Alice"))
         nic2 = nC.add_component(name='nic2', ctype=ComponentType.SharedNIC, model='ConnectX-6')
         nC.add_component(name='drive1', ctype=ComponentType.NVME, model='P4510')
         self.topoA.add_network_service(name='bridge1', nstype=ServiceType.L2Bridge,
                                        interfaces=[nic3.interface_list[0], nic2.interface_list[0]])
 
-        self.topoA.add_network_service(name='bridge2', nstype=ServiceType.L2Bridge)
+        self.topoA.add_network_service(name='bridge2', nstype=ServiceType.L2Bridge, labels=Labels(ipv4="192.168.1.1"))
         nD = self.topoA.add_node(name='NodeD', site='UKY')
         nic4 = nD.add_component(name='nic4', ctype=ComponentType.SharedNIC, model='ConnectX-6')
         self.topoA.network_services['bridge2'].connect_interface(nic4.interface_list[0])
@@ -50,7 +55,9 @@ class ModifyTest(unittest.TestCase):
         self.diff = TopologyDiff(added=TopologyDiffTuple(nodes=set(), components=set(),
                                                          services=set(), interfaces=set()),
                                  removed=TopologyDiffTuple(nodes=set(), components=set(),
-                                                           services=set(), interfaces=set()))
+                                                           services=set(), interfaces=set()),
+                                 modified=TopologyDiffModifiedTuple(nodes=list(), components=list(),
+                                                                    services=list(), interfaces=list()))
 
     def modifyActions(self):
         """
@@ -62,6 +69,19 @@ class ModifyTest(unittest.TestCase):
         nic2 = nB.add_component(name='nic2', ctype=ComponentType.SmartNIC, model='ConnectX-5')
         nB.add_component(name='gpu2', ctype=ComponentType.GPU, model='RTX6000')
         self.diff.added.nodes.add(nB)
+
+        #
+        # modify bridge2 labels
+        self.topoB.network_services['bridge2'].labels = Labels(ipv4=["192.168.1.1", "192.168.1.2"])
+        self.topoB.network_services['bridge2'].capacities = Capacities(bw=1000)
+        # Bob becomes Henry
+        self.topoB.nodes['NodeA'].labels = Labels(local_name="Henry")
+        # add a label to NodeE where none existed
+        self.topoB.nodes['NodeE'].labels = Labels(local_name="Arthur")
+        # add meaningless label to a component
+        self.topoB.nodes['NodeE'].components['nic5'].labels=Labels(local_name='some nic')
+        # reset user data on NodeA
+        self.topoB.nodes['NodeA'].user_data = None
 
         #
         # add a network service between new node and old node (will show up as added)
@@ -93,6 +113,9 @@ class ModifyTest(unittest.TestCase):
         #
         self.diff.removed.nodes.add(self.topoA.nodes['NodeC'])
         self.topoB.remove_node(name='NodeC')
+
+        # by now bridge1 connects only one interface, let's check that
+        self.assertEqual(len(self.topoB.network_services['bridge1'].interface_list), 1)
 
         #
         # Remove the bridge service (as it now connects nothing)
@@ -150,9 +173,9 @@ class ModifyTest(unittest.TestCase):
         print(f'Created topology B with new GUID {self.topoB.graph_model.graph_id}/{new_id}')
 
     @staticmethod
-    def compare_sets(diff1: set[Any], diff2: set[Any], str):
+    def compare_sets(diff1: set[Any], diff2: set[Any], where):
         if diff1 != diff2:
-            raise Exception(f"Topology differences don't match in {str}: {d}")
+            raise Exception(f"Topology differences don't match in {where}")
 
     @staticmethod
     def compare_tuples(diff1: TopologyDiffTuple, diff2: TopologyDiffTuple):
@@ -187,7 +210,53 @@ class ModifyTest(unittest.TestCase):
         diff_res = self.topoA.diff(self.topoB)
         if WITH_PROFILER: self.pr.disable()
 
+        # log added
+        lc = LogCollector()
+        lc.collect_resource_attributes(source=diff_res)
+        print('----- LOG DIFF TEST ----')
+        print(diff_res.added)
+        print(lc)
+        self.assertIn('RENCI-DTN', lc.attributes['facilities'])
+        self.assertIn('RENC', lc.attributes['sites'])
+        self.assertIn('UKY', lc.attributes['sites'])
+        print('----- END LOG TEST ---- ')
+
+        # check that diffing is working
         ModifyTest.compare_diffs(diff_res, self.diff)
+
+        # check for modified properties
+        print(f'Modified Nodes {diff_res.modified.nodes}')
+        print(f'Modified Network Services {diff_res.modified.services}')
+        self.assertIn((self.topoA.network_services['bridge2'], WhatsModifiedFlag.LABELS | WhatsModifiedFlag.CAPACITIES),
+                      diff_res.modified.services)
+        self.assertIn((self.topoA.nodes['NodeA'], WhatsModifiedFlag.LABELS | WhatsModifiedFlag.USER_DATA),
+                      diff_res.modified.nodes)
+        for n, flag in diff_res.modified.nodes:
+            if flag & WhatsModifiedFlag.LABELS:
+                # note that elements returned are bound to the original topology object
+                # so n and self.topoA.nodes[n.name] point to the same node
+                print(f'Node {n.name} has modified labels from {n.labels} to {self.topoB.nodes[n.name].labels}')
+            if flag & WhatsModifiedFlag.CAPACITIES:
+                print(f'Node {n.name} has modified capacities from {n.capacities} to {self.topoB.nodes[n.name].capacities}')
+            if flag & WhatsModifiedFlag.USER_DATA:
+                print(f'Node {n.name} has modified user data from {n.user_data} to {self.topoB.nodes[n.name].user_data}')
+        for n, flag in diff_res.modified.services:
+            if flag & WhatsModifiedFlag.LABELS:
+                print(f'Service {n.name} has modified labels from {n.labels} to {self.topoB.network_services[n.name].labels}')
+            if flag & WhatsModifiedFlag.CAPACITIES:
+                print(f'Service {n.name} has modified capacities from {n.capacities} to {self.topoB.network_services[n.name].capacities}')
+            if flag & WhatsModifiedFlag.USER_DATA:
+                print(f'Service {n.name} has modified user data from {n.user_data} to {self.topoB.network_services[n.name].user_data}')
+        # note that for component and interface changes you need to find the
+        # parent before you can find them in the topology
+        for n, flag in diff_res.modified.components:
+            parent_node = self.topoB.get_owner_node(n)
+            if flag & WhatsModifiedFlag.LABELS:
+                print(f'Component {n.name} has modified labels from {n.labels} to {self.topoB.nodes[parent_node.name].components[n.name].labels}')
+            if flag & WhatsModifiedFlag.CAPACITIES:
+                print(f'Component {n.name} has modified capacities from {n.capacities} to {self.topoB.nodes[parent_node.name].components[n.name].capacities}')
+            if flag & WhatsModifiedFlag.USER_DATA:
+                print(f'Component {n.name} has modified user data from {n.user_data} to {self.topoB.nodes[parent_node.name].components[n.name].user_data}')
 
         print(f'Result {diff_res=}')
         #print(f'\nExpected {self.diff}')
@@ -225,8 +294,34 @@ class ModifyTest(unittest.TestCase):
         diff = nAAs.diff(nABs)
         if WITH_PROFILER: self.pr.disable()
 
-        assert(len(diff.added.components) == 1)
-        assert('gpu1' in diff.added.components)
+        # test EQ for slivers
+        self.assertEqual(self.topoA.nodes['NodeA'].get_sliver(), self.topoB.nodes['NodeA'].get_sliver())
+
+        # other tests
+        self.assertEqual(len(diff.added.components), 1)
+        self.assertIn(self.topoB.nodes['NodeA'].components['gpu1'].get_sliver(), diff.added.components)
+        self.assertIn((self.topoA.nodes['NodeA'].get_sliver(),
+                       WhatsModifiedFlag.LABELS | WhatsModifiedFlag.USER_DATA),
+                      diff.modified.nodes)
+        self.assertEqual(len(diff.modified.nodes), 1)
+        self.assertEqual(len(diff.modified.services), 0)
+        self.assertEqual(len(diff.modified.interfaces), 0)
+        self.assertEqual(len(diff.modified.components), 0)
+
+        sA1 = self.topoA.network_services['bridge2']
+        sB1 = self.topoB.network_services['bridge2']
+        sA1s = sA1.get_sliver()
+        sB1s = sB1.get_sliver()
+
+        diff1 = sA1s.diff(sB1s)
+
+        self.assertIn((self.topoA.network_services['bridge2'].get_sliver(),
+                       WhatsModifiedFlag.LABELS | WhatsModifiedFlag.CAPACITIES),
+                       diff1.modified.services)
+        self.assertEqual(len(diff1.modified.nodes), 0)
+        self.assertEqual(len(diff1.modified.services), 1)
+        self.assertEqual(len(diff1.modified.interfaces), 0)
+        self.assertEqual(len(diff1.modified.components), 0)
 
         print(f'Sliver diff {diff}')
 
@@ -245,3 +340,4 @@ class ModifyTest(unittest.TestCase):
         self.assertTrue('bridge1' not in self.topoA.network_services.keys())
 
         print(self.topoA.nodes)
+

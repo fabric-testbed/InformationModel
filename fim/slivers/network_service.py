@@ -31,7 +31,8 @@ from .base_sliver import BaseSliver
 from .path_info import PathRepresentationType, ERO, PathInfo
 from .gateway import Gateway
 from .interface_info import InterfaceType
-from .topology_diff import TopologyDiff, TopologyDiffTuple
+from .topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
+from .capacities_labels import Labels
 
 
 class NSLayer(enum.Enum):
@@ -92,6 +93,8 @@ class ServiceType(enum.Enum):
     PortMirror = enum.auto() # FABRIC port mirroring service
     L3VPN = enum.auto() # FABRIC L3 VPN service
     VLAN = enum.auto() # a local VLAN (internal to site)
+    FABNetv4Ext = enum.auto() # externally reachable IPv4 service
+    FABNetv6Ext = enum.auto() # externally reachable IPv6 service
 
     def help(self) -> str:
         return NetworkServiceSliver.ServiceConstraints[self].desc
@@ -114,6 +117,8 @@ ServiceConstraintRecord = recordclass('ServiceConstraintRecord',
 
 
 class NetworkServiceSliver(BaseSliver):
+
+    NAME_REGEX = r'^[\w\-_\.]{2,255}$'
 
     # whenever there is no limit, num is set to 0
     NO_LIMIT = 0
@@ -220,7 +225,25 @@ class NetworkServiceSliver(BaseSliver):
                                                    forbidden_properties=['mirror_port',
                                                                          'mirror_direction',
                                                                          'controller_url'],
-                                                   required_interface_types=[])
+                                                   required_interface_types=[]),
+        ServiceType.FABNetv4Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv4 publicly addressed FABRIC '
+                                                              'network capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[]),
+        ServiceType.FABNetv6Ext: ServiceConstraintRecord(layer=NSLayer.L3, num_interfaces=NO_LIMIT, num_sites=1,
+                                                         num_instances=NO_LIMIT,
+                                                         desc='A routed IPv6 publicly addressed FABRIC network '
+                                                              'capable of external connectivity.',
+                                                         required_properties=[],
+                                                         forbidden_properties=['mirror_port',
+                                                                               'mirror_direction',
+                                                                               'controller_url'],
+                                                         required_interface_types=[])
     }
 
     def __init__(self):
@@ -236,6 +259,7 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
+
 
     #
     # Setters are only needed for things we want users to be able to set
@@ -324,23 +348,46 @@ class NetworkServiceSliver(BaseSliver):
 
         ifs_added = set()
         ifs_removed = set()
+        ifs_modified = list()
+
+        # see if we ourselves have modified properties
+        self_modified = list()
+        self_modified_flags = self.prop_diff(other_sliver)
+        if self.prop_diff(other_sliver) != WhatsModifiedFlag.NONE:
+            self_modified.append((self, self_modified_flags))
+
         if self.interface_info and other_sliver.interface_info:
             diff_comps = self._dict_diff(self.interface_info.interfaces,
                                          other_sliver.interface_info.interfaces)
-            ifs_added = set(diff_comps['added'].keys())
-            ifs_removed = set(diff_comps['removed'].keys())
+            ifs_added = set(diff_comps['added'].values())
+            ifs_removed = set(diff_comps['removed'].values())
+            # there are interfaces in common, so we check if they have been modified
+            ifs_common = self._dict_common(self.interface_info.interfaces,
+                                           other_sliver.interface_info.interfaces)
+            for iA in ifs_common.values():
+                iB = other_sliver.interface_info.get_interface(iA.resource_name)
+                # compare properties
+                flag = iA.prop_diff(iB)
+                if flag != WhatsModifiedFlag.NONE:
+                    ifs_modified.append((iA, flag))
 
         if not self.interface_info and other_sliver.interface_info:
-            ifs_added = set(other_sliver.interface_info.interfaces.keys())
+            ifs_added = set(other_sliver.interface_info.interfaces.values())
 
         if self.interface_info and not other_sliver.interface_info:
-            ifs_removed = set(self.interface_info.interfaces.keys())
+            ifs_removed = set(self.interface_info.interfaces.values())
 
-        if len(ifs_added) > 0 or len(ifs_removed) > 0:
+        if len(ifs_added) > 0 or len(ifs_removed) > 0 or len(ifs_modified) > 0:
             return TopologyDiff(added=TopologyDiffTuple(components=set(), services=set(), interfaces=ifs_added,
                                                         nodes=set()),
                                 removed=TopologyDiffTuple(components=set(), services=set(),
-                                                          interfaces=ifs_removed, nodes=set()))
+                                                          interfaces=ifs_removed, nodes=set()),
+                                modified=TopologyDiffModifiedTuple(
+                                    nodes=list(),
+                                    components=list(),
+                                    services=self_modified,
+                                    interfaces=ifs_modified)
+                                )
         else:
             return None
 

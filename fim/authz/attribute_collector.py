@@ -53,7 +53,8 @@ class ResourceAuthZAttributes:
     RESOURCE_BW = "urn:fabric:xacml:attribute:resource-bw"
     RESOURCE_SITE = "urn:fabric:xacml:attribute:resource-site"
     RESOURCE_COMPONENT = "urn:fabric:xacml:attribute:resource-component"
-    RESOURCE_PEER_SITE = "urn:fabric:xacml:attribute:resource-peersite"
+    RESOURCE_FABNETV4_EXT = "urn:fabric:xacml:attribute:resource-fabnetv4-ext-site"
+    RESOURCE_FABNETV6_EXT = "urn:fabric:xacml:attribute:resource-fabnetv6-ext-site"
     RESOURCE_MIRROR_SITE = "urn:fabric:xacml:attribute:resource-mirrorsite"
     RESOURCE_FACILITY_PORT = "urn:fabric:xacml:attribute:resource-facility-port"
     RESOURCE_MEASUREMENTS = "urn:fabric:xacml:attribute:resource-with-measurements"
@@ -80,8 +81,10 @@ class ResourceAuthZAttributes:
                         "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_COMPONENT: ("http://www.w3.org/2001/XMLSchema#string",
                              "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
-        RESOURCE_PEER_SITE: ("http://www.w3.org/2001/XMLSchema#string",
+        RESOURCE_FABNETV4_EXT: ("http://www.w3.org/2001/XMLSchema#string",
                              "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
+        RESOURCE_FABNETV6_EXT: ("http://www.w3.org/2001/XMLSchema#string",
+                                "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_MIRROR_SITE: ("http://www.w3.org/2001/XMLSchema#string",
                                "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"),
         RESOURCE_FACILITY_PORT: ("http://www.w3.org/2001/XMLSchema#string",
@@ -114,7 +117,14 @@ class ResourceAuthZAttributes:
         BaseSliver: "base_sliver"
     }
 
+    NSTYPE_LUT = {
+        ServiceType.PortMirror: "urn:fabric:xacml:attribute:resource-mirrorsite",
+        ServiceType.FABNetv4Ext: "urn:fabric:xacml:attribute:resource-fabnetv4-ext-site",
+        ServiceType.FABNetv6Ext: "urn:fabric:xacml:attribute:resource-fabnetv6-ext-site"
+    }
+
     def __init__(self):
+        # using list because sets arent jsonifiable
         self._attributes = defaultdict(list)
         # for now resource type is always sliver
         self._attributes[self.RESOURCE_TYPE] = ["sliver"]
@@ -141,9 +151,14 @@ class ResourceAuthZAttributes:
         if sliver.site:
             if sliver.site not in self._attributes[self.RESOURCE_SITE]:
                 self._attributes[self.RESOURCE_SITE].append(sliver.site)
-        if sliver.resource_type == ServiceType.PortMirror:
-            if sliver.site not in self._attributes[self.RESOURCE_MIRROR_SITE]:
-                self._attributes[self.RESOURCE_MIRROR_SITE].append(sliver.site)
+        if sliver.resource_type in {ServiceType.PortMirror, ServiceType.FABNetv4Ext, ServiceType.FABNetv6Ext}:
+            # we list sites using each type of service separately
+            resource_name = self.NSTYPE_LUT[sliver.resource_type]
+            # site must be set (typically set by Topology.validate())
+            if not sliver.site:
+                sliver.site = "UNKNOWN-SITE"
+            if sliver.site not in self._attributes[resource_name]:
+                self._attributes[resource_name].append(sliver.site)
 
     def _collect_attributes_from_base_sliver(self, sliver: BaseSliver):
         if isinstance(sliver, NetworkServiceSliver):
@@ -157,7 +172,7 @@ class ResourceAuthZAttributes:
         for ns in topo.network_services.values():
             self._collect_attributes_from_ns(ns)
         for fac in topo.facilities.values():
-            self._attributes[self.RESOURCE_FACILITY_PORT] = fac.name
+            self._attributes[self.RESOURCE_FACILITY_PORT].append(fac.name)
 
     def _collect_attributes_from_node(self, node: Node):
         self._collect_attributes_from_node_sliver(node.get_sliver())
@@ -179,8 +194,8 @@ class ResourceAuthZAttributes:
                                     NetworkService or None):
         """
         Take an ExperimentTopology or an ASM graph or a Sliver or a member of topology
-        and extract all relevant authorization attributes, storing them as a Dict suitable for
-        converting into an AuthZ request to a PDP.
+        and extract all relevant authorization attributes, storing them
+        as a Dict suitable for converting into an AuthZ request to a PDP.
         :param source: a source of attributes (ExperimentTopology, ASM or Sliver)
         :return: dictionary
         """

@@ -132,3 +132,17 @@ dmypy.json
 #PyCharm
 .idea/
 
+# Files created by tests.
+/LBNL-ad.graphml
+/Network-ad.graphml
+/RENCI-ad.graphml
+/UKY-ad.graphml
+/single-site.graphml
+/two-site.graphml
+/single-site.cyt.json
+/single-site.json
+/two-site.cyt.json
+/two-site.json
+/neo4j/data/databases/
+/neo4j/data/dbms/
+/neo4j/data/transactions/
