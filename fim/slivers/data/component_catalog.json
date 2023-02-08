@@ -10,6 +10,17 @@
     "Type": "GPU",
     "Details": "NVIDIA Corporation TU104GL [Tesla T4] (rev a1)"
   },
+    {
+    "Model": "A40",
+    "Type": "GPU",
+    "Details": "NVIDIA Corporation GA102GL [A40] (rev a1)"
+  },
+  {
+    "Model": "A30",
+    "AlsoModels": ["A30 PCIe"],
+    "Type": "GPU",
+    "Details": " NVIDIA Corporation GA100GL [A30 PCIe] (rev a1)"
+  },
   {
     "Model": "ConnectX-6",
     "Type": "SharedNIC",
