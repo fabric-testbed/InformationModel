@@ -42,6 +42,7 @@ from ..slivers.network_service import ServiceType, NetworkServiceInfo
 from ..slivers.component_catalog import ComponentModelType
 from ..slivers.capacities_labels import CapacityHints, Location
 from ..slivers.maintenance_mode import MaintenanceInfo
+from ..slivers.interface_info import InterfaceType
 
 
 class Node(ModelElement):
@@ -347,6 +348,17 @@ class Node(ModelElement):
         assert name is not None
         node_id = self.topo.graph_model.find_component_by_name(parent_node_id=self.node_id,
                                                                component_name=name)
+
+        for i in self.components[name].interface_list:
+            # disconnect if connected to a network service
+            peers = i.get_peers(itype=InterfaceType.ServicePort)
+            if peers:
+                if len(peers) == 1:
+                    # disconnect from its parent service
+                    self.topo.get_parent_element(peers[0]).disconnect_interface(i)
+                else:
+                    raise TopologyException(f'Interface {i.name} has more than one peer, this is a model error.')
+        # remove component, its network service and interfaces (if present)
         self.topo.graph_model.remove_component_with_nss_cps_and_links(node_id=node_id)
 
     def remove_network_service(self, name: str) -> None:

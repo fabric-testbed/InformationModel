@@ -213,7 +213,7 @@ class Topology(ABC):
         if name not in self.nodes.keys():
             raise TopologyException(f'Node {name} is not in this topology.')
         for i in self.nodes[name].interface_list:
-            # disconnect if connected
+            # disconnect if connected to a network service
             peers = i.get_peers(itype=InterfaceType.ServicePort)
             if peers:
                 if len(peers) == 1:
@@ -851,9 +851,11 @@ class ExperimentTopology(Topology):
 
     def _prune_node(self, node: Node):
         """
-        Prune this node, its components, network services and interfaces
+        Prune this node, its components, network services and interfaces as well as peer network
+        service interface.
         """
-        self.graph_model.remove_network_node_with_components_nss_cps_and_links(node_id=node.node_id)
+        #self.graph_model.remove_network_node_with_components_nss_cps_and_links(node_id=node.node_id)
+        self.remove_node(name=node.name)
 
     def _prune_ns(self, ns: NetworkService):
         """
@@ -861,11 +863,13 @@ class ExperimentTopology(Topology):
         """
         self.graph_model.remove_ns_with_cps_and_links(node_id=ns.node_id)
 
-    def _prune_components(self, c: Component):
+    def _prune_components(self, c: Component, parent: Node):
         """
-        Prune this component, its network services and interfaces
+        Prune this component, its network services and interfaces as well as peer
+        network service interfaces
         """
-        self.graph_model.remove_component_with_nss_cps_and_links(node_id=c.node_id)
+        #self.graph_model.remove_component_with_nss_cps_and_links(node_id=c.node_id)
+        parent.remove_component(c.name)
 
     def _prune_interface(self, i: Interface):
         """
@@ -895,7 +899,7 @@ class ExperimentTopology(Topology):
                 csl = c.get_sliver()
                 if csl.get_reservation_info() and \
                         csl.get_reservation_info().reservation_state == reservation_state:
-                    components.add(c)
+                    components.add((c, n))
                 for ns in c.network_services.values():
                     seennss.add(ns)
                     nsl = ns.get_sliver()
@@ -925,8 +929,9 @@ class ExperimentTopology(Topology):
         for n in nodes:
             self._prune_node(n)
 
-        for c in components:
-            self._prune_components(c)
+        # need parents too
+        for c, n in components:
+            self._prune_components(c, n)
 
         for ns in nss:
             self._prune_ns(ns)
