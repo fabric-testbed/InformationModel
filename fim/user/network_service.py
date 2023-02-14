@@ -247,7 +247,10 @@ class NetworkService(ModelElement):
                 raise TopologyException(f"Service {self.name} of type {nstype} cannot span {len(sites)} sites. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_sites}.")
 
-        if len(sites) == 1:
+        if len(sites) == 0:
+            # disconnected service, probably a modify-result, pass
+            pass
+        elif len(sites) == 1:
             # set the site property if possible
             old_site = self.site
             if not self.site:
@@ -258,8 +261,8 @@ class NetworkService(ModelElement):
                                         f"match the site {self.site} inferred from connected interfaces.")
         else:
             if self.site:
-                raise TopologyException(f"Service {self.name} is multi-site, but site {self.site} was specified in"
-                                        f"constructor")
+                raise TopologyException(f"Service {self.name} of type {self.type} is multi-site, "
+                                        f"but site {self.site} was specified in constructor")
 
     def validate_constraints(self, interfaces):
         """

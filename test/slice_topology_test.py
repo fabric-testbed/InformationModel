@@ -171,17 +171,30 @@ class SliceTest(unittest.TestCase):
         # removal checks
         self.topo.remove_node(name='Node2')
 
+        # validate
+        self.topo.validate()
+
         self.assertTrue(len(self.topo.links), 1)
         self.assertTrue(len(self.topo.nodes), 2)
 
         n1.remove_component(name='nic1')
         self.assertEqual(len(self.topo.links), 1)
+        # validate
+        self.topo.validate()
+
+        # GPU left
+        self.assertEqual(len(n1.components), 1)
+
+        n1.remove_component('gpu1')
+        self.topo.validate()
+
+        # no components left
+        self.assertEqual(len(n1.components), 0)
 
         n3.remove_component(name='nic3')
         self.assertEqual(len(self.topo.links), 0)
-
-        # GPU left
-        self.assertTrue(len(n1.components), 1)
+        # validate
+        self.topo.validate()
 
         # remove remaining nodes
         self.topo.remove_node(name='node3')
@@ -190,6 +203,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.interface_list), 0)
         self.assertEqual(len(self.topo.links), 0)
         self.assertEqual(len(self.topo.network_services), 1)
+        self.topo.validate()
         self.topo.remove_network_service(name='s1')
         self.assertEqual(len(self.topo.network_services), 0)
         self.n4j_imp.delete_all_graphs()
