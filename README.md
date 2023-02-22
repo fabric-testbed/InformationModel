@@ -112,6 +112,17 @@ For inclusion in tools, etc, use PyPi
 $ pip install fabric-fim
 ```
 
+### Compatibility with Neo4j
+
+Below is the compatibility matrix showing which major versions of FIM support which versions of Neo4j
+(tested with the corresponding versions of [Neo4j-APOC docker container](https://github.com/fabric-testbed/fabric-docker-images/tree/master/neo4j-apoc))
+
+| FIM Major version  | Neo4j-APOC docker version |
+|--------------------|---------------------------|
+ | 1.0-1.2            | 4.0.3                     |
+ | 1.3-1.4            | 4.1.6                     |
+ | 1.5                | 5.3.0                     |
+
 ## Test Graphs
 
 ### Original Test Graphs

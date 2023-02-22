@@ -318,11 +318,11 @@ class Neo4jTests(unittest.TestCase):
         print('Finding intersite links')
         links = cbm.get_intersite_links()
         print(links)
-        assert(len(links) == 3)
+        self.assertTrue(len(links) == 3)
         ls = set()
         for l in links:
             ls.add(l[1])
-        assert('port+renc-data-sw:HundredGigE0/0/0/26-Wave' in ls and
+        self.assertTrue('port+renc-data-sw:HundredGigE0/0/0/26-Wave' in ls and
                'port+renc-data-sw:HundredGigE0/0/0/27-Wave' in ls and
                'port+uky-data-sw:HundredGigE0/0/0/27-Wave' in ls)
         print('Done')
@@ -334,14 +334,42 @@ class Neo4jTests(unittest.TestCase):
         site_adms = site_arms[ad].generate_adms()
         site_adm = site_adms['primary']
         cbm.merge_adm(adm=site_adm)
+        network_old_adm_id = adm_ids[ad]
+        for adm in site_adms.values():
+            adm_ids[ad] = adm.graph_id
+            adm.delete_graph()
 
         ad = 'RENCI-ad.graphml'
         print(f"Unmerging graph {adm_ids[ad]}")
         cbm.unmerge_adm(graph_id=adm_ids[ad])
-        print(f"Merging back")
-        site_adms = site_arms[ad].generate_adms()
+        print(f"Merging back with same adm_id {adm_ids[ad]}")
+        site_adms = site_arms[ad].generate_adms(delegation_guids={'primary': adm_ids[ad]})
         site_adm = site_adms['primary']
         cbm.merge_adm(adm=site_adm)
+
+        # verify the right ADM ids are used
+        all_nodes = cbm.get_all_network_nodes()
+        found = False
+        node_props = None
+        # find the node named 'renc-data-sw'. Its StructuralInfo adm_graph_ids
+        # should have the adm_ids['RENCI-ad.graphml'] because it was reused
+        # and it should NOT have the adm_ids['Network-ad.graphml'] because a
+        # new one was generated
+        for node in all_nodes:
+            _, node_props = cbm.get_node_properties(node_id=node)
+            if node_props[ABCPropertyGraph.PROP_NAME] == 'renc-data-sw':
+                found = True
+                break
+        self.assertTrue(found)
+        node_sliver = ABCPropertyGraph.node_sliver_from_graph_properties_dict(node_props)
+        self.assertIn(adm_ids['RENCI-ad.graphml'],
+                      node_sliver.structural_info.adm_graph_ids)
+        self.assertNotIn(network_old_adm_id,
+                         node_sliver.structural_info.adm_graph_ids)
+
+        for adm in site_adms.values():
+            adm_ids[ad] = adm.graph_id
+            adm.delete_graph()
 
         self.n4j_imp.delete_all_graphs()
 
