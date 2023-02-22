@@ -103,10 +103,11 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
             graph.update_node_property(node_id=node_id, prop_name=prop_name,
                                        prop_val=prop_val.to_json())
 
-    def generate_adms(self) -> Dict:
+    def generate_adms(self, delegation_guids: Dict or None = None) -> Dict:
         """
         Generate delegation models from the current ARM graph and return
         the dictionary delegation_id: Neo4jPropertyGraph for generated ADMs
+        :param delegation_guids: - optional dictionary mapping delegation names to guids
         :return:
         """
         self.node_ids = self.list_all_node_ids()
@@ -123,11 +124,17 @@ class ABCARMPropertyGraph(ABCPropertyGraph):
 
         # generate unique graph ids and empty node sets for ADM graphs
         # add stitch nodes as keep nodes to all ADMs
-        delegations_info = {del_id: ABCARMPropertyGraph.DelegationInfo(graph_id=str(uuid.uuid4()),
-                                                        graph=None,
-                                                        keep_nodes=keep_nodes_sets[del_id].union(stitch_nodes),
-                                                        remove_nodes=set())
+        # NOTE: we overwrite delegation GUID if one is available for a specific delegation name (delegation_id)
+        # and otherwise generate a new random GUID
+        delegations_info = {del_id: ABCARMPropertyGraph.DelegationInfo(graph_id=delegation_guids.get(del_id,
+                                                                                                     str(uuid.uuid4()))
+                                                                        if delegation_guids else str(uuid.uuid4()),
+                            graph=None,
+                            keep_nodes=keep_nodes_sets[del_id].union(stitch_nodes),
+                            remove_nodes=set())
                             for del_id in unique_delegation_ids}
+
+        #print(f"Delegations info for graph {self.graph_id}: {delegations_info}")
 
         # At this point we need to write back delegations for specific delegation ID
         # into separate ADM graphs, then determine additional keep nodes and remove
