@@ -307,13 +307,12 @@ if __name__ == "__main__":
             logging.error('Must specify one -o option', file=sys.stderr)
             sys.exit(-1)
         # save graph
-        outfile = args.outfile[0]
-        graph = args.graph
-        if graph is None:
+        if args.graph is None:
             logging.error("Must specify graph id (-g)", file=sys.stderr)
             sys.exit(-1)
 
-        logging.info(f"Saving graph {graph} into file {outfile}")
-        save_graph(outfile=outfile, graph_id=graph, neo4j_config=yaml_config["neo4j"])
+        for file, graph in zip(args.outfile, args.graph):
+            logging.info(f"Saving graph {graph} into file {file}")
+            save_graph(outfile=file, graph_id=graph, neo4j_config=yaml_config["neo4j"])
     else:
         logging.error("Please specify one of -h, -l, -e or -w", file=sys.stderr)
