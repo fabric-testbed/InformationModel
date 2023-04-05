@@ -635,6 +635,28 @@ class SliceTest(unittest.TestCase):
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
 
+    def testFPGAComponent(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='fpga1', model_type=ComponentModelType.FPGA_Xilinx_U280)
+        n2 = t.add_node(name='n2', site='MASS')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+        t.add_network_service(name='ns1', nstype=ServiceType.L2Bridge,
+                              interfaces=[n1.interface_list[0], n2.interface_list[0]])
+
+        t.validate()
+
+        slice_graph = t.serialize(file_name='fpga_slice.graphml')
+        slice_graph = t.serialize()
+
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+
     def testL3VPNWithCloudService(self):
         t = self.topo
 

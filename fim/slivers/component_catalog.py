@@ -130,7 +130,7 @@ class ComponentCatalog:
             for interface_name in interfaces_dict.keys():
                 isliver = InterfaceSliver()
                 isliver.set_name(name + '-' + interface_name)
-                if cs.get_type() == ComponentType.SmartNIC:
+                if cs.get_type() in [ComponentType.SmartNIC, ComponentType.FPGA]:
                     isliver.set_type(InterfaceType.DedicatedPort)
                 elif cs.get_type() == ComponentType.SharedNIC:
                     isliver.set_type(InterfaceType.SharedPort)

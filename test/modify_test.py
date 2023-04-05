@@ -114,6 +114,8 @@ class ModifyTest(unittest.TestCase):
         self.diff.removed.nodes.add(self.topoA.nodes['NodeC'])
         self.topoB.remove_node(name='NodeC')
 
+        self.topoB.validate()
+
         # by now bridge1 connects only one interface, let's check that
         self.assertEqual(len(self.topoB.network_services['bridge1'].interface_list), 1)
 
