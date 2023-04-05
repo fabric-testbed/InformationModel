@@ -193,7 +193,15 @@ class SliceTest(unittest.TestCase):
 
         n3.remove_component(name='nic3')
         self.assertEqual(len(self.topo.links), 0)
-        # validate
+
+        # 0 interfaces left attached to bridge
+        with self.assertRaises(TopologyException):
+            self.topo.validate()
+
+        self.assertEqual(len(self.topo.network_services), 1)
+        self.topo.remove_network_service(name='s1')
+        self.assertEqual(len(self.topo.network_services), 0)
+
         self.topo.validate()
 
         # remove remaining nodes
@@ -202,10 +210,7 @@ class SliceTest(unittest.TestCase):
         self.assertEqual(len(self.topo.nodes), 0)
         self.assertEqual(len(self.topo.interface_list), 0)
         self.assertEqual(len(self.topo.links), 0)
-        self.assertEqual(len(self.topo.network_services), 1)
-        self.topo.validate()
-        self.topo.remove_network_service(name='s1')
-        self.assertEqual(len(self.topo.network_services), 0)
+
         self.n4j_imp.delete_all_graphs()
 
     def testNetworkServices(self):
