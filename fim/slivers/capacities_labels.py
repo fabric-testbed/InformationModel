@@ -454,6 +454,15 @@ class Labels(JSONField):
             ret = ret + i + ": " + str(v) + ", "
         return ret[:-2] + "}"
 
+    def __eq__(self, other):
+        if not other:
+            return False
+        assert isinstance(other, Labels)
+        for f, v in self.__dict__.items():
+            if v != other.__dict__[f]:
+                return False
+        return True
+
 
 class ReservationInfo(JSONField):
     """
