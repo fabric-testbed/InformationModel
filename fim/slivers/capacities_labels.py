@@ -585,7 +585,7 @@ class Flags(JSONField):
         self.auto_config = False # primarily for interfaces
         self.auto_mount = False # primarily for storage components
         self.ipv4_management = False # request ipv4 management IP
-        self.ptp_available = False # for advertisements of nodes/sites
+        self.ptp = False # for advertisements of nodes/sites
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
