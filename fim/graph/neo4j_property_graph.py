@@ -426,7 +426,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert rel is not None
         assert node_label is not None
         query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[:{rel}]- " \
-                f"(b:{node_label} {{ GraphID: $graphId}}) return b.NodeID"
+                f"(b:GraphNode:{node_label} {{ GraphID: $graphId}}) return b.NodeID"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_id).value()
             if val is None:
@@ -452,8 +452,8 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert node2_label is not None
 
         query = f"match (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) -[:{rel1}]- "\
-                f"(b:{node1_label} {{GraphID: $graphId}}) -[:{rel2}]- "\
-                f"(c:{node2_label} {{GraphID: $graphId}}) WHERE $nodeA <> c.NodeID return b.NodeID, c.NodeID"
+                f"(b:GraphNode:{node1_label} {{GraphID: $graphId}}) -[:{rel2}]- "\
+                f"(c:GraphNode:{node2_label} {{GraphID: $graphId}}) WHERE $nodeA <> c.NodeID return b.NodeID, c.NodeID"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeA=node_id).values()
             if val is None:
@@ -480,7 +480,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         """
         assert node_id is not None
         assert label is not None
-        query = f"MATCH (n:{label} {{GraphID: $graphId, NodeID: $nodeId}} RETURN collect(n.NodeID) as nodeids"
+        query = f"MATCH (n:GraphNode:{label} {{GraphID: $graphId, NodeID: $nodeId}} RETURN collect(n.NodeID) as nodeids"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeId=node_id).single()
             if val is None or len(val.data()) == 0 or len(val.data()['nodeids']) == 0:
@@ -596,7 +596,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert label is not None
         assert name is not None
 
-        query = f"MATCH (n:{label} {{GraphID: $graphId, Name: $name}}) RETURN collect(n.NodeID) as nodeids"
+        query = f"MATCH (n:GraphNode:{label} {{GraphID: $graphId, Name: $name}}) RETURN collect(n.NodeID) as nodeids"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, name=name).single()
             if val is None or len(val.data()) == 0 or len(val.data()['nodeids']) == 0:
@@ -607,7 +607,7 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert other_graph is not None
         assert label is not None
 
-        query = f"MATCH(n:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:{label} {{GraphID: $graphIdB}}) WITH " \
+        query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WITH " \
                 f"collect(DISTINCT n) as A, collect(DISTINCT n1) as B, " \
                 f"collect(DISTINCT n.NodeID) as AN, collect(DISTINCT n1.NodeID) as BN " \
                 f"RETURN [x in A WHERE NOT x.NodeID in BN] as AnotB, [x in B WHERE NOT x.NodeID in AN] as BnotA"
