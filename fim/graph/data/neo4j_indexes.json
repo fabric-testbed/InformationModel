@@ -1,6 +1,11 @@
 {
-  "graphid": "CREATE INDEX graphid FOR (n:GraphNode) ON (n.GraphID)",
-  "graphid_nodeid": "CREATE INDEX graphid_nodeid FOR (n:GraphNode) ON (n.GraphID, n.NodeID)",
-  "graphid_node_id_type": "CREATE INDEX graphid_nodeid_type FOR (n:GraphNode) ON (n.GraphID, n.NodeID, n.Type)",
-  "graphid_type": "CREATE INDEX graphid_type FOR (n:GraphNode) ON (n.GraphID, n.Type)"
+  "graphid": "CREATE INDEX graphid IF NOT EXISTS FOR (n:GraphNode) ON (n.GraphID)",
+  "graphid1": "CREATE INDEX graphid1 IF NOT EXISTS FOR (n:NetworkNode) ON (n.GraphID)",
+  "graphid2": "CREATE INDEX graphid2 IF NOT EXISTS FOR (n:NetworkService) ON (n.GraphID)",
+  "graphid3": "CREATE INDEX graphid3 IF NOT EXISTS FOR (n:Component) ON (n.GraphID)",
+  "graphid4": "CREATE INDEX graphid4 IF NOT EXISTS FOR (n:ConnectionPoint) ON (n.GraphID)",
+  "nodeid": "CREATE INDEX nodeid IF NOT EXISTS FOR (n:GraphNode) ON (n.NodeID)",
+  "graphid_nodeid": "CREATE INDEX graphid_nodeid IF NOT EXISTS FOR (n:GraphNode) ON (n.GraphID, n.NodeID)",
+  "graphid_node_id_type": "CREATE INDEX graphid_nodeid_type IF NOT EXISTS FOR (n:GraphNode) ON (n.GraphID, n.NodeID, n.Type)",
+  "graphid_type": "CREATE INDEX graphid_type IF NOT EXISTS FOR (n:GraphNode) ON (n.GraphID, n.Type)"
 }

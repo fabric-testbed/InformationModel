@@ -297,10 +297,10 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
         if len(component_counts.values()) == 0:
             # simple query on the properties of the node (no components)
-            query = f"MATCH(n:{label} {{GraphID: $graphId, {node_props} }}) RETURN collect(n.NodeID) as candidate_ids"
+            query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphId, {node_props} }}) RETURN collect(n.NodeID) as candidate_ids"
         else:
             # build a query list
-            node_query = f"MATCH(n:{label} {{GraphID: $graphId, {node_props} }}) WHERE "
+            node_query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphId, {node_props} }}) WHERE "
             component_clauses = list()
             # add a clause for every tuple
             for k, v in component_counts.items():
@@ -327,10 +327,10 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
 
     def get_intersite_links(self) -> List[Tuple[str, str, str]]:
         # does a lexicographic comparison of Site properties to ensure only unique links are returned
-        query = 'match p= (n:NetworkNode {Type:"Switch", GraphID: $graphId}) -[:has]- (:NetworkService) ' \
+        query = 'match p= (n:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) -[:has]- (:GraphNode:NetworkService) ' \
                 '-[:connects]- (cp1:ConnectionPoint) -[:connects]- (l:Link) ' \
-                '-[:connects]- (cp2:ConnectionPoint) -[:connects]- (:NetworkService) ' \
-                '-[:has]- (m:NetworkNode {Type:"Switch", GraphID: $graphId}) where n.Site > m.Site ' \
+                '-[:connects]- (cp2:ConnectionPoint) -[:connects]- (:GraphNode:NetworkService) ' \
+                '-[:has]- (m:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) where n.Site > m.Site ' \
                 'return n.NodeID as source, l.NodeID as link, m.NodeID as sink, n.Site as source_site, ' \
                 'm.Site as sink_site, cp1.NodeID as source_cp, cp2.NodeID as sink_cp'
         with self.driver.session() as session:

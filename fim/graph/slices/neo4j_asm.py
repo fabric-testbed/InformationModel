@@ -40,7 +40,7 @@ class Neo4jASM(ABCASMPropertyGraph, Neo4jPropertyGraph):
         assert label is not None
         assert name is not None
 
-        query = f"MATCH (n:{label} {{GraphID: $graphId, NodeID: $nodeId, Name: $name}}) " \
+        query = f"MATCH (n:GraphNode:{label} {{GraphID: $graphId, NodeID: $nodeId, Name: $name}}) " \
                 f"RETURN collect(n.NodeID) as nodeids"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, nodeId=node_id, name=name).single()
@@ -52,7 +52,7 @@ class Neo4jASM(ABCASMPropertyGraph, Neo4jPropertyGraph):
 
         assert node_name is not None
         assert label is not None
-        query = f"MATCH(n:{label} {{GraphID: $graphId, Name: $name }}) RETURN collect(n.NodeID) as nodeids"
+        query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphId, Name: $name }}) RETURN collect(n.NodeID) as nodeids"
         with self.driver.session() as session:
             val = session.run(query, graphId=self.graph_id, name=node_name).single()
             if val is None or len(val.data()) == 0:
