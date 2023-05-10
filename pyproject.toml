@@ -20,7 +20,8 @@ dependencies = [
 	"networkx_query >= 1.0.1",
 	"PyYAML >= 6.0",
 	"recordclass >= 0.17.5",
-	"requests >= 2.28.1"
+	"requests >= 2.28.1",
+	"lxml >= 4.9.2"
 	]
 
 [project.scripts]
