@@ -15,7 +15,7 @@ requires-python = '>=3.9'
 keywords = ["Neo4j"]
 dependencies = [ 
 	"matplotlib >= 3.6.0",
-	"neo4j >= 5.2.0",
+	"neo4j >= 5.3.0",
 	"networkx >= 2.8.7",
 	"networkx_query >= 1.0.1",
 	"PyYAML >= 6.0",
@@ -32,4 +32,7 @@ Home = "https://github.com/fabric-testbed/InformationModel"
 
 [tool.flit.module]
 name = "fim"
+
+[project.optional-dependencies]
+test = ["pytest"]
 
