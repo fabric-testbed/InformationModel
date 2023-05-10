@@ -129,9 +129,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         return self.graph_id
 
     @abstractmethod
-    def validate_graph(self) -> None:
+    def validate_graph(self, validate_json: bool = True) -> None:
         """
         validate graph according to a built-in set of rules
+        :validate_json: - should JSON fields be validated? defaults True
         :return: - None,
         """
 

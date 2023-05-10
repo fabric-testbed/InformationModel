@@ -60,12 +60,13 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         assert isinstance(importer, NetworkXGraphImporter)
         self.storage = importer.storage
 
-    def validate_graph(self) -> None:
+    def validate_graph(self, validate_json: bool = True) -> None:
         """
         NetworkX offers limited opportunities for query/validation
         :return:
         """
-        self._validate_all_json_properties()
+        if validate_json:
+            self._validate_all_json_properties()
         # check that all nodes and links have 'Class' property
         for n in self.storage.get_graph(self.graph_id).nodes:
             if self.storage.get_graph(self.graph_id).nodes[n].get(ABCPropertyGraph.PROP_CLASS, None) is None:

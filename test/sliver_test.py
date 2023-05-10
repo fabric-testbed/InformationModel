@@ -91,6 +91,18 @@ class TestSlivers(unittest.TestCase):
         with self.assertRaises(LabelException):
             Labels(inner_vlan='6000')
 
+    def testLabelEq(self):
+        lab = Labels(vlan_range='1-4096', asn='123')
+        lab1 = Labels(vlan_range='1-1024', asn='345')
+
+        self.assertNotEqual(lab, lab1)
+
+        lab2 = Labels(vlan_range='1-4096', asn='123')
+        self.assertEqual(lab, lab2)
+
+        lab2 = Labels(vlan_range='1-4096', asn='123', local_name='myvlan')
+        self.assertNotEqual(lab, lab2)
+
     def testFlagsAndTags(self):
         isl = InterfaceSliver()
         isl.flags = Flags(auto_config=True)

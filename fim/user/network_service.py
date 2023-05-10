@@ -28,6 +28,7 @@ from typing import Tuple, Any, List, Set
 
 import uuid
 
+import fim.user.topology
 from fim.view_only_dict import ViewOnlyDict
 
 from .model_element import ModelElement, ElementType, TopologyException
@@ -228,11 +229,18 @@ class NetworkService(ModelElement):
             if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[self.type].num_instances:
                 raise TopologyException(f"Service {self.name} type {nstype} cannot have {len(services) + 1} instances. "
                                         f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
-        # check the number of interfaces
-        if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
-            if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
-                raise TopologyException(f"Service {self.name} of type {nstype} cannot have {len(interfaces)} interfaces. "
-                                        f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
+
+        # check the number of interfaces only for experiment topologies
+        # in e.g. advertisements network services with no interfaces hang off dataplane switches
+        if isinstance(self.topo, fim.user.topology.ExperimentTopology):
+            if NetworkServiceSliver.ServiceConstraints[nstype].min_interfaces != NetworkServiceSliver.NO_LIMIT:
+                if len(interfaces) < NetworkServiceSliver.ServiceConstraints[nstype].min_interfaces:
+                    raise TopologyException(f"Service {self.name} of type {nstype} cannot have {len(interfaces)} interfaces. "
+                                            f"Limit at least: {NetworkServiceSliver.ServiceConstraints[nstype].min_interfaces}")
+            if NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces != NetworkServiceSliver.NO_LIMIT:
+                if len(interfaces) > NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces:
+                    raise TopologyException(f"Service {self.name} of type {nstype} cannot have {len(interfaces)} interfaces. "
+                                            f"Limit at most: {NetworkServiceSliver.ServiceConstraints[nstype].num_interfaces}")
         sites = set()
         # check the number of sites spanned by this service
         if NetworkServiceSliver.ServiceConstraints[nstype].num_sites != NetworkServiceSliver.NO_LIMIT:

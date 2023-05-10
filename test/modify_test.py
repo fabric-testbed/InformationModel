@@ -10,7 +10,7 @@ import fim.user as f
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter
 from fim.slivers.attached_components import ComponentType
 from fim.slivers.network_service import ServiceType
-from fim.user.topology import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
+from fim.user.topology import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag, TopologyException
 from fim.slivers.capacities_labels import ReservationInfo
 from fim.logging.log_collector import LogCollector
 from fim.slivers.capacities_labels import Labels, Capacities
@@ -113,6 +113,8 @@ class ModifyTest(unittest.TestCase):
         #
         self.diff.removed.nodes.add(self.topoA.nodes['NodeC'])
         self.topoB.remove_node(name='NodeC')
+
+        self.topoB.validate()
 
         # by now bridge1 connects only one interface, let's check that
         self.assertEqual(len(self.topoB.network_services['bridge1'].interface_list), 1)
@@ -341,3 +343,43 @@ class ModifyTest(unittest.TestCase):
 
         print(self.topoA.nodes)
 
+    def testModifyValidate(self):
+
+        print('*** Modify with STS/PTP test')
+        # Create topology
+        t = f.ExperimentTopology()
+
+        # Set capacities
+        cap = Capacities(core=1, ram=4, disk=10)
+
+        site1 = "UKY"
+        sites = ["UKY", "RENC"]
+        num_nodes = 2
+        name = "node"
+        i = 0
+        ifcs = []
+
+        for x in range(num_nodes):
+            # Add node
+            nm = f"{name}-{i}"
+
+            n = t.add_node(name=f"{name}-{i}", site=sites[x])
+
+            # Set properties
+            n.set_properties(capacities=cap, image_type='qcow2', image_ref='default_rocky_8')
+            n.add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name=f"{name}-{i}-nic1")
+            # n.add_component(model_type=ComponentModelType.SharedNIC_OpenStack_vNIC, name=f"{name}-{i}-nic1")
+
+            # Auto Configure: Setup IP Addresses
+            n.interface_list[0].flags = f.Flags(auto_config=True)
+            ifcs.append(n.interface_list[0])
+
+            i += 1
+        ns = t.add_network_service(name='sts1', nstype=ServiceType.L2STS, interfaces=ifcs)
+        t.validate()  # success
+
+        # Remove one node
+        t.remove_node(name='node-0')
+        # should throw because the minimum of 2 interfaces is not met
+        with self.assertRaises(TopologyException):
+            t.validate()

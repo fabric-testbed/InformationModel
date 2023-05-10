@@ -78,15 +78,16 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 if v is False:
                     raise PropertyGraphImportException(graph_id=self.graph_id, msg=r['msg'])
 
-    def validate_graph(self) -> None:
+    def validate_graph(self, validate_json: bool = True) -> None:
         """
         validate a graph from a built-in set of rules
         :return:
         """
         self.log.info(f'Applying validation rules to graph {self.graph_id}')
         self._validate_graph(os.path.join(os.path.dirname(__file__), 'data', 'graph_validation_rules.json'))
-        self.log.info(f'Checking JSON properties of graph {self.graph_id}')
-        self._validate_all_json_properties()
+        if validate_json:
+            self.log.info(f'Checking JSON properties of graph {self.graph_id}')
+            self._validate_all_json_properties()
 
     def delete_graph(self) -> None:
         """

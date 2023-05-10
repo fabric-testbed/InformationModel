@@ -349,13 +349,14 @@ class Labels(JSONField):
         'vlan': (r'[\d]{1,4}', "1234"),
         'vlan_range': (r'[\d]{1,4}-[\d]{1,4}', "100-200"),
         'inner_vlan': (r'[\d]{1,4}', "1234"),
-        'bgp_key': (r'[\w\-+_/\.:]{6,150}', "Amazon or other bgp key"),
+        'bgp_key': (r'[\w\-+_/\.:]{6,150}', "Amazon or other BGP key"),
         # Azure UUID "3e2480b2-b4d5-3456-976a-7b0de65a1b62"
         # GCP <random>/<vlan-attachment-region>/<edge-availability-domain> "7e51371e-1234-40b5-b844-2e3efefaee59/us-central1/2"
         # AWS 12 digits
         # Oracle ocid1.<RESOURCE TYPE>.<REALM>.[REGION][.FUTURE USE].<UNIQUE ID> "ocid1.instance.oc1.phx.abuw4ljrlsfiqw6vzzxb67hyypt4pkodawglp3wqxjqofakrwvou52gb6s5a"
         'account_id': (r'[\w\-/\.]{3,100}', "Azure/GCP/AWS/Oracle account"),
-        'region': (r'[\w\-\.]{3,100}', "Azure/GCP/AWS/Oracle region identifier")
+        'region': (r'[\w\-\.]{3,100}', "Azure/GCP/AWS/Oracle region identifier"),
+        'usb_id': (r'[0-9a-f]{4}:[0-9a-f]{4}', "USB device id '1234:abcd'")
     }
     LAMBDA_VALIDATORS = {
         'vlan': ((lambda v: True if 0 <= int(v) <= 4096 else False), "0-4096"),
@@ -388,6 +389,7 @@ class Labels(JSONField):
         self.bgp_key = None
         self.account_id = None
         self.region = None
+        self.usb_id = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
@@ -453,6 +455,15 @@ class Labels(JSONField):
         for i, v in d.items():
             ret = ret + i + ": " + str(v) + ", "
         return ret[:-2] + "}"
+
+    def __eq__(self, other):
+        if not other:
+            return False
+        assert isinstance(other, Labels)
+        for f, v in self.__dict__.items():
+            if v != other.__dict__[f]:
+                return False
+        return True
 
 
 class ReservationInfo(JSONField):
@@ -576,6 +587,7 @@ class Flags(JSONField):
         self.auto_config = False # primarily for interfaces
         self.auto_mount = False # primarily for storage components
         self.ipv4_management = False # request ipv4 management IP
+        self.ptp = False # for advertisements of nodes/sites
         self._set_fields(**kwargs)
 
     def _set_fields(self, **kwargs):
