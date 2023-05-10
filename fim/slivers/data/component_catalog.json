@@ -68,6 +68,7 @@
   },
   {
     "Model": "Xilinx-U280",
+    "AlsoModels": ["Alveo U280"],
     "Type" : "FPGA",
     "Details": "Xilinx U280 FPGA Dual 100G port accelerator card",
     "Interfaces": {

@@ -116,6 +116,14 @@ class ComponentCatalog:
         cs.set_type(cs.type_from_str(component_dict['Type']))
         cs.set_details(component_dict['Details'])
         if 'Interfaces' in component_dict.keys():
+            # for components with interfaces
+            if cs.get_type() in [ComponentType.FPGA]:
+                ns_suffix = '-l2p4'
+                ns_type = ServiceType.P4
+            else:
+                ns_suffix = '-l2ovs'
+                ns_type = ServiceType.OVS
+
             interfaces_dict = component_dict['Interfaces']
             if interface_node_ids is not None:
                 if len(interface_node_ids) != len(interfaces_dict.keys()):
@@ -169,10 +177,10 @@ class ComponentCatalog:
             ns.node_id = ns_node_id
             # network service names are supposed to be unique within a graph
             if parent_name is not None:
-                ns.set_name(parent_name + "-" + name + '-l2ovs')
+                ns.set_name(parent_name + "-" + name + ns_suffix)
             else:
-                ns.set_name(name + "-l2ovs")
-            ns.set_type(ServiceType.OVS)
+                ns.set_name(name + ns_suffix)
+            ns.set_type(ns_type)
             # default to L2 for now
             ns.set_layer(NSLayer.L2)
             ns.interface_info = iinfo

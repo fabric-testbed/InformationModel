@@ -130,7 +130,7 @@ class NetworkServiceSliver(BaseSliver):
     ServiceConstraints = {
         ServiceType.P4: ServiceConstraintRecord(layer=NSLayer.L2, min_interfaces=1,
                                                 num_interfaces=NO_LIMIT, num_sites=1,
-                                                num_instances=NO_LIMIT, required_properties=['controller_url'],
+                                                num_instances=NO_LIMIT, required_properties=[],
                                                 forbidden_properties=['mirror_port',
                                                                       'mirror_direction'],
                                                 required_interface_types=[],
