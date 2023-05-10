@@ -148,3 +148,6 @@ dmypy.json
 /neo4j/data/dbms/
 /neo4j/data/transactions/
 fim/util/*.graphml
+fim/util/*.yaml
+fim/util/*.json
+fim/util/*.JSON
