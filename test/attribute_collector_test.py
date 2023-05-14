@@ -22,9 +22,12 @@ class AttributeCollectorTest(unittest.TestCase):
         n1.add_component(name='c3', model_type=ComponentModelType.NVME_P4510)
         n2 = t.add_node(name='n2', site='UKY', capacities=Capacities(core=10, ram=10, disk=35))
         c4 = n2.add_component(name='c4', model_type=ComponentModelType.SmartNIC_ConnectX_5)
+        c5 = n2.add_component(name='c5', model_type=ComponentModelType.FPGA_Xilinx_U280)
         s1 = t.add_network_service(name='s1', nstype=ServiceType.L2PTP,
                                    interfaces=[c1.interface_list[0], c4.interface_list[0]],
                                    capacities=Capacities(bw=12))
+        s2 = t.add_network_service(name='s2', nstype=ServiceType.L2Bridge,
+                                   interfaces=[c5.interface_list[0], c5.interface_list[1]])
         fac1 = t.add_facility(name='RENCI-DTN', site='RENC', capacities=Capacities(bw=10))
         sfac = t.add_network_service(name='s-fac', nstype=ServiceType.L2STS,
                                      interfaces=[fac1.interface_list[0],
@@ -42,6 +45,7 @@ class AttributeCollectorTest(unittest.TestCase):
         az.set_lifetime(future)
         print(az)
         self.assertTrue('SmartNIC' in az.attributes[ResourceAuthZAttributes.RESOURCE_COMPONENT])
+        self.assertTrue('FPGA' in az.attributes[ResourceAuthZAttributes.RESOURCE_COMPONENT])
         self.assertTrue('NVME' in az.attributes[ResourceAuthZAttributes.RESOURCE_COMPONENT])
         self.assertTrue(25 in az.attributes[ResourceAuthZAttributes.RESOURCE_DISK])
         self.assertTrue(12 in az.attributes[ResourceAuthZAttributes.RESOURCE_BW])
