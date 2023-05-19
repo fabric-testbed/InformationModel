@@ -197,7 +197,11 @@ class Capacities(JSONField):
             return False
         assert isinstance(other, Capacities)
         for f, v in self.__dict__.items():
-            if v != other.__dict__[f]:
+            # since we may be dealing with pickled versions
+            # of Capcities created with older version of FIM
+            # need to be careful not to assume all the same
+            # fields are present
+            if v != other.__dict__.get(f, 0):
                 return False
         return True
 
@@ -461,7 +465,11 @@ class Labels(JSONField):
             return False
         assert isinstance(other, Labels)
         for f, v in self.__dict__.items():
-            if v != other.__dict__[f]:
+            # since we may be dealing with pickled versions
+            # of Labels created with older version of FIM
+            # need to be careful not to assume all the same
+            # fields are present
+            if v != other.__dict__.get(f):
                 return False
         return True
 
