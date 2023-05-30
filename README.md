@@ -167,12 +167,12 @@ $ pytest [-s] test
 This will produce substrate ARM models and save them into file in project root folder.
 
 To build and publish run 
-```commandline
+```console
 $ flit build
 $ flit publish
 ```
 or just (assuming your .pypirc is setup with the token to access PyPi)
-```commandline
+```console
 $ flit publish
 ```
 
