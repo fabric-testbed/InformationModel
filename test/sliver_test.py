@@ -91,13 +91,27 @@ class TestSlivers(unittest.TestCase):
         with self.assertRaises(LabelException):
             Labels(inner_vlan='6000')
 
+    def testNuma(self):
+        ns = NodeSliver()
+        cap_hint = CapacityHints(instance_type='blah')
+        lab = Labels(numa='-1')
+        ns.set_properties(labels=lab, capacity_hints=cap_hint)
+
+        self.assertEqual(ns.labels.numa, '-1')
+
+        with self.assertRaises(LabelException):
+            Labels(numa='-5')
+
+        with self.assertRaises(LabelException):
+            Labels(numa='8')
+
     def testLabelEq(self):
-        lab = Labels(vlan_range='1-4096', asn='123')
+        lab = Labels(vlan_range='1-4096', asn='123', numa='0')
         lab1 = Labels(vlan_range='1-1024', asn='345')
 
         self.assertNotEqual(lab, lab1)
 
-        lab2 = Labels(vlan_range='1-4096', asn='123')
+        lab2 = Labels(vlan_range='1-4096', asn='123', numa='0')
         self.assertEqual(lab, lab2)
 
         lab2 = Labels(vlan_range='1-4096', asn='123', local_name='myvlan')

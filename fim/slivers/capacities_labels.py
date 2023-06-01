@@ -379,7 +379,8 @@ class Labels(JSONField):
                                           0 <= int(v.split('-')[1]) <= 4096 and
                                           int(v.split('-')[0]) <= int(v.split('-')[1]) else False),
                        "0-4096"),
-        'asn': ((lambda a: True if 0 < int(a) < 2**32 else False), "1-4294967295")
+        'asn': ((lambda a: True if 0 < int(a) < 2**32 else False), "1-4294967295"),
+        'numa': ((lambda a: True if -1 <= int(a) < 8 else False), "-1 or 0-7")
     }
 
     def __init__(self, **kwargs):
@@ -404,6 +405,7 @@ class Labels(JSONField):
         self.account_id = None
         self.region = None
         self.usb_id = None
+        self.numa = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, forgiving=False, **kwargs):
