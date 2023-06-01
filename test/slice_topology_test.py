@@ -506,7 +506,7 @@ class SliceTest(unittest.TestCase):
         topo.nodes['n2'].add_component(model_type=f.ComponentModelType.GPU_RTX6000, name='gpu1')
         topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
         topo.add_network_service(name='bridge1', nstype=f.ServiceType.L2Bridge,
-                                      interfaces=self.topo.interface_list)
+                                      interfaces=topo.interface_list)
         topo.serialize(file_name='single-site-neo4jimp.graphml')
         topo.validate()
 
