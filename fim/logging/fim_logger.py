@@ -32,8 +32,6 @@ to do it.
 
 import logging
 
-
-logging.basicConfig()
 FIMLOG = logging.getLogger("FIM")
 
 
@@ -41,6 +39,7 @@ def set_logger(logger):
     """
     Provide your own logger for FIM
     """
+    global FIMLOG
     FIMLOG = logger
 
 
@@ -48,5 +47,6 @@ def get_logger():
     """
     Get the default FIM logger
     """
+    global FIMLOG
     return FIMLOG
 

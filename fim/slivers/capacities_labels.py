@@ -33,7 +33,7 @@ import requests
 import urllib.parse
 
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
-from fim.logging.fim_logger import FIMLOG
+import fim.logging.fim_logger as fl
 
 class JSONField(ABC):
 
@@ -162,7 +162,7 @@ class Capacities(JSONField):
                 report = f"Unable to set field {k} of capacity, no such field available "\
                        f"{[k for k in self.__dict__.keys()]}"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise CapacityException(report)
         return self
@@ -313,7 +313,7 @@ class CapacityHints(JSONField):
             except AttributeError:
                 report = f"Unable to set field {k} of capacity hints, no such field available"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise CapacityHintException(report)
         # to support call chaining
@@ -448,10 +448,10 @@ class Labels(JSONField):
 
                 self.__setattr__(k, v)
             except AttributeError:
-                report = f"Unable to set field {k} of labels, no such field available "\
+                report = f"Using logger {fl.get_logger()} Unable to set field {k} of labels, no such field available "\
                          f"{[k for k in self.__dict__.keys()]}"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise LabelException(report)
         # to support call chaining
@@ -517,7 +517,7 @@ class ReservationInfo(JSONField):
                 report = f"Unable to set field {k} of reservation info, no such field "\
                          f"available {[k for k in self.__dict__.keys()]}"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise ReservationInfoException(report)
         # to support call chaining
@@ -552,7 +552,7 @@ class StructuralInfo(JSONField):
             except AttributeError:
                 report = f"Unable to set field {k} of structural info, no such field available"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise StructuralInfoException(report)
         # to support call chaining
@@ -583,7 +583,7 @@ class Location(JSONField):
             except AttributeError:
                 report = f"Unable to set field {k} of location, no such field available"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise LocationException(report)
         return self
@@ -635,7 +635,7 @@ class Flags(JSONField):
             except AttributeError:
                 report = f"Unable to set field {k} of flags, no such field available"
                 if forgiving:
-                    FIMLOG.warning(report)
+                    fl.get_logger().warning(report)
                 else:
                     raise FlagException(report)
         return self
