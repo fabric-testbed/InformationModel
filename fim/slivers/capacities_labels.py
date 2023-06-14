@@ -33,7 +33,7 @@ import requests
 import urllib.parse
 
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
-
+from fim.logging.fim_logger import FIMLOG
 
 class JSONField(ABC):
 
@@ -56,7 +56,7 @@ class JSONField(ABC):
         return inst
 
     @abstractmethod
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Abstract private set_fields method
         :param kwargs:
@@ -89,7 +89,9 @@ class JSONField(ABC):
             return None
         d = json.loads(json_string)
         ret = cls()
-        ret._set_fields(**d)
+        # we make constructing from JSON more forgiving to allow some limited
+        # forward compatibility, in case the fields change
+        ret._set_fields(forgiving=True, **d)
         return ret
 
     def to_dict(self) -> Dict[str, str] or None:
@@ -140,7 +142,7 @@ class Capacities(JSONField):
         self.mtu = 0
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal integer setter for all fields.
         Values should be non-negative integers. Throws a CapacityException
@@ -157,8 +159,12 @@ class Capacities(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise CapacityException(f"Unable to set field {k} of capacity, no such field available "
-                                        f"{[k for k in self.__dict__.keys()]}")
+                report = f"Unable to set field {k} of capacity, no such field available "\
+                       f"{[k for k in self.__dict__.keys()]}"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise CapacityException(report)
         return self
 
     def __add__(self, other):
@@ -290,7 +296,7 @@ class CapacityHints(JSONField):
         self.instance_type = None
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal setter for all fields. Values should be strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -305,7 +311,11 @@ class CapacityHints(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise CapacityHintException(f"Unable to set field {k} of capacity hints, no such field available")
+                report = f"Unable to set field {k} of capacity hints, no such field available"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise CapacityHintException(report)
         # to support call chaining
         return self
 
@@ -396,7 +406,7 @@ class Labels(JSONField):
         self.usb_id = None
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a LabelException if you try to set a non-existent field.
@@ -438,8 +448,12 @@ class Labels(JSONField):
 
                 self.__setattr__(k, v)
             except AttributeError:
-                raise LabelException(f"Unable to set field {k} of labels, no such field available "
-                                     f"{[k for k in self.__dict__.keys()]}")
+                report = f"Unable to set field {k} of labels, no such field available "\
+                         f"{[k for k in self.__dict__.keys()]}"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise LabelException(report)
         # to support call chaining
         return self
 
@@ -485,7 +499,7 @@ class ReservationInfo(JSONField):
         self.error_message = None
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal setter for all fields. Values should be strings or lists of strings.
         Throws a ReservationInfoException if you try to set a non-existent field.
@@ -500,8 +514,12 @@ class ReservationInfo(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise ReservationInfoException(f"Unable to set field {k} of reservation info, no such field "
-                                               f"available {[k for k in self.__dict__.keys()]}")
+                report = f"Unable to set field {k} of reservation info, no such field "\
+                         f"available {[k for k in self.__dict__.keys()]}"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise ReservationInfoException(report)
         # to support call chaining
         return self
 
@@ -517,7 +535,7 @@ class StructuralInfo(JSONField):
         self.adm_graph_ids = None
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal setter for all fields. Values are strings or boolean.
         Throws a
@@ -532,7 +550,11 @@ class StructuralInfo(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise StructuralInfoException(f"Unable to set field {k} of structural info, no such field available")
+                report = f"Unable to set field {k} of structural info, no such field available"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise StructuralInfoException(report)
         # to support call chaining
         return self
 
@@ -545,7 +567,7 @@ class Location(JSONField):
         self.postal = None
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         """
         Universal setter for location fields. Values are strings.
         :param kwargs:
@@ -559,7 +581,11 @@ class Location(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise LocationException(f"Unable to set field {k} of location, no such field available")
+                report = f"Unable to set field {k} of location, no such field available"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise LocationException(report)
         return self
 
     def to_latlon(self) -> Tuple[float, float]:
@@ -598,7 +624,7 @@ class Flags(JSONField):
         self.ptp = False # for advertisements of nodes/sites
         self._set_fields(**kwargs)
 
-    def _set_fields(self, **kwargs):
+    def _set_fields(self, forgiving=False, **kwargs):
         for k, v in kwargs.items():
             assert v is not None
             assert isinstance(v, bool)
@@ -607,7 +633,11 @@ class Flags(JSONField):
                 self.__getattribute__(k)
                 self.__setattr__(k, v)
             except AttributeError:
-                raise FlagException(f"Unable to set field {k} of flags, no such field available")
+                report = f"Unable to set field {k} of flags, no such field available"
+                if forgiving:
+                    FIMLOG.warning(report)
+                else:
+                    raise FlagException(report)
         return self
 
     def to_json(self) -> str:

@@ -146,3 +146,4 @@ dmypy.json
 /neo4j/data/databases/
 /neo4j/data/dbms/
 /neo4j/data/transactions/
+/neo4j/imports
