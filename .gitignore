@@ -152,3 +152,4 @@ fim/util/*.graphml
 fim/util/*.yaml
 fim/util/*.json
 fim/util/*.JSON
+fim/util/*.sh
