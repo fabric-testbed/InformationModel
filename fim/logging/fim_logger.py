@@ -25,14 +25,13 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 
 """
-This is for a logger used inside FIM. Normally a basicConfig
-logger is used but if you want to override it this is the place
-to do it.
+This is for a logger used inside FIM.
 """
 
 import logging
 
 FIMLOG = logging.getLogger("FIM")
+FIMLOG.setLevel(logging.INFO)
 
 
 def set_logger(logger):
