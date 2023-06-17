@@ -393,7 +393,7 @@ class NetworkServiceSliver(BaseSliver):
         if self.interface_info and not other_sliver.interface_info:
             ifs_removed = set(self.interface_info.interfaces.values())
 
-        if len(ifs_added) > 0 or len(ifs_removed) > 0 or len(ifs_modified) > 0:
+        if len(self_modified) > 0 or len(ifs_added) > 0 or len(ifs_removed) > 0 or len(ifs_modified) > 0:
             return TopologyDiff(added=TopologyDiffTuple(components=set(), services=set(), interfaces=ifs_added,
                                                         nodes=set()),
                                 removed=TopologyDiffTuple(components=set(), services=set(),
