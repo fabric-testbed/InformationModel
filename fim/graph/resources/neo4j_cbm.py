@@ -311,11 +311,12 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
                     comp_props_list.append('Model: ' + '"' + k[1] + '"' + ' ')
                 comp_props = ", ".join(comp_props_list)
 
-                component_clauses.append(f"size( (n) -[:has]- (:Component {{GraphID: $graphId, "
-                                         f"{comp_props}}}))>={str(v)} ")
+                # uses pattern comprehension rather than pattern matching as per Neo4j v4+
+                component_clauses.append(f"size([(n) -[:has]- (:Component {{GraphID: $graphId, "
+                                         f"{comp_props}}}) | n.NodeID])>={str(v)}")
             query = node_query + " and ".join(component_clauses) + " RETURN collect(n.NodeID) as candidate_ids"
 
-        # print(f'Resulting query {query=}')
+        #print(f'**** Resulting query {query=}')
 
         with self.driver.session() as session:
 

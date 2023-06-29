@@ -52,6 +52,7 @@ from fim.slivers.network_service import NetworkServiceSliver, NetworkServiceInfo
 from fim.graph.abc_property_graph_constants import ABCPropertyGraphConstants
 from fim.slivers.gateway import Gateway
 from fim.slivers.maintenance_mode import MaintenanceInfo
+from fim.graph.graph_util import GraphML
 
 
 class GraphFormat(Enum):
@@ -1413,7 +1414,7 @@ class ABCGraphImporter(ABC):
             if (node_id_prop not in g.nodes[n].keys()) or (len(g.nodes[n][node_id_prop]) == 0):
                 g.nodes[n][node_id_prop] = str(uuid.uuid4())
         # save to a new file
-        nx.write_graphml(g, new_graph_file)
+        GraphML.nx_write_graphml(g, new_graph_file)
 
     @staticmethod
     def enumerate_graph_nodes_to_string(*, graph_file: str, node_id_prop: str = "NodeID") -> str:

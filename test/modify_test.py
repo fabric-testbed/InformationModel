@@ -280,6 +280,28 @@ class ModifyTest(unittest.TestCase):
         #print(f'\nStarting Topo {self.topoA}')
         #print(f'\nFinal Topo {self.topoB}')
 
+    def testSimpleSliverDiff(self):
+        print('*** Simple Sliver diff test')
+        # just test to network services different in labels
+        tA = f.ExperimentTopology()
+        na = tA.add_node(name='nodeA', site='UKY')
+        ca = na.add_component(name='nic3', ctype=ComponentType.SharedNIC, model='ConnectX-6')
+        ns = na.add_network_service(name='ne1', nstype=ServiceType.FABNetv4, interfaces=na.interface_list,
+                                    labels=Labels(ipv4='192.168.1.1'))
+        nsS1 = tA.graph_model.build_deep_ns_sliver(node_id=ns.node_id)
+        nS1 = tA.graph_model.build_deep_node_sliver(node_id=na.node_id)
+        ns.labels = Labels(ipv4='192.168.1.2')
+        ns.capacities = Capacities(bw=100)
+        na.labels = Labels(ipv4='10.100.1.1')
+        nsS2 = tA.graph_model.build_deep_ns_sliver(node_id=ns.node_id)
+        nS2 = tA.graph_model.build_deep_node_sliver(node_id=na.node_id)
+        ns_diff = nsS1.diff(nsS2)
+        node_diff = nS1.diff(nS2)
+        self.assertEqual(ns_diff.modified.services[0][1], WhatsModifiedFlag.LABELS | WhatsModifiedFlag.CAPACITIES)
+        self.assertEqual(node_diff.modified.services[0][1], WhatsModifiedFlag.LABELS | WhatsModifiedFlag.CAPACITIES)
+        self.assertEqual(node_diff.modified.nodes[0][1], WhatsModifiedFlag.LABELS)
+        print(f' ****** {node_diff=}')
+
     def testSliverDiffs(self):
 
         print('*** Sliver diff test')

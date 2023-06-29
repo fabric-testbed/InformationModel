@@ -99,12 +99,11 @@ $ pip install git+https://github.com/fabric-testbed/InformationModel.git
 ```
 
 For developing and testing the FIM code itself use editable install (from top-level directory) and
-install build, twine and pytest:
+install flit and pytest:
 ```bash
 (infomodel) $ pip install -e .
-(infomodel) $ pip install build
+(infomodel) $ pip install flit
 (infomodel) $ pip install pytest
-(infomodel) $ pip install twine
 ```
 
 For inclusion in tools, etc, use PyPi 
@@ -167,6 +166,16 @@ $ pytest [-s] test
 
 This will produce substrate ARM models and save them into file in project root folder.
 
+To build and publish run 
+```console
+$ flit build
+$ flit publish
+```
+or just (assuming your .pypirc is setup with the token to access PyPi)
+```console
+$ flit publish
+```
+
 ## Graph validation
 
 All graphs loaded into Neo4j (whether from files or being passed in as part of query or delegation) 
@@ -179,12 +188,12 @@ Additional rule files specific to model types may govern the validity of specifi
 
 NetworkX-based graphs also undergo validation, but more limited in scope due to lack of tools.
 
-## Using fim_util.py utility
+## Using fim_util utility
 
 The utility supports a number of operations on GraphML files - enumerating nodes (for graphs)
 coming out of yEd, loading into an instance of Neo4j, deleting graphs from Neo4j.
 
-Start the [Neo4j-APOC docker container](https://github.com/fabric-testbed/fabric-docker-images/tree/master/neo4j-apoc)
+Start the appropriate version of [Neo4j-APOC docker container](https://github.com/fabric-testbed/fabric-docker-images/tree/master/neo4j-apoc)
 
 Create fim_config.yaml with the following structure under `util/`:
 ```
@@ -201,11 +210,11 @@ the procedure above. Other parameters should remain unchanged from what is shown
 
 Run the utility for detailed help for the various operations:
 ```
-(infomodel) $ python fim_util.py -h
+(infomodel) $ fim_util -h
 ```
 
-Generally the utility is good for e.g. loading a graph file: `python fim_util.py -l -f -r <graphml file>` or
-merging multiple advertisements: `python fim_util.py -m -f <file1> -f <file2>`. Most options take multiple `-f`
+Generally the utility is good for e.g. loading a graph file: `fim_util -l -f -r <graphml file>` or
+merging multiple advertisements: `fim_util -m -f <file1> -f <file2>`. Most options take multiple `-f`
 and related options so can e.g. load multiple files at once.
 
 When testing large graphs, note that by default Neo4j visualizes the first 300 nodes in a browser. If you

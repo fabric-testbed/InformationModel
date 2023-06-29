@@ -199,7 +199,7 @@ def save_graph(*, outfile, graph_id, neo4j_config):
         f.write(graph_string)
 
 
-if __name__ == "__main__":
+def main():
 
     parser = argparse.ArgumentParser()
     # split into different mutually exclusive operations
@@ -316,3 +316,7 @@ if __name__ == "__main__":
             save_graph(outfile=file, graph_id=graph, neo4j_config=yaml_config["neo4j"])
     else:
         logging.error("Please specify one of -h, -l, -e or -w", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

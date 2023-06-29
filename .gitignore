@@ -9,6 +9,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+neo4j/
 build/
 develop-eggs/
 dist/
@@ -147,3 +148,8 @@ dmypy.json
 /neo4j/data/dbms/
 /neo4j/data/transactions/
 /neo4j/imports
+fim/util/*.graphml
+fim/util/*.yaml
+fim/util/*.json
+fim/util/*.JSON
+fim/util/*.sh

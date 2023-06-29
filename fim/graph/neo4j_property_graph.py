@@ -40,6 +40,7 @@ from neo4j import GraphDatabase
 
 from .abc_property_graph import ABCPropertyGraph, PropertyGraphImportException, \
     PropertyGraphQueryException, ABCGraphImporter, GraphFormat
+from .graph_util import GraphML
 
 # to deal with intermittent APOC problems on MAC
 APOC_RETRY_COUNT = 10
@@ -368,9 +369,9 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         # CAUTION: horrible kludge - APOC exports without indicating 'labels' is a key,
         # even though it is used, and then NetworkX refuses to import. Direct imports to
         # Neo4j work though. So we add a line to XML to declare 'labels' a key. Sigh /ib 09/12/2020
-        graph_lines = graph_string.splitlines()
-        graph_lines.insert(3, '<key id="labels" for="node" attr.name="labels" attr.type="string"/>\n')
-        graph_string = "".join(graph_lines)
+        #graph_lines = graph_string.splitlines()
+        #graph_lines.insert(3, '<key id="labels" for="node" attr.name="labels" attr.type="string"/>\n')
+        #graph_string = "".join(graph_lines)
         return graph_string
 
     def graph_exists(self) -> bool:
@@ -493,13 +494,12 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert node_id is not None
         assert label is not None
 
-        all_props = f"Class: '{label}', GraphID: '{self.graph_id}', NodeID: '{node_id}', "
-        if props is not None:
-            for k, v in props.items():
-                all_props += f"{k}: '{v}', "
-        all_props = all_props[:-2]
+        all_props = {'Class': f'{label}', 'GraphID': f'{self.graph_id}', 'NodeID': f'{node_id}'}
+        if props:
+            all_props.update(props)
+        string_props = ", ".join((f"{k}: '{v}'" for k, v in all_props.items()))
         labels = f"'GraphNode', '{label}'"
-        query = f"CALL apoc.create.node([ {labels} ], {{ {all_props} }});"
+        query = f"CALL apoc.create.node([ {labels} ], {{ {string_props} }});"
         with self.driver.session() as session:
             session.run(query)
 
@@ -509,14 +509,14 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert rel is not None
         assert node_b is not None
 
-        all_props = ""
-        if props is not None:
-            for k, v in props.items():
-                all_props += f"{k}: '{v}', "
-        all_props = all_props[:-2]
+        # add default Class property that shadows the label so NetworkX can understand
+        all_props = {'Class': f'{rel}'}
+        if props:
+            all_props.update(props)
+        string_props = ", ".join((f"{k}: '{v}'" for k, v in all_props.items()))
         query = f"MATCH (a:GraphNode {{GraphID: $graphId, NodeID: $nodeA}}) " \
                 f"MATCH (b:GraphNode {{GraphID: $graphId, NodeID: $nodeB}}) " \
-                f"CALL apoc.create.relationship(a, \"{rel}\", {{ {all_props} }}, b)" \
+                f"CALL apoc.create.relationship(a, \"{rel}\", {{ {string_props} }}, b)" \
                 f"YIELD rel RETURN rel"
         with self.driver.session() as session:
             session.run(query, graphId=self.graph_id, nodeA=node_a, nodeB=node_b)
@@ -631,39 +631,39 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         #query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) " \
         #        f"WHERE n.NodeID = n1.NodeID AND " \
         #        f"(" \
-        #        f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
-        #       f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
-        #        f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+        #        f"((n.Labels IS NOT NULL AND n1.Labels IS NOT NULL AND n.Labels <> n1.Labels) OR " \
+        #        f"(n.Labels IS NOT NULL AND n1.Labels IS NULL) OR " \
+        #        f"(n.Labels IS NULL AND n1.Labels IS NOT NULL)) " \
         #        f"OR " \
-        #        f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
-        #        f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
-        #        f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+        #        f"((n.Capacities IS NOT NULL AND n1.Capacities IS NOT NULL AND n.Capacities <> n1.Capacities) OR " \
+        #        f"(n.Capacities IS NOT NULL AND n1.Capacities IS NULL) OR " \
+        #        f"(n.Capacities IS NULL AND n1.Capacities IS NOT NULL)) " \
         #        f"OR " \
-        #        f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
-        #        f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
-        #        f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+        #        f"((n.UserData IS NOT NULL AND n1.UserData IS NOT NULL AND n.UserData <> n1.UserData) OR " \
+        #        f"(n.UserData IS NOT NULL AND n1.UserData IS NULL) OR " \
+        #        f"(n.UserData IS NULL AND n1.UserData IS NOT NULL)) " \
         #        f") " \
         #        f"RETURN collect(n) as nodes"
 
         query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.Labels) AND exists(n1.Labels) AND n.Labels <> n1.Labels) OR " \
-                f"(exists(n.Labels) AND NOT exists(n1.Labels)) OR " \
-                f"(NOT exists(n.Labels) AND exists(n1.Labels))) " \
+                f"((n.Labels IS NOT NULL AND n1.Labels IS NOT NULL AND n.Labels <> n1.Labels) OR " \
+                f"(n.Labels IS NOT NULL AND n1.Labels IS NULL) OR " \
+                f"(n.Labels IS NULL AND n1.Labels IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
                 f"UNION " \
                 f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.Capacities) AND exists(n1.Capacities) AND n.Capacities <> n1.Capacities) OR " \
-                f"(exists(n.Capacities) AND NOT exists(n1.Capacities)) OR " \
-                f"(NOT exists(n.Capacities) AND exists(n1.Capacities))) " \
+                f"((n.Capacities IS NOT NULL AND n1.Capacities IS NOT NULL AND n.Capacities <> n1.Capacities) OR " \
+                f"(n.Capacities IS NOT NULL AND n1.Capacities IS NULL) OR " \
+                f"(n.Capacities IS NULL AND n1.Capacities IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 " \
                 f"UNION " \
                 f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WHERE " \
                 f"n.NodeID = n1.NodeID AND " \
-                f"((exists(n.UserData) AND exists(n1.UserData) AND n.UserData <> n1.UserData) OR " \
-                f"(exists(n.UserData) AND NOT exists(n1.UserData)) OR " \
-                f"(NOT exists(n.UserData) AND exists(n1.UserData))) " \
+                f"((n.UserData IS NOT NULL AND n1.UserData IS NOT NULL AND n.UserData <> n1.UserData) OR " \
+                f"(n.UserData IS NOT NULL AND n1.UserData IS NULL) OR " \
+                f"(n.UserData IS NULL AND n1.UserData IS NOT NULL)) " \
                 f"RETURN collect(n) as nodes, collect(n1) as nodes1 "
 
         with self.driver.session() as session:
@@ -754,6 +754,9 @@ class Neo4jGraphImporter(ABCGraphImporter):
         if graph_id is None:
             graph_id = str(uuid.uuid4())
 
+        # massage the GraphML in case it came from non-compliant NetworkX or older version
+        graph = GraphML.networkx_to_neo4j(graph)
+
         # save to file
         with tempfile.NamedTemporaryFile(suffix="-graphml", mode='w') as f1:
             f1.write(graph)
@@ -778,7 +781,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
         host_file_name = os.path.join(dest_dir, uniq_name)
         mapped_file_name = os.path.join(self.import_dir, uniq_name)
 
-        nx.write_graphml(g, host_file_name)
+        GraphML.nx_write_graphml(g, host_file_name)
 
         return graph_id, host_file_name, mapped_file_name
 
@@ -807,15 +810,15 @@ class Neo4jGraphImporter(ABCGraphImporter):
                 query_string = "MATCH (n {GraphID: $graphId }) SET n:GraphNode"
                 session.run(query_string, graphId=graph_id)
                 # convert class property into a label as well
-                self.log.debug(f"Converting Class property into Neo4j label for all nodes")
-                query_string = "MATCH (n {GraphID: $graphId }) " \
-                               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
-                session.run(query_string, graphId=graph_id)
+                #self.log.debug(f"Converting Class property into Neo4j label for all nodes")
+                #query_string = "MATCH (n {GraphID: $graphId }) " \
+                #               "CALL apoc.create.addLabels([ id(n) ], [ n.Class ]) YIELD node RETURN node"
+                #session.run(query_string, graphId=graph_id)
                 # push class labels into class property on relationships
-                self.log.debug(f"Pushing label into Class property on all relationships")
-                query_string = "MATCH (n {GraphID: $graphId }) - [r] - (n1 {GraphID: $graphId }) " \
-                               "CALL apoc.create.setRelProperty(r, 'Class', TYPE(r)) yield rel return rel"
-                session.run(query_string, graphId=graph_id)
+                #self.log.debug(f"Pushing label into Class property on all relationships")
+                #query_string = "MATCH (n {GraphID: $graphId }) - [r] - (n1 {GraphID: $graphId }) " \
+                #               "CALL apoc.create.setRelProperty(r, 'Class', TYPE(r)) yield rel return rel"
+                #session.run(query_string, graphId=graph_id)
         except Exception as e:
             msg = f"Neo4j APOC import error {str(e)}"
             raise PropertyGraphImportException(graph_id=graph_id, msg=msg)
@@ -855,6 +858,7 @@ class Neo4jGraphImporter(ABCGraphImporter):
 
         # remove the file
         self.log.debug(f"Unlinking temporary file {host_file_name}")
+        #print(f'LEAVING TEMPORARY FILE {host_file_name}')
         os.unlink(host_file_name)
 
         if retry == 0:
@@ -876,6 +880,8 @@ class Neo4jGraphImporter(ABCGraphImporter):
         # need both host file name and what is seen from inside Docker
         host_file_name = os.path.join(dest_dir, uniq_name)
         mapped_file_name = os.path.join(self.import_dir, uniq_name)
+
+        graph_string = GraphML.networkx_to_neo4j(graph_string)
 
         with open(host_file_name, 'w') as f:
             f.write(graph_string)
@@ -923,7 +929,15 @@ class Neo4jGraphImporter(ABCGraphImporter):
         host_file_name = os.path.join(dest_dir, uniq_name)
         mapped_file_name = os.path.join(self.import_dir, uniq_name)
 
-        shutil.copyfile(graph_file, host_file_name)
+        #shutil.copyfile(graph_file, host_file_name)
+
+        with open(graph_file, 'r') as f:
+            graph_string = f.read()
+
+        graph_string = GraphML.networkx_to_neo4j(graph_string)
+        with open(host_file_name, 'w') as f:
+            f.write(graph_string)
+            f.flush()
 
         # get graph id
         graph_id = self.get_graph_id(graph_file=host_file_name)

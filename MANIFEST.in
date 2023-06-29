@@ -1,6 +1,0 @@
-include fim/graph/data/*.json
-include LICENSE
-include README.md
-include fim/slivers/data/*.json
-include util/fim_util.py
-include requirements.txt
