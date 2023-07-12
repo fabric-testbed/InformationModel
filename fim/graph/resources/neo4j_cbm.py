@@ -340,6 +340,50 @@ class Neo4jCBMGraph(Neo4jPropertyGraph, ABCCBMPropertyGraph):
             return list()
         return val
 
+    def get_sites(self) -> List[str]:
+        query = 'match(na:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) return ' \
+                'collect(distinct na.Site) as allSites'
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+        if val is None:
+            return list()
+        return sorted(val.value())
+
+    def get_disconnected_sites(self) -> List[str]:
+        query = 'match(na:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) with collect(na.Site) ' \
+                'as allSites match(n:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) ' \
+                '-[:has]- (ns1:GraphNode:NetworkService {Type:"MPLS", GraphID: $graphId}) -[:connects*1..4]- ' \
+                '(ns2:GraphNode:NetworkService {Type:"MPLS", GraphID: $graphId}) -[:has]- ' \
+                '(m:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) ' \
+                'with allSites, collect(distinct n.Site) as connectedSites ' \
+                'return [x in allSites where not x in connectedSites] as disconnectedSites'
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+        if val is None:
+            return list()
+        return sorted(val.value())
+
+    def get_connected_sites(self) -> List[str]:
+        query = 'match(n:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) ' \
+                '-[:has]- (ns1:GraphNode:NetworkService {Type:"MPLS", GraphID: $graphId}) -[:connects*1..4]- ' \
+                '(ns2:GraphNode:NetworkService {Type:"MPLS", GraphID: $graphId}) -[:has]- ' \
+                '(m:GraphNode:NetworkNode {Type:"Switch", GraphID: $graphId}) ' \
+                'return collect(distinct n.Site) as connectedSites '
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+        if val is None:
+            return list()
+        return sorted(val.value())
+
+    def get_facility_ports(self) -> List[str]:
+        query = 'match(n:GraphNode:NetworkNode {Type: "Facility", GraphID: $graphId}) return ' \
+                'collect(distinct n.Name) as allFPs'
+        with self.driver.session() as session:
+            val = session.run(query, graphId=self.graph_id).single()
+        if val is None:
+            return list()
+        return sorted(val.value())
+
 
 class Neo4jCBMFactory:
     """

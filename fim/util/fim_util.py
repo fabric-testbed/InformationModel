@@ -134,7 +134,7 @@ def delete_graphs(*, neo4j_config, graph_id=None):
         neo4j_graph.delete_graph(graph_id=graph_id)
 
 
-def merge_ads(*, neo4j_config, file_names, delete_arms, delete_adms):
+def merge_ads(*, neo4j_config, file_names, delete_arms, delete_adms, info=False):
     """
     Merge these advertisements together in the order provided
     :param neo4j_config:
@@ -179,6 +179,11 @@ def merge_ads(*, neo4j_config, file_names, delete_arms, delete_adms):
             for adm in site_adms.values():
                 adm.delete_graph()
     logging.info('Completed')
+    if info:
+        logging.info(f'List of sites in the model: {cbm.get_sites()}')
+        logging.info(f'List of connected sites in the model: {cbm.get_connected_sites()}')
+        logging.info(f'List of disconnected sites in the model: {cbm.get_disconnected_sites()}')
+        logging.info(f'List of facility ports in the model: {cbm.get_facility_ports()}')
 
 
 def save_graph(*, outfile, graph_id, neo4j_config):
@@ -228,6 +233,8 @@ def main():
                         help="load file directly without validation or any manipulations")
     parser.add_argument("-d", "--debug", action="count",
                         help="turn on debugging")
+    parser.add_argument("-i", "--info", action="store_true",
+                        help="used with -m/--merge, provide information about merged CBM")
 
     args = parser.parse_args()
 
@@ -279,7 +286,7 @@ def main():
         # merge specified files into a CBM
         try:
             merge_ads(neo4j_config=yaml_config["neo4j"], file_names=args.file,
-                      delete_arms=True, delete_adms=True)
+                      delete_arms=True, delete_adms=True, info=args.info)
         except Exception as e:
             logging.error(f"Unable to merge files {args.file} to Neo4j due to {e.args}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
