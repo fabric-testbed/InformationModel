@@ -123,3 +123,27 @@ class ABCCBMPropertyGraph(ABCPropertyGraph):
         Source CP NodeID, Sink CP NodeID).
         :return:
         """
+
+    @abstractmethod
+    def get_sites(self) -> List[str]:
+        """
+        Return a lexicographically sorted list of site names in CBM topology
+        """
+
+    @abstractmethod
+    def get_disconnected_sites(self) -> List[str]:
+        """
+        Return a lexicographically sorted list of site names that are disconnected in the CBM topology
+        """
+
+    @abstractmethod
+    def get_connected_sites(self) -> List[str]:
+        """
+        Return a lexicographically sorted list of site names that are connected in the CBM topology
+        """
+
+    @abstractmethod
+    def get_facility_ports(self) -> List[str]:
+        """
+        Return a lexicographically sorted list of names of facility ports in the CBM topology
+        """
