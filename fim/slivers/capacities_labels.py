@@ -596,7 +596,7 @@ class Location(JSONField):
         service.
         :return:
         """
-        url = 'https://nominatim.openstreetmap.org/search/' + urllib.parse.quote(self.postal) + '?format=json'
+        url = 'https://nominatim.openstreetmap.org/search?q=' + urllib.parse.quote(self.postal) + '&format=json'
         # per terms of service set user agent
         headers = {'User-Agent': 'FABRIC FIM Utility'}
         response = requests.get(url, headers)
