@@ -225,7 +225,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
     @abstractmethod
     def unset_link_property(self, *, node_a: str, node_b: str, kind: str,
-                             prop_name: str) -> None:
+                            prop_name: str) -> None:
         """
         Unset a property on a specified link
         :param node_a:
@@ -292,7 +292,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
     def get_all_network_service_nodes(self) -> List[str]:
 
-        return self.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_NetworkService )
+        return self.get_all_nodes_by_class(label=ABCPropertyGraphConstants.CLASS_NetworkService)
 
     @abstractmethod
     def serialize_graph(self, format: GraphFormat = GraphFormat.GRAPHML) -> str:
@@ -548,7 +548,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         # hasattr checks are added because slivers sometimes are unpickled and certain
         # attributes may not be present (come from an older version of the code)
-        if hasattr(sliver, 'image_ref') and hasattr(sliver, 'image_type')  and \
+        if hasattr(sliver, 'image_ref') and hasattr(sliver, 'image_type') and \
                 sliver.image_ref is not None and sliver.image_type is not None:
             prop_dict[ABCPropertyGraph.PROP_IMAGE_REF] = sliver.image_ref + ',' + str(sliver.image_type)
         if hasattr(sliver, 'management_ip') and sliver.management_ip is not None:
@@ -740,14 +740,14 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                               tags=Tags.from_json(d.get(ABCPropertyGraph.PROP_TAGS, None)),
                               flags=Flags.from_json(d.get(ABCPropertyGraph.PROP_FLAGS, None)),
                               mf_data=MeasurementData(d[ABCPropertyGraph.PROP_MEAS_DATA])
-                                                      if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
-                                                         is not None else None,
+                              if d.get(ABCPropertyGraph.PROP_MEAS_DATA, None)
+                                 is not None else None,
                               user_data=UserData(d[ABCPropertyGraph.PROP_USER_DATA])
-                                                  if d.get(ABCPropertyGraph.PROP_USER_DATA, None)
-                                                     is not None else None,
+                              if d.get(ABCPropertyGraph.PROP_USER_DATA, None)
+                                 is not None else None,
                               layout_data=LayoutData(d[ABCPropertyGraph.PROP_LAYOUT_DATA])
-                                                  if d.get(ABCPropertyGraph.PROP_LAYOUT_DATA, None)
-                                                     is not None else None,
+                              if d.get(ABCPropertyGraph.PROP_LAYOUT_DATA, None)
+                                 is not None else None,
                               boot_script=d.get(ABCPropertyGraph.PROP_BOOT_SCRIPT, None)
                               )
 
@@ -810,7 +810,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
-                          mirror_direction=MirrorDirection.from_string(d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
+                          mirror_direction=MirrorDirection.from_string(
+                              d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
         return ns
 
@@ -834,9 +835,10 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
         clazzes, props = self.get_node_properties(node_id=node_id)
-        if ABCPropertyGraph.CLASS_NetworkNode not in clazzes:
+        if ABCPropertyGraph.CLASS_NetworkNode not in clazzes and \
+                ABCPropertyGraph.CLASS_CompositeNode not in clazzes:
             raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
-                                              msg="Node is not of class NetworkNode")
+                                              msg="Node is not of class NetworkNode or CompositeNode")
         # create top-level sliver
         ns = self.node_sliver_from_graph_properties_dict(props)
         # find and build deep slivers of network services (if any) and components (if any)
@@ -1208,8 +1210,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         if parent_node_id is None and not self.check_node_unique(label=ABCPropertyGraph.CLASS_NetworkService,
                                                                  name=network_service.resource_name):
             # slice-wide network services must have unique names
-            raise PropertyGraphQueryException(msg=f'Network service name {network_service.resource_name} must be unique.',
-                                              graph_id=self.graph_id, node_id=parent_node_id)
+            raise PropertyGraphQueryException(
+                msg=f'Network service name {network_service.resource_name} must be unique.',
+                graph_id=self.graph_id, node_id=parent_node_id)
 
         props = self.network_service_sliver_to_graph_properties_dict(network_service)
         self.add_node(node_id=network_service.node_id, label=ABCPropertyGraph.CLASS_NetworkService, props=props)
@@ -1287,9 +1290,9 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param parent: parent class
         :return:
         """
-        #assert node_id is not None
-        #assert rel is not None
-        #assert parent is not None
+        # assert node_id is not None
+        # assert rel is not None
+        # assert parent is not None
         parent_ids = self.get_first_neighbor(node_id=node_id, rel=rel,
                                              node_label=parent)
         if len(parent_ids) != 1:
@@ -1494,6 +1497,7 @@ class PropertyGraphException(Exception):
     """
     base exception class for all graph exceptions
     """
+
     def __init__(self, *, graph_id: str or None, msg: Any = None):
         """
         initialize based on graph_id of the graph in question
@@ -1515,7 +1519,8 @@ class PropertyGraphImportException(PropertyGraphException):
     """
     import exception for a property graph
     """
-    def __init__(self, *, graph_id: str or None,  msg: str, node_id: str = None):
+
+    def __init__(self, *, graph_id: str or None, msg: str, node_id: str = None):
         if node_id is None:
             super().__init__(graph_id=graph_id, msg=f"Error [{msg}] importing graph")
         else:
@@ -1526,6 +1531,7 @@ class PropertyGraphQueryException(PropertyGraphException):
     """
     query exception for a property graph
     """
+
     def __init__(self, *, graph_id: str or None, node_id: str or None, msg: str, node_b: str = None, kind: str = None):
         """
         Query error for node or link
@@ -1536,7 +1542,8 @@ class PropertyGraphQueryException(PropertyGraphException):
         :param kind:
         """
         if node_b is not None and node_id is not None:
-            super().__init__(graph_id=graph_id, msg=f"[{msg}] in querying for link {kind} between {node_id} and {node_b}")
+            super().__init__(graph_id=graph_id,
+                             msg=f"[{msg}] in querying for link {kind} between {node_id} and {node_b}")
         elif node_b is None and node_id is not None:
             super().__init__(graph_id=graph_id, msg=f"[{msg}] in querying node {node_id}")
         else:
