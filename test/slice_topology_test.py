@@ -512,9 +512,9 @@ class SliceTest(unittest.TestCase):
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
-        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4))
-        self.topo.add_node(name='n2', site='RENC')
-        self.topo.add_node(name='n3', site='UKY')
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4, disk=10))
+        self.topo.add_node(name='n2', site='RENC', capacities=Capacities(core=8, ram=2))
+        self.topo.add_node(name='n3', site='UKY', capacities=Capacities(core=8, ram=2))
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.NVME_P4510, name='drive1')
         self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
@@ -537,7 +537,7 @@ class SliceTest(unittest.TestCase):
         self.assertIn(('L2STS', 0), lc.attributes['services'])
         self.assertIn('UKY', lc.attributes['sites'])
         self.assertIn('RENC', lc.attributes['sites'])
-        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['core_count'], 20)
 
         # test log on Node
         lc = LogCollector()

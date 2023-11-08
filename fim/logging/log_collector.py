@@ -29,6 +29,7 @@ This collection of classes helps collect authorization attributes about various 
 """
 
 from typing import Dict, Any, List
+from collections import defaultdict
 
 from fim.user.topology import ExperimentTopology
 from fim.user.node import Node
@@ -187,7 +188,7 @@ class LogCollector:
         comp = ' compute ' + ','.join(['vms:' + str(self._attributes['vm_count']),
                                        'cores:' + str(self._attributes['core_count']),
                                        'p4s:' + str(self._attributes['p4_count'])])
-        sites = facilities = components = services = ''
+        sites = facilities = components = services = vmdetails = ''
 
         if len(self._attributes['sites']):
             sites = ' sites ' + ','.join(self._attributes['sites'])
@@ -204,7 +205,15 @@ class LogCollector:
             slist = [t[0] + ':' + str(t[1]) for t in filter(lambda n: n[0] != 'OVS', self._attributes['services'])]
             services = ' services ' + ','.join(slist)
 
-        return ';'.join(filter(lambda n: len(n) > 0, [comp, sites, facilities, components, services]))
+        # aggregate VM capacity information
+        if len(self._attributes['nodes']) > 0:
+            vmdict = defaultdict(int)
+            for cap in self._attributes['nodes']:
+                # these are capacity_allocation or capacity objects (if capacity_allocation is set it is preferred)
+                vmdict[f'C{cap.core}/R{cap.ram}/D{cap.disk}'] += 1
+            vmdetails = ' vmdetails ' + ','.join([i[0] + ':' + str(i[1]) for i in vmdict.items()])
+
+        return ';'.join(filter(lambda n: len(n) > 0, [comp, sites, facilities, components, services, vmdetails]))
 
     def __repr__(self):
         return str(self.attributes)
