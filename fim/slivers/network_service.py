@@ -111,7 +111,7 @@ ServiceConstraintRecord = recordclass('ServiceConstraintRecord',
                                        'min_interfaces',
                                        'num_interfaces',
                                        'num_sites',
-                                       'num_instances',
+                                       'num_instances', # instances **per site**
                                        'required_properties',
                                        'forbidden_properties',
                                        'required_interface_types'])
@@ -207,7 +207,7 @@ class NetworkServiceSliver(BaseSliver):
                                                       required_interface_types=[]),
         ServiceType.FABNetv4: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                       num_interfaces=NO_LIMIT, num_sites=1,
-                                                      num_instances=NO_LIMIT,
+                                                      num_instances=1,
                                                       desc='A routed IPv4 (RFC1918 addressed) FABRIC network.',
                                                       required_properties=[],
                                                       forbidden_properties=['mirror_port',
@@ -216,7 +216,7 @@ class NetworkServiceSliver(BaseSliver):
                                                       required_interface_types=[]),
         ServiceType.FABNetv6: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                       num_interfaces=NO_LIMIT, num_sites=1,
-                                                      num_instances=NO_LIMIT,
+                                                      num_instances=1,
                                                       desc='A routed IPv6 (publicly addressed) FABRIC network.',
                                                       required_properties=[],
                                                       forbidden_properties=['mirror_port',
@@ -242,7 +242,7 @@ class NetworkServiceSliver(BaseSliver):
                                                    required_interface_types=[]),
         ServiceType.FABNetv4Ext: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                          num_interfaces=NO_LIMIT, num_sites=1,
-                                                         num_instances=NO_LIMIT,
+                                                         num_instances=1,
                                                          desc='A routed IPv4 publicly addressed FABRIC '
                                                               'network capable of external connectivity.',
                                                          required_properties=[],
@@ -252,7 +252,7 @@ class NetworkServiceSliver(BaseSliver):
                                                          required_interface_types=[]),
         ServiceType.FABNetv6Ext: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                          num_interfaces=NO_LIMIT, num_sites=1,
-                                                         num_instances=NO_LIMIT,
+                                                         num_instances=1,
                                                          desc='A routed IPv6 publicly addressed FABRIC network '
                                                               'capable of external connectivity.',
                                                          required_properties=[],
@@ -275,7 +275,6 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
-
 
     #
     # Setters are only needed for things we want users to be able to set

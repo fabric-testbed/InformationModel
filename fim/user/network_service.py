@@ -25,6 +25,7 @@
 # Author: Ilya Baldin (ibaldin@renci.org)
 import logging
 from typing import Tuple, Any, List, Set
+from collections import defaultdict
 
 import uuid
 
@@ -213,22 +214,13 @@ class NetworkService(ModelElement):
         """
         return self.topo.graph_model.build_deep_ns_sliver(node_id=self.node_id)
 
-    def __validate_nstype_constraints(self, nstype, interfaces) -> Set[str]:
+    def __validate_nstype_constraints(self, nstype, interfaces):
         """
         Validate service constraints as encoded for each services (number of interfaces, instances, sites).
         Note that interfaces is a list of interfaces belonging to nodes!
         :param nstype:
         :param interfaces:
-        :return: a list of sites the service covers
         """
-
-        # check the number of instances of this service
-        if NetworkServiceSliver.ServiceConstraints[nstype].num_instances != NetworkServiceSliver.NO_LIMIT:
-            services = self.topo.graph_model.get_all_nodes_by_class_and_type(label=ABCPropertyGraph.CLASS_NetworkService,
-                                                                             ntype=str(nstype))
-            if len(services) + 1 > NetworkServiceSliver.ServiceConstraints[self.type].num_instances:
-                raise TopologyException(f"Service {self.name} type {nstype} cannot have {len(services) + 1} instances. "
-                                        f"Limit: {NetworkServiceSliver.ServiceConstraints[nstype].num_instances}")
 
         # check the number of interfaces only for experiment topologies
         # in e.g. advertisements network services with no interfaces hang off dataplane switches

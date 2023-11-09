@@ -37,7 +37,7 @@ from fim.view_only_dict import ViewOnlyDict
 from .model_element import ModelElement, TopologyException
 from ..slivers.network_node import NodeType
 from ..slivers.network_link import LinkType
-from ..slivers.network_service import NSLayer, ServiceType, MirrorDirection
+from ..slivers.network_service import NSLayer, ServiceType, MirrorDirection, NetworkServiceSliver
 from ..graph.slices.abc_asm import ABCASMPropertyGraph
 from ..graph.slices.networkx_asm import NetworkxASM
 from ..graph.slices.neo4j_asm import Neo4jASM
@@ -550,8 +550,14 @@ class Topology(ABC):
         for n in self.nodes.values():
             n.validate_constraints()
 
+        check_num_instances = set()
         # check network services, interfaces, sites
         for s in self.network_services.values():
+            # check if the service type is one that requires num_instance per site validation
+            if NetworkServiceSliver.ServiceConstraints[s.type].num_instances != NetworkServiceSliver.NO_LIMIT:
+                # add this type into validation set for later
+                check_num_instances.add(s.type)
+            # perform other interface-based validations
             service_interfaces = s.interface_list
             node_interfaces = list()
             # some services like OVS have node ports, others like Bridge, STS, PTP
@@ -568,6 +574,31 @@ class Topology(ABC):
                 else:
                     node_interfaces.append(si)
             s.validate_constraints(node_interfaces)
+
+        # some constraints are for the entire model, like num_instances per site for NetworkServices
+        for nstype in check_num_instances:
+            # get services of this type in the model
+            services_of_type = set()
+            for s in self.network_services.values():
+                if s.type == nstype:
+                    services_of_type.add(s)
+            # number of services of this type per site
+            services_per_site = defaultdict(int)
+            for s in services_of_type:
+                if s.site:
+                    services_per_site[s.site] += 1
+                else:
+                    for interface in s.interfaces:
+                        owner = self.get_owner_node(interface)
+                        if owner:
+                            services_per_site[owner.site] += 1
+
+            # raise exception if needed
+            for site, count in services_per_site.items():
+                if count > NetworkServiceSliver.ServiceConstraints[nstype].num_instances:
+                    raise TopologyException(f"Services of type {nstype} cannot have more than "
+                                            f"{NetworkServiceSliver.ServiceConstraints[nstype].num_instances} instances "
+                                            f"in each site (site {site} violates that and has {count})")
 
 
 class ExperimentTopology(Topology):
