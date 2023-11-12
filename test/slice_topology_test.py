@@ -712,6 +712,33 @@ class SliceTest(unittest.TestCase):
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
 
+    def testMultiConnectedFacility(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+        n2 = t.add_node(name='n2', site='RENC')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+
+        # add facility
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC',
+                                      interfaces=[('to_mass', f.Labels(vlan='100'), f.Capacities(bw=10)),
+                                                  ('to_renc', f.Labels(vlan='101'), f.Capacities(bw=1))])
+
+        t.add_network_service(name='ns1', nstype=ServiceType.L2PTP,
+                              interfaces=[n1.interface_list[0], fac1.interface_list[0]])
+        t.add_network_service(name='ns2', nstype=ServiceType.L2PTP,
+                              interfaces=[n2.interface_list[0], fac1.interface_list[1]])
+
+        print(f'{fac1.interface_list[0].name=}')
+        print(f'{fac1.interface_list[1].name=}')
+        self.assertEqual(fac1.interface_list[0].name, 'to_mass')
+        self.assertEqual(fac1.interface_list[1].name, 'to_renc')
+
+        t.validate()
+
+        self.n4j_imp.delete_all_graphs()
+
     def testL3VPNWithCloudService(self):
         t = self.topo
 

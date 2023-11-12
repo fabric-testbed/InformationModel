@@ -48,7 +48,7 @@ from ..graph.networkx_property_graph_disjoint import NetworkXGraphImporterDisjoi
 from ..graph.resources.neo4j_arm import Neo4jARMGraph
 from ..slivers.delegations import Delegation, Delegations, Pools, DelegationType, DelegationFormat
 from fim.graph.resources.networkx_abqm import NetworkXAggregateBQM, NetworkXABQMFactory
-from fim.slivers.capacities_labels import FreeCapacity, Labels
+from fim.slivers.capacities_labels import FreeCapacity, Labels, Capacities
 from fim.slivers.interface_info import InterfaceType
 from fim.slivers.topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 
@@ -225,8 +225,11 @@ class Topology(ABC):
         self.graph_model.remove_network_node_with_components_nss_cps_and_links(
             node_id=self._get_node_by_name(name=name).node_id)
 
-    def add_facility(self, *, name: str, node_id: str = None, site: str, nstype: ServiceType = ServiceType.VLAN,
-                     nslabels: Labels or None = None, **kwargs) -> Node:
+    def add_facility(self, *, name: str, node_id: str = None, site: str,
+                     nstype: ServiceType = ServiceType.VLAN,
+                     nslabels: Labels or None = None,
+                     interfaces: List[Tuple[Any]] or None = None,
+                     **kwargs) -> Node:
         """
         Add a facility node with VLAN service and FacilityPort interface as a single construct.
         Works for aggregate topologies and experiment topologies the same way.
@@ -236,14 +239,27 @@ class Topology(ABC):
         :param site: site of the facility (must match the advertisement)
         :param nstype: alternative type of network service in Facility (defaults to VLAN)
         :param nslabels: additional labels for facility network service (defaults to None)
+        :param interfaces: definitions of interfaces - list of tuples each including (name, labels, capacities) for
+        each interface a facility will have. If a facility only has one interface it is OK to use **kwargs.
         :kwargs: parameters for the interface of the facility (bandwidth, mtu, LAN tags etc)
         """
         # should work with deep sliver reconstruction
         facn = self.add_node(name=name, node_id=node_id, site=site, ntype=NodeType.Facility)
         facs = facn.add_network_service(name=name + '-ns', node_id=node_id + '-ns' if node_id else None,
                                         nstype=nstype, labels=nslabels)
-        faci = facs.add_interface(name=name + '-int', node_id=node_id + '-int' if node_id else None,
-                                  itype=InterfaceType.FacilityPort, **kwargs)
+        if not interfaces:
+            # if no interfaces are defined, use implicit definition and kwargs
+            # this is how the code was defined originally
+            faci = facs.add_interface(name=name + '-int', node_id=node_id + '-int' if node_id else None,
+                                      itype=InterfaceType.FacilityPort, **kwargs)
+        else:
+            # if interfaces are defined, assume a list of tuples (name, labels, capacities) are present
+            # this was added to support multiple interfaces per facility
+            for iname, ilabels, icapacities in interfaces:
+                iindex = 0
+                faci = facs.add_interface(name=iname, node_id=node_id + f'-int{iindex}' if node_id else None,
+                                          itype=InterfaceType.FacilityPort, labels=ilabels, capacities=icapacities)
+                iindex += 1
 
         return facn
 
