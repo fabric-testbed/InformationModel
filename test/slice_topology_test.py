@@ -1,6 +1,7 @@
 import datetime
 import unittest
 import json
+import os
 
 import fim.user as f
 
@@ -711,6 +712,7 @@ class SliceTest(unittest.TestCase):
         asm_graph = Neo4jASMFactory.create(generic_graph)
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
+        os.unlink('fpga_slice.graphml')
 
     def testMultiConnectedFacility(self):
         t = self.topo
