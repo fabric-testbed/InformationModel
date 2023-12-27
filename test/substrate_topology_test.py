@@ -282,6 +282,9 @@ class AdTest(unittest.TestCase):
         nas = self.topo.add_node(name=site.lower() + '-nas', model=nas_model, site=site, ntype=f.NodeType.NAS,
                                  node_id='BDXTQ53',
                                  capacities=f.Capacities(unit=1, disk=100000))
+
+        # P4 switch
+        p4sw = self.topo.add_switch(name=site.lower() + '-p4', site='RENC')
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
         switch_ip = "192.168.11.3"
