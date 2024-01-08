@@ -284,7 +284,15 @@ class AdTest(unittest.TestCase):
                                  capacities=f.Capacities(unit=1, disk=100000))
 
         # P4 switch
-        p4sw = self.topo.add_switch(name=site.lower() + '-p4', site='RENC')
+        # FIXME: Need to have a unique ID for the P4 switch
+        p4sw = self.topo.add_switch(name=site.lower() + '-p4', site='RENC', node_id='p4-switch-at-RENC')
+        # list of DP switch ports connected to the P4 switch in the order of port IDs 0-8 -> p1-p8
+        # they would typically be 400G->100G breakouts
+        dp_to_p4_ports = ['HundredGigeE0/0/0/0/26.1', 'HundredGigeE0/0/0/0/26.2', 'HundredGigeE0/0/0/0/26.3',
+                          'HundredGigeE0/0/0/0/26.4',
+                          'HundredGigeE0/0/0/0/27.1', 'HundredGigeE0/0/0/0/27.2', 'HundredGigeE0/0/0/0/27.3',
+                          'HundredGigeE0/0/0/0/27.4']
+
         # DP switch
         switch_model = 'NCS 55A1-36H' # new switches have  NCS-57B1-6D24-SYS
         switch_ip = "192.168.11.3"
@@ -313,6 +321,15 @@ class AdTest(unittest.TestCase):
                                      node_id=dp_port_id(switch.name, dp), stitch_node=True)
             self.topo.add_link(name='l' + str(link_idx), ltype=f.LinkType.Patch,
                                interfaces=[sr[0].interfaces[sr[1]], sp],
+                               node_id=sp.node_id + '-DAC')
+            link_idx += 1
+
+        # add dp switch ports that link to P4 switch ports (note they are not stitch nodes!!)
+        for dp, p4idx in zip(dp_to_p4_ports, range(1, 8+1)):
+            sp = dp_ns.add_interface(name=dp, itype=f.InterfaceType.TrunkPort,
+                                     node_id=dp_port_id(switch.name, dp), stitch_node=False)
+            self.topo.add_link(name='l' + str(link_idx), ltype=f.LinkType.Patch,
+                               interfaces=[p4sw.interfaces[f'p{p4idx}'], sp],
                                node_id=sp.node_id + '-DAC')
             link_idx += 1
 

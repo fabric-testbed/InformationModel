@@ -296,7 +296,7 @@ class Topology(ABC):
                                                node_id=node_id + '-ns' if node_id else None,
                                                nstype=nstype, labels=nslabels)
         # name them 'p1'-'p8'
-        for i in range(1, nports):
+        for i in range(1, nports + 1):
             labels = Labels(local_name=f'p{i}')
             # 100G port
             capacities = Capacities(bw=100)
