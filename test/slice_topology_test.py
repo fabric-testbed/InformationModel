@@ -1,6 +1,7 @@
 import datetime
 import unittest
 import json
+import os
 
 import fim.user as f
 
@@ -512,9 +513,9 @@ class SliceTest(unittest.TestCase):
 
     def testBasicTwoSiteSlice(self):
         # create a basic slice and export to GraphML and JSON
-        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4))
-        self.topo.add_node(name='n2', site='RENC')
-        self.topo.add_node(name='n3', site='UKY')
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM, capacities=Capacities(core=4, disk=10))
+        self.topo.add_node(name='n2', site='RENC', capacities=Capacities(core=8, ram=2))
+        self.topo.add_node(name='n3', site='UKY', capacities=Capacities(core=8, ram=2))
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
         self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.NVME_P4510, name='drive1')
         self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
@@ -537,7 +538,7 @@ class SliceTest(unittest.TestCase):
         self.assertIn(('L2STS', 0), lc.attributes['services'])
         self.assertIn('UKY', lc.attributes['sites'])
         self.assertIn('RENC', lc.attributes['sites'])
-        self.assertEqual(lc.attributes['core_count'], 4)
+        self.assertEqual(lc.attributes['core_count'], 20)
 
         # test log on Node
         lc = LogCollector()
@@ -595,6 +596,39 @@ class SliceTest(unittest.TestCase):
         # Import it in the neo4j as ASM
         generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
         asm_graph = Neo4jASMFactory.create(generic_graph)
+        asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+
+    def testL3ServiceFail(self):
+        """
+        Test validaton of max 1 L3 service per site of a given type
+        """
+        self.topo.add_node(name='n1', site='RENC', ntype=f.NodeType.VM)
+        self.topo.add_node(name='n2', site='RENC')
+        self.topo.add_node(name='n3', site='UKY')
+        self.topo.nodes['n1'].add_component(model_type=f.ComponentModelType.SharedNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n2'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_6, name='nic1')
+        self.topo.nodes['n3'].add_component(model_type=f.ComponentModelType.SmartNIC_ConnectX_5, name='nic1')
+
+        s1 = self.topo.add_network_service(name='v4UKY', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=self.topo.nodes['n3'].interface_list)
+        s2 = self.topo.add_network_service(name='v4RENC', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=[self.topo.nodes['n1'].interface_list[0]])
+        # this one is a no-no - should attach to s2 instead
+        s3 = self.topo.add_network_service(name='v4RENCbad', nstype=f.ServiceType.FABNetv4,
+                                           interfaces=[self.topo.nodes['n2'].interface_list[0]])
+
+        # site property is set automagically by validate
+        with self.assertRaises(TopologyException):
+            self.topo.validate()
+
+        slice_graph = self.topo.serialize()
+
+        # Import it in the neo4j as ASM
+        generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
+        asm_graph = Neo4jASMFactory.create(generic_graph)
+        # the following validation just uses cypher or networkx_query and is not as capable
+        # as self.topo.validate() but is much faster
         asm_graph.validate_graph()
         self.n4j_imp.delete_all_graphs()
 
@@ -677,6 +711,34 @@ class SliceTest(unittest.TestCase):
         generic_graph = self.n4j_imp.import_graph_from_string(graph_string=slice_graph)
         asm_graph = Neo4jASMFactory.create(generic_graph)
         asm_graph.validate_graph()
+        self.n4j_imp.delete_all_graphs()
+        os.unlink('fpga_slice.graphml')
+
+    def testMultiConnectedFacility(self):
+        t = self.topo
+
+        n1 = t.add_node(name='n1', site='MASS')
+        n1.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+        n2 = t.add_node(name='n2', site='RENC')
+        n2.add_component(name='nic1', model_type=ComponentModelType.SmartNIC_ConnectX_6)
+
+        # add facility
+        fac1 = self.topo.add_facility(name='RENCI-DTN', site='RENC',
+                                      interfaces=[('to_mass', f.Labels(vlan='100'), f.Capacities(bw=10)),
+                                                  ('to_renc', f.Labels(vlan='101'), f.Capacities(bw=1))])
+
+        t.add_network_service(name='ns1', nstype=ServiceType.L2PTP,
+                              interfaces=[n1.interface_list[0], fac1.interface_list[0]])
+        t.add_network_service(name='ns2', nstype=ServiceType.L2PTP,
+                              interfaces=[n2.interface_list[0], fac1.interface_list[1]])
+
+        print(f'{fac1.interface_list[0].name=}')
+        print(f'{fac1.interface_list[1].name=}')
+        self.assertEqual(fac1.interface_list[0].name, 'to_mass')
+        self.assertEqual(fac1.interface_list[1].name, 'to_renc')
+
+        t.validate()
+
         self.n4j_imp.delete_all_graphs()
 
     def testL3VPNWithCloudService(self):

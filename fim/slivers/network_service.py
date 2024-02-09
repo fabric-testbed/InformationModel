@@ -111,7 +111,7 @@ ServiceConstraintRecord = recordclass('ServiceConstraintRecord',
                                        'min_interfaces',
                                        'num_interfaces',
                                        'num_sites',
-                                       'num_instances',
+                                       'num_instances', # instances **per site**
                                        'required_properties',
                                        'forbidden_properties',
                                        'required_interface_types'])
@@ -275,7 +275,6 @@ class NetworkServiceSliver(BaseSliver):
         self.gateway = None
         self.mirror_port = None
         self.mirror_direction = None
-
 
     #
     # Setters are only needed for things we want users to be able to set

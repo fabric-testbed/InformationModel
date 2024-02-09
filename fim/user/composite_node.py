@@ -120,6 +120,23 @@ class CompositeNode(Node):
             direct_interfaces.append(i)
         return tuple(direct_interfaces)
 
+    def __dict_of_children(self) -> ViewOnlyDict:
+        """
+        List of children Node objects that are connected to CompositeNode
+        representing site in ABQM via 'has' relationship
+        """
+        node_id_list = self.topo.graph_model.get_first_neighbor(node_id=self.node_id, rel=ABCPropertyGraph.REL_HAS,
+                                                                node_label=ABCPropertyGraph.CLASS_NetworkNode)
+        ret = dict()
+        for nid in node_id_list:
+            _, node_props = self.topo.graph_model.get_node_properties(node_id=nid)
+            n = Node(name=node_props[ABCPropertyGraph.PROP_NAME], node_id=nid, topo=self.topo)
+            # exclude Facility nodes
+            from fim.user import NodeType
+            if n.type != NodeType.Facility:
+                ret[n.name] = n
+        return ViewOnlyDict(ret)
+
     @property
     def components(self):
         return self.__list_components()
@@ -131,6 +148,13 @@ class CompositeNode(Node):
     @property
     def interface_list(self):
         return self.__list_of_interfaces()
+
+    @property
+    def children(self) -> ViewOnlyDict:
+        # Composite nodes typically are in ABQM denoting sites
+        # and have 'has' relationship to Node children
+        # representing worker nodes in a site
+        return self.__dict_of_children()
 
     def __repr__(self):
         _, node_properties = self.topo.graph_model.get_node_properties(node_id=self.node_id)
