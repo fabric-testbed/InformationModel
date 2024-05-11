@@ -57,7 +57,7 @@ class InterfaceType(enum.Enum):
 
 class InterfaceSliver(BaseSliver):
 
-    NAME_REGEX = r'^[\w\-+_/\.\ :]{2,255}$'
+    NAME_REGEX = r'^[\w\-+_/\.\ :]{1,255}$'
 
     def __init__(self):
         # addresses are stored on labels, bandwidth on capacities
