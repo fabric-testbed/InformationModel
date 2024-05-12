@@ -665,7 +665,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
             if sliver.network_service_info is not None:
                 nss = list()
-                for ns in sliver.network_service_info.list_network_services():
+                for ns in sliver.network_service_info.list_services():
                     nss.append(ABCPropertyGraph.sliver_to_dict(ns))
                 d['network_services'] = nss
 
