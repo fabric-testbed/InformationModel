@@ -599,7 +599,7 @@ class Location(JSONField):
         url = 'https://nominatim.openstreetmap.org/search?q=' + urllib.parse.quote(self.postal) + '&format=json'
         # per terms of service set user agent
         headers = {'User-Agent': 'FABRIC FIM Utility'}
-        response = requests.get(url, headers)
+        response = requests.get(url, headers=headers)
         if response.status_code != 200:
             raise LocationException(f"Unable to convert address to Lat/Lon via OpenStreetmaps due "
                                     f"to: {response.reason}")
