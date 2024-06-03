@@ -12,8 +12,8 @@ from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyG
 
 class NetworkXPropertyGraphTests(unittest.TestCase):
 
-    GRAPH_FILE = "models/site-2-am-1broker-ad.graphml"
-    NET_FILE_DEV = "models/Network-dev.graphml"
+    GRAPH_FILE = "test/models/site-2-am-1broker-ad.graphml"
+    NET_FILE_DEV = "test/models/Network-dev.graphml"
     NET_FILE = "test/models/network-am-ad.graphml"
     FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1', 'NIC1', 'NICSwitchFabric1']
     # this one set in file, should not be overwritten
@@ -210,8 +210,6 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
         hops = ["node+uky-data-sw:ip+192.168.12.3-ns"]
         path = net_graph.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
-
-        print(path)
 
         assert(len(path) == 11)
 
