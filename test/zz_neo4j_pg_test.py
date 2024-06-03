@@ -10,6 +10,7 @@ from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 
 from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
+from fim.slivers.network_node import NodeType
 
 
 class Neo4jTests(unittest.TestCase):
