@@ -26,6 +26,7 @@
 """
 Neo4j-specific implementation of property graph abstraction
 """
+from collections import deque
 from typing import Dict, Any, Tuple, List, Set
 
 import logging
@@ -415,6 +416,44 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
             if val is None:
                 return list()
             return val.data()['nodeids']
+
+    def get_nodes_on_path_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
+        """
+        Get a list of node ids that lie on a path between two nodes with the specified hops. Return empty
+        list if no path can be found. Optionally specify the type of relationship that path
+        should consist of.
+        :param node_a: Starting node ID.
+        :param node_z: Ending node ID.
+        :param hops: List of relationship hops that must be present in the path.
+        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
+        :return: Path with specified hops and no loops exists, empty list otherwise.
+        """
+        assert node_a is not None
+        assert node_z is not None
+
+        query = "MATCH (a:GraphNode {GraphID: $graphId, NodeID: $nodeA}), " \
+                "(z:GraphNode {GraphID: $graphId, NodeID: $nodeZ}) " \
+                "CALL apoc.algo.allSimplePaths(a, z, 'connects|has', $cut_off) " \
+                "YIELD path AS path WITH path, relationships(path) AS rels " \
+                "WHERE size(rels) = size(apoc.coll.toSet(rels)) " \
+                "RETURN [node in nodes(path) | node.NodeID] AS nodeids"
+
+        path_nodes = []
+        with self.driver.session() as session:
+            result = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeZ=node_z, cut_off=cut_off)
+            for record in result:
+                path_nodes.append(record["nodeids"])
+
+        if not len(path_nodes):
+            return []
+
+        result = []
+        for path in path_nodes:
+            if all(hop in path for hop in hops):
+                if not len(result) or len(result) > len(path):
+                    result = path
+
+        return result
 
     def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List[str]:
         """
