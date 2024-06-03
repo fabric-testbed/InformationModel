@@ -342,7 +342,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         should consist of.
         :param node_a: Starting node ID.
         :param node_z: Ending node ID.
-        :param hops: List of relationship hops that must be present in the path.
+        :param hops: List of hops that must be present in the path.
         :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
         :return: Path with specified hops and no loops exists, empty list otherwise.
         """

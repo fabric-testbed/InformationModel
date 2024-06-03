@@ -424,8 +424,10 @@ class Neo4jTests(unittest.TestCase):
 
         renc_sw_node_id = "node+renc-data-sw:ip+192.168.11.3"
         lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
-        hops = ["node+uky-data-sw:ip+192.168.12.3-ns"]
-        path = cbm.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+        uky_sw_node_id = "node+uky-data-sw:ip+192.168.12.3"
+        hops = [f"{renc_sw_node_id}-ns"]
+        path = cbm.get_nodes_on_path_with_hops(node_a=lbnl_sw_node_id, node_z=uky_sw_node_id, hops=hops, cut_off=200)
+        print(f"Source: {lbnl_sw_node_id}  End: {uky_sw_node_id} Hops: {hops} Path:  {path}")
 
         assert (len(path) == 11)
 
