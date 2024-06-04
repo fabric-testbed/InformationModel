@@ -4,6 +4,8 @@ from typing import Dict
 import uuid
 import json
 
+import networkx as nx
+
 import fim.graph.networkx_property_graph as nx_graph
 from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyGraph, GraphFormat
 
@@ -11,6 +13,7 @@ from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyG
 class NetworkXPropertyGraphTests(unittest.TestCase):
 
     GRAPH_FILE = "test/models/site-2-am-1broker-ad.graphml"
+    NET_FILE_DEV = "test/models/Network-dev.graphml"
     NET_FILE = "test/models/network-am-ad.graphml"
     FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1', 'NIC1', 'NICSwitchFabric1']
     # this one set in file, should not be overwritten
@@ -117,7 +120,6 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         _, worker1_props = self.g.get_node_properties(node_id=worker1)
         assert(worker1_props.get('RandomProp', None) is None)
 
-
     def test_edge_properties(self):
         favs = self._find_favorite_nodes()
         assert((favs.get('Worker1'), None) is not None)
@@ -199,6 +201,22 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         for e in edges:
             edge_kind, edge_props = self.g.get_link_properties(node_a=e[0], node_b=e[1])
             assert(edge_kind == e[2])
+
+    def test_path_exists_with_hops(self):
+        graph_string = self.imp.enumerate_graph_nodes_to_string(graph_file=self.NET_FILE_DEV)
+        net_graph = self.imp.import_graph_from_string(graph_string=graph_string)
+
+        renc_sw_node_id = "node+renc-data-sw:ip+192.168.11.3"
+        lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
+        hops = ["node+uky-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert(len(path) == 11)
+
+        hops = ["node+max-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert (len(path) == 0)
 
     def test_first_neighbor(self):
         favs = self._find_favorite_nodes()

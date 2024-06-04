@@ -335,6 +335,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :return:
         """
 
+    def get_nodes_on_path_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
+        """
+        Get a list of node ids that lie on a path between two nodes with the specified hops. Return empty
+        list if no path can be found. Optionally specify the type of relationship that path
+        should consist of.
+        :param node_a: Starting node ID.
+        :param node_z: Ending node ID.
+        :param hops: List of hops that must be present in the path.
+        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
+        :return: Path with specified hops and no loops exists, empty list otherwise.
+        """
+
     @abstractmethod
     def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List:
         """
