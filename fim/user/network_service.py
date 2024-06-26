@@ -572,11 +572,6 @@ class PortMirrorService(NetworkService):
             # only the 'to_interface' is actually connected to the service
             # the 'from_interface' is connected to something else
             # to_interface has to be a full-rate interface
-
-            # make sure that to_interface is a DedicatedPort
-            if to_interface.type != InterfaceType.DedicatedPort:
-                raise TopologyException(f'Adding PortMirrorService {name} failed - only dedicated '
-                                        f'ports belonging to SmartNICs can be attached.')
             super().__init__(name=name, node_id=node_id, topo=topo, etype=etype,
                              parent_node_id=parent_node_id, interfaces=[to_interface],
                              nstype=ServiceType.PortMirror, technology=None,
