@@ -100,6 +100,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
+        "mirror_vlan": ABCPropertyGraphConstants.PROP_MIRROR_VLAN,
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
@@ -333,18 +334,6 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param node_z:
         :param rel:
         :return:
-        """
-
-    def get_nodes_on_path_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
-        """
-        Get a list of node ids that lie on a path between two nodes with the specified hops. Return empty
-        list if no path can be found. Optionally specify the type of relationship that path
-        should consist of.
-        :param node_a: Starting node ID.
-        :param node_z: Ending node ID.
-        :param hops: List of hops that must be present in the path.
-        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
-        :return: Path with specified hops and no loops exists, empty list otherwise.
         """
 
     @abstractmethod
@@ -636,6 +625,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
         if hasattr(sliver, 'mirror_port') and sliver.mirror_port is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
+        if hasattr(sliver, 'mirror_vlan') and sliver.mirror_vlan is not None:
+            prop_dict[ABCPropertyGraph.PROP_MIRROR_VLAN] = sliver.mirror_vlan
         if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
 
@@ -677,7 +668,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
             if sliver.network_service_info is not None:
                 nss = list()
-                for ns in sliver.network_service_info.list_services():
+                for ns in sliver.network_service_info.list_network_services():
                     nss.append(ABCPropertyGraph.sliver_to_dict(ns))
                 d['network_services'] = nss
 
@@ -822,6 +813,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
+                          mirror_vlan=d.get(ABCPropertyGraphConstants.PROP_MIRROR_VLAN, None),
                           mirror_direction=MirrorDirection.from_string(
                               d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
