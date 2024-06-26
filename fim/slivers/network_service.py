@@ -383,6 +383,12 @@ class NetworkServiceSliver(BaseSliver):
                 iB = other_sliver.interface_info.get_interface(iA.resource_name)
                 # compare properties
                 flag = iA.prop_diff(iB)
+
+                if iA.get_type() == InterfaceType.DedicatedPort:
+                    if iA.diff(iB):
+                        print("Added the child interfaces")
+                        flag |= WhatsModifiedFlag.SUB_INTERFACES
+
                 if flag != WhatsModifiedFlag.NONE:
                     ifs_modified.append((iA, flag))
 
