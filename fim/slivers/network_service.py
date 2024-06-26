@@ -230,7 +230,7 @@ class NetworkServiceSliver(BaseSliver):
                                                         required_properties=['mirror_port',
                                                                              'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
-                                                        required_interface_types=[InterfaceType.DedicatedPort]),
+                                                        required_interface_types=[]),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                    num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                    num_instances=NO_LIMIT,
