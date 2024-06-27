@@ -194,6 +194,15 @@ class NetworkService(ModelElement):
             self.set_property('mirror_port', value)
 
     @property
+    def mirror_vlan(self):
+        return self.get_property('mirror_vlan') if self.__dict__.get('topo', None) is not None else None
+
+    @mirror_vlan.setter
+    def mirror_vlan(self, value):
+        if self.__dict__.get('topo', None) is not None:
+            self.set_property('mirror_vlan', value)
+
+    @property
     def mirror_direction(self):
         return self.get_property('mirror_direction') if self.__dict__.get('topo', None) is not None else None
 
@@ -562,7 +571,7 @@ class PortMirrorService(NetworkService):
     def __init__(self, *, name: str, node_id: str = None, topo: Any,
                  etype: ElementType = ElementType.EXISTING,
                  parent_node_id: str = None, direction: MirrorDirection = MirrorDirection.Both,
-                 from_interface_name: str = None, to_interface: Interface = None,
+                 from_interface_name: str = None, from_interface_vlan: str = None, to_interface: Interface = None,
                  check_existing: bool = False,
                  **kwargs):
         if etype == ElementType.NEW:
@@ -573,14 +582,11 @@ class PortMirrorService(NetworkService):
             # the 'from_interface' is connected to something else
             # to_interface has to be a full-rate interface
 
-            # make sure that to_interface is a DedicatedPort
-            if to_interface.type != InterfaceType.DedicatedPort:
-                raise TopologyException(f'Adding PortMirrorService {name} failed - only dedicated '
-                                        f'ports belonging to SmartNICs can be attached.')
             super().__init__(name=name, node_id=node_id, topo=topo, etype=etype,
                              parent_node_id=parent_node_id, interfaces=[to_interface],
                              nstype=ServiceType.PortMirror, technology=None,
-                             mirror_port=from_interface_name, mirror_direction=direction,
+                             mirror_port=from_interface_name, mirror_vlan=from_interface_vlan,
+                             mirror_direction=direction,
                              **kwargs)
         else:
             assert node_id is not None
@@ -604,6 +610,10 @@ class PortMirrorService(NetworkService):
     @property
     def mirror_port(self):
         return self.get_property('mirror_port') if self.__dict__.get('topo', None) is not None else None
+
+    @property
+    def mirror_vlan(self):
+        return self.get_property('mirror_vlan') if self.__dict__.get('topo', None) is not None else None
 
     @property
     def mirror_direction(self):

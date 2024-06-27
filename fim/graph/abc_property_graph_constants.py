@@ -68,6 +68,7 @@ class ABCPropertyGraphConstants(ABC):
     PROP_CONTROLLER_URL = "ControllerURL"
     PROP_GATEWAY = "Gateway"
     PROP_MIRROR_PORT = "MirrorPort"
+    PROP_MIRROR_VLAN = "MirrorVlan"
     PROP_MIRROR_DIRECTION = "MirrorDirection"
     PROP_PEER_LABELS = "PeerLabels"
     PROP_TAGS = "Tags"

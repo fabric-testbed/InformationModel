@@ -131,21 +131,21 @@ class NetworkServiceSliver(BaseSliver):
         ServiceType.P4: ServiceConstraintRecord(layer=NSLayer.L2, min_interfaces=1,
                                                 num_interfaces=NO_LIMIT, num_sites=1,
                                                 num_instances=NO_LIMIT, required_properties=[],
-                                                forbidden_properties=['mirror_port',
+                                                forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                       'mirror_direction'],
                                                 required_interface_types=[],
                                                 desc='A P4 service.'),
         ServiceType.OVS: ServiceConstraintRecord(layer=NSLayer.L2, min_interfaces=1,
                                                  num_interfaces=NO_LIMIT, num_sites=1,
                                                  num_instances=NO_LIMIT, required_properties=[],
-                                                 forbidden_properties=['mirror_port',
+                                                 forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                        'mirror_direction'],
                                                  required_interface_types=[],
                                                  desc='An OVS generic service.'),
         ServiceType.VLAN: ServiceConstraintRecord(layer=NSLayer.L2, min_interfaces=1,
                                                   num_interfaces=NO_LIMIT, num_sites=1,
                                                   num_instances=NO_LIMIT, required_properties=[],
-                                                  forbidden_properties=['mirror_port',
+                                                  forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                         'mirror_direction',
                                                                         'controller_url'],
                                                   required_interface_types=[],
@@ -154,7 +154,7 @@ class NetworkServiceSliver(BaseSliver):
                                                   num_interfaces=NO_LIMIT, num_sites=1,
                                                   num_instances=NO_LIMIT, desc='An MPLS generic service',
                                                   required_properties=[],
-                                                  forbidden_properties=['mirror_port',
+                                                  forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                         'mirror_direction',
                                                                         'controller_url'],
                                                   required_interface_types=[]),
@@ -163,7 +163,7 @@ class NetworkServiceSliver(BaseSliver):
                                                     num_instances=NO_LIMIT,
                                                     desc='A provider L2 Path e.g. from ESnet or Internet2.',
                                                     required_properties=[],
-                                                    forbidden_properties=['mirror_port',
+                                                    forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                           'mirror_direction',
                                                                           'controller_url'],
                                                     required_interface_types=[]),
@@ -172,7 +172,7 @@ class NetworkServiceSliver(BaseSliver):
                                                    num_instances=NO_LIMIT,
                                                    desc='A Site-to-Site service in FABRIC.',
                                                    required_properties=[],
-                                                   forbidden_properties=['mirror_port',
+                                                   forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                          'mirror_direction',
                                                                          'controller_url',
                                                                          "ero"],
@@ -182,7 +182,7 @@ class NetworkServiceSliver(BaseSliver):
                                                    num_instances=NO_LIMIT,
                                                    desc='A Port-to-Port service in FABRIC.',
                                                    required_properties=[],
-                                                   forbidden_properties=['mirror_port',
+                                                   forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                          'mirror_direction',
                                                                          'controller_url'],
                                                    required_interface_types=[InterfaceType.DedicatedPort,
@@ -192,7 +192,7 @@ class NetworkServiceSliver(BaseSliver):
                                                          num_instances=NO_LIMIT,
                                                          desc='A Multi-Site L2 service in FABRIC.',
                                                          required_properties=[],
-                                                         forbidden_properties=['mirror_port',
+                                                         forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                                'mirror_direction',
                                                                                'controller_url'],
                                                          required_interface_types=[]),
@@ -201,7 +201,7 @@ class NetworkServiceSliver(BaseSliver):
                                                       num_instances=NO_LIMIT,
                                                       desc='An L2 bridge service within a single FABRIC site.',
                                                       required_properties=[],
-                                                      forbidden_properties=['mirror_port',
+                                                      forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                             'mirror_direction',
                                                                             'controller_url'],
                                                       required_interface_types=[]),
@@ -210,7 +210,7 @@ class NetworkServiceSliver(BaseSliver):
                                                       num_instances=NO_LIMIT,
                                                       desc='A routed IPv4 (RFC1918 addressed) FABRIC network.',
                                                       required_properties=[],
-                                                      forbidden_properties=['mirror_port',
+                                                      forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                             'mirror_direction',
                                                                             'controller_url'],
                                                       required_interface_types=[]),
@@ -219,7 +219,7 @@ class NetworkServiceSliver(BaseSliver):
                                                       num_instances=NO_LIMIT,
                                                       desc='A routed IPv6 (publicly addressed) FABRIC network.',
                                                       required_properties=[],
-                                                      forbidden_properties=['mirror_port',
+                                                      forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                             'mirror_direction',
                                                                             'controller_url'],
                                                       required_interface_types=[]),
@@ -227,16 +227,16 @@ class NetworkServiceSliver(BaseSliver):
                                                         num_interfaces=1, num_sites=1,
                                                         num_instances=NO_LIMIT,
                                                         desc='A port mirroring service in a FABRIC site.',
-                                                        required_properties=['mirror_port',
+                                                        required_properties=['mirror_port', 'mirror_vlan',
                                                                              'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
-                                                        required_interface_types=[InterfaceType.DedicatedPort]),
+                                                        required_interface_types=[]),
         ServiceType.L3VPN: ServiceConstraintRecord(layer=NSLayer.L3, min_interfaces=1,
                                                    num_interfaces=NO_LIMIT, num_sites=NO_LIMIT,
                                                    num_instances=NO_LIMIT,
                                                    desc='A L3 VPN service connecting to FABRIC.',
                                                    required_properties=[],
-                                                   forbidden_properties=['mirror_port',
+                                                   forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                          'mirror_direction',
                                                                          'controller_url'],
                                                    required_interface_types=[]),
@@ -246,7 +246,7 @@ class NetworkServiceSliver(BaseSliver):
                                                          desc='A routed IPv4 publicly addressed FABRIC '
                                                               'network capable of external connectivity.',
                                                          required_properties=[],
-                                                         forbidden_properties=['mirror_port',
+                                                         forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                                'mirror_direction',
                                                                                'controller_url'],
                                                          required_interface_types=[]),
@@ -256,7 +256,7 @@ class NetworkServiceSliver(BaseSliver):
                                                          desc='A routed IPv6 publicly addressed FABRIC network '
                                                               'capable of external connectivity.',
                                                          required_properties=[],
-                                                         forbidden_properties=['mirror_port',
+                                                         forbidden_properties=['mirror_port', 'mirror_vlan',
                                                                                'mirror_direction',
                                                                                'controller_url'],
                                                          required_interface_types=[])
@@ -274,6 +274,7 @@ class NetworkServiceSliver(BaseSliver):
         self.site = None
         self.gateway = None
         self.mirror_port = None
+        self.mirror_vlan = None
         self.mirror_direction = None
 
     #
@@ -332,6 +333,12 @@ class NetworkServiceSliver(BaseSliver):
 
     def get_mirror_port(self) -> str:
         return self.mirror_port
+
+    def set_mirror_vlan(self, mirror_vlan: str):
+        self.mirror_vlan = mirror_vlan
+
+    def get_mirror_vlan(self) -> str:
+        return self.mirror_vlan
 
     def set_mirror_direction(self, mirror_direction: MirrorDirection):
         self.mirror_direction = mirror_direction

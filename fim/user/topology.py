@@ -273,49 +273,6 @@ class Topology(ABC):
             raise TopologyException(f'{name} is not a Facility node, cannot remove.')
         self.remove_node(name)
 
-    def add_switch(self, *, name: str, node_id: str = None, site: str,
-                   nstype: ServiceType = ServiceType.P4, nslabels: Labels or None = None,
-                   nports: int = 8, portlabels: Labels or None = None,
-                   portcapacities: Capacities or None = None,
-                   **kwargs) -> Node:
-        """
-        Add a switch (P4 type by default) with some number of ports (8 by default)
-        all given names and label local_names 'p1'-'p8'.
-        :param name:
-        :param node_id:
-        :param site:
-        :param nstype: network service type (defaults to P4)
-        :param nslabels: additional labels for switch network service
-        :param nports: number of ports (defaults to 8)
-        :param portlabels: labels to be added to each port (otherwise overridden with default)
-        :param portcapacities: capacities to be added to each port (otherwise overridden with default)
-        :param kwargs: pass additional parameters to add node (e.g. model)
-        """
-        switch = self.add_node(name=name, node_id=node_id, site=site, ntype=NodeType.Switch)
-        switch_ns = switch.add_network_service(name=name + '-ns',
-                                               node_id=node_id + '-ns' if node_id else None,
-                                               nstype=nstype, labels=nslabels)
-        # name them 'p1'-'p8'
-        for i in range(1, nports + 1):
-            labels = Labels(local_name=f'p{i}')
-            # 100G port
-            capacities = Capacities(bw=100)
-            switch_i = switch_ns.add_interface(name=f'p{i}', node_id=node_id + f'-int{i}' if node_id else None,
-                                               itype=InterfaceType.DedicatedPort,
-                                               labels=portlabels if portlabels else labels,
-                                               capacities=portcapacities if portcapacities else capacities)
-        return switch
-
-    def remove_switch(self, *, name: str):
-        """
-        Remove a switch and associated network service and interfaces, disconnecting it from a
-        service as appropriate. Same as removing a node.
-        """
-        fac = self._get_node_by_name(name)
-        if fac.type != NodeType.Switch:
-            raise TopologyException(f'{name} is not a Switch node, cannot remove.')
-        self.remove_node(name)
-
     def add_link(self, *, name: str, node_id: str = None, ltype: LinkType,
                  interfaces: List[Interface], technology: str = None,
                  **kwargs) -> Link:
@@ -764,7 +721,7 @@ class ExperimentTopology(Topology):
             raise TopologyException("This level of detail not yet implemented")
 
     def add_port_mirror_service(self, *, name: str, node_id: str = None,
-                                from_interface_name: str, to_interface: Interface,
+                                from_interface_name: str, from_interface_vlan: str, to_interface: Interface,
                                 direction: MirrorDirection = MirrorDirection.Both,
                                 **kwargs) -> PortMirrorService:
         """
@@ -772,6 +729,7 @@ class ExperimentTopology(Topology):
         :param name:
         :param node_id:
         :param from_interface_name: name of the interface to mirror
+        :param from_interface_vlan: vlan of the interface to mirror
         :param to_interface: node interface to mirror to
         :param direction:
         :param kwargs:
@@ -780,6 +738,7 @@ class ExperimentTopology(Topology):
         ns = PortMirrorService(name=name, node_id=node_id, topo=self,
                                etype=ElementType.NEW, direction=direction,
                                from_interface_name=from_interface_name,
+                               from_interface_vlan=from_interface_vlan,
                                to_interface=to_interface, **kwargs)
         return ns
 
