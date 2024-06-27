@@ -772,7 +772,7 @@ class ExperimentTopology(Topology):
             raise TopologyException("This level of detail not yet implemented")
 
     def add_port_mirror_service(self, *, name: str, node_id: str = None,
-                                from_interface_name: str, to_interface: Interface,
+                                from_interface_name: str, from_interface_vlan: str, to_interface: Interface,
                                 direction: MirrorDirection = MirrorDirection.Both,
                                 **kwargs) -> PortMirrorService:
         """
@@ -780,6 +780,7 @@ class ExperimentTopology(Topology):
         :param name:
         :param node_id:
         :param from_interface_name: name of the interface to mirror
+        :param from_interface_vlan: vlan of the interface to mirror
         :param to_interface: node interface to mirror to
         :param direction:
         :param kwargs:
@@ -788,6 +789,7 @@ class ExperimentTopology(Topology):
         ns = PortMirrorService(name=name, node_id=node_id, topo=self,
                                etype=ElementType.NEW, direction=direction,
                                from_interface_name=from_interface_name,
+                               from_interface_vlan=from_interface_vlan,
                                to_interface=to_interface, **kwargs)
         return ns
 

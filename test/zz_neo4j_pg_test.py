@@ -1,14 +1,16 @@
 import unittest
 
+import yaml
+
 import fim.user as fu
 from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyGraph
 from fim.graph.neo4j_property_graph import Neo4jGraphImporter, Neo4jPropertyGraph
 from fim.graph.resources.neo4j_cbm import Neo4jCBMGraph
 from fim.graph.slices.neo4j_asm import Neo4jASM, Neo4jASMFactory
 from fim.graph.resources.neo4j_arm import Neo4jARMGraph
-from fim.slivers.delegations import Delegation
 
 from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
+from fim.slivers.network_node import NodeType
 
 
 class Neo4jTests(unittest.TestCase):
@@ -22,6 +24,16 @@ class Neo4jTests(unittest.TestCase):
              "pass": "password",
              "import_host_dir": "neo4j/imports/",
              "import_dir": "/imports"}
+
+    FIM_CONFIG_YAML = "./fim_config.yml"
+
+    try:
+        with open(FIM_CONFIG_YAML, 'r') as config_file:
+            yaml_config = yaml.safe_load(config_file)
+            neo4j = yaml_config.get("neo4j")
+            print(neo4j)
+    except IOError:
+        print(f"Unable to open config file {FIM_CONFIG_YAML}, Using the Default Config")
 
     def setUp(self) -> None:
         self.n4j_imp = Neo4jGraphImporter(url=self.neo4j["url"], user=self.neo4j["user"],
@@ -373,5 +385,55 @@ class Neo4jTests(unittest.TestCase):
 
         self.n4j_imp.delete_all_graphs()
 
+    def test_path_with_hops(self):
+        self.n4j_imp.delete_all_graphs()
 
+        # these are produced by substrate tests
+        site_ads = ['models/RENC.graphml', 'models/UKY.graphml', 'models/LBNL.graphml', 'models/Network-dev.graphml']
 
+        cbm = Neo4jCBMGraph(importer=self.n4j_imp)
+
+        adm_ids = dict()
+        site_arms = dict()
+
+        for ad in site_ads:
+            plain_neo4j = self.n4j_imp.import_graph_from_file_direct(graph_file=ad)
+            print(f"Validating ARM graph {ad} with id {plain_neo4j.graph_id}")
+            plain_neo4j.validate_graph()
+
+            site_arms[ad] = Neo4jARMGraph(graph=Neo4jPropertyGraph(graph_id=plain_neo4j.graph_id,
+                                                                   importer=self.n4j_imp))
+            # generate a dict of ADMs from site graph ARM
+            site_adms = site_arms[ad].generate_adms()
+            print('ADMS ' + str(site_adms.keys()))
+            for adm_id in site_adms.keys():
+                print(f'  ADM id {site_adms[adm_id].graph_id}')
+
+            # desired ADM is under 'primary'
+            site_adm = site_adms['primary']
+            cbm.merge_adm(adm=site_adm)
+
+            print('Deleting ADM and ARM graphs')
+            for adm in site_adms.values():
+                adm_ids[ad] = adm.graph_id
+                adm.delete_graph()
+            #site_arms[ad].delete_graph()
+
+        cbm.validate_graph()
+        print('CBM ID is ' + cbm.graph_id)
+
+        renc_sw_node_id = "node+renc-data-sw:ip+192.168.11.3"
+        lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
+        uky_sw_node_id = "node+uky-data-sw:ip+192.168.12.3"
+        hops = [f"{renc_sw_node_id}-ns"]
+        path = cbm.get_nodes_on_path_with_hops(node_a=lbnl_sw_node_id, node_z=uky_sw_node_id, hops=hops, cut_off=200)
+        print(f"Source: {lbnl_sw_node_id}  End: {uky_sw_node_id} Hops: {hops} Path:  {path}")
+
+        assert (len(path) == 11)
+
+        hops = ["node+max-data-sw:ip+192.168.12.3-ns"]
+        path = cbm.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert (len(path) == 0)
+
+        cbm.delete_graph()

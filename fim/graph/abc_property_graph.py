@@ -100,6 +100,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
+        "mirror_vlan": ABCPropertyGraphConstants.PROP_MIRROR_VLAN,
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
@@ -636,6 +637,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
         if hasattr(sliver, 'mirror_port') and sliver.mirror_port is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
+        if hasattr(sliver, 'mirror_vlan') and sliver.mirror_vlan is not None:
+            prop_dict[ABCPropertyGraph.PROP_MIRROR_VLAN] = sliver.mirror_vlan
         if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
 
@@ -829,6 +832,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
+                          mirror_vlan=d.get(ABCPropertyGraphConstants.PROP_MIRROR_VLAN, None),
                           mirror_direction=MirrorDirection.from_string(
                               d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
