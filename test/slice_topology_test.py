@@ -24,7 +24,7 @@ class SliceTest(unittest.TestCase):
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "/Users/kthare10/renci/code/fabric/1.6/ControlFramework/neo4j1/imports",
+             "import_host_dir": "neo4j/imports",
              "import_dir": "/imports"}
 
     def setUp(self) -> None:
