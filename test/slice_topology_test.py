@@ -24,7 +24,7 @@ class SliceTest(unittest.TestCase):
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "neo4j/imports",
+             "import_host_dir": "/Users/kthare10/renci/code/fabric/1.6/ControlFramework/neo4j1/imports",
              "import_dir": "/imports"}
 
     def setUp(self) -> None:
@@ -667,10 +667,23 @@ class SliceTest(unittest.TestCase):
         n1 = self.topo.add_node(name='Node1', site='RENC')
         n1_nic1 = n1.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic1')
         n1_nic1_interface1 = n1_nic1.interface_list[0]
+
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child1")
+
         n1_nic1_interface1.add_child_interface(name="child1", labels=Labels(vlan="100"))
 
-        self.assertTrue(len(n1_nic1_interface1.interface_list) != 0)
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child1", labels=Labels(vlan="200"))
+
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child2", labels=Labels(vlan="100"))
+
+        n1_nic1_interface1.add_child_interface(name="child2", labels=Labels(vlan="200"))
+
+        self.assertEqual(len(n1_nic1_interface1.interface_list), 2)
         self.assertEqual(n1_nic1_interface1.interface_list[0].type, f.InterfaceType.SubInterface)
+        self.assertEqual(n1_nic1_interface1.interface_list[1].type, f.InterfaceType.SubInterface)
 
         self.topo.validate()
 

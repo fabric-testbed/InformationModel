@@ -115,7 +115,20 @@ class Interface(ModelElement):
         # check uniqueness
         all_names = [n.name for n in self._interfaces]
         if name in all_names:
-            raise TopologyException(f'Sub Interface {name} is not unique within an interface')
+            raise TopologyException(f'Sub Interface {name} is not unique within the interface')
+
+        labels = kwargs.get('labels')
+        if not labels or not labels.vlan:
+            raise TopologyException(f'Vlan must be specified for Sub Interface within the interface')
+
+        all_vlans = []
+        for i in self._interfaces:
+            if i.labels and i.labels.vlan:
+                all_vlans.append(i.labels.vlan)
+
+        if labels.vlan in all_vlans:
+            raise TopologyException(f'Vlan in use by another Sub Interface within the interface')
+
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.SubInterface,
                         **kwargs)
