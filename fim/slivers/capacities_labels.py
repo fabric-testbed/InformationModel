@@ -617,7 +617,7 @@ class Location(JSONField):
             raise LocationException(f"Unable to interpret response from OpenStreetmaps for address {self.postal}")
 
         self.lat = float(response_json[0]['lat'])
-        self.lon = (response_json[0]['lon'])
+        self.lon = float(response_json[0]['lon'])
         return self.lat, self.lon
 
 

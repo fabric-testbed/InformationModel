@@ -757,6 +757,14 @@ class ExperimentTopology(Topology):
                         peer_int_parent = self.get_parent_element(peer_int)
                         if peer_int_parent is None:
                             continue
+
+                        # Parent for a sub interface is Interface, get the parent again to get NetworkService
+                        if peer_int.type == InterfaceType.SubInterface:
+                            peer_int_parent = self.get_parent_element(peer_int_parent)
+
+                            if peer_int_parent is None:
+                                continue
+
                         derived_graph.add_edge(ns.name, peer_int_parent.name)
                 for n in all_node_like:
                     if self.get_owner_node(ns) == n:
@@ -772,7 +780,7 @@ class ExperimentTopology(Topology):
             raise TopologyException("This level of detail not yet implemented")
 
     def add_port_mirror_service(self, *, name: str, node_id: str = None,
-                                from_interface_name: str, from_interface_vlan: str, to_interface: Interface,
+                                from_interface_name: str, to_interface: Interface, from_interface_vlan: str = None,
                                 direction: MirrorDirection = MirrorDirection.Both,
                                 **kwargs) -> PortMirrorService:
         """

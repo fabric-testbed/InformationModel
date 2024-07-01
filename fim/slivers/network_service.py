@@ -227,7 +227,7 @@ class NetworkServiceSliver(BaseSliver):
                                                         num_interfaces=1, num_sites=1,
                                                         num_instances=NO_LIMIT,
                                                         desc='A port mirroring service in a FABRIC site.',
-                                                        required_properties=['mirror_port', 'mirror_vlan',
+                                                        required_properties=['mirror_port',
                                                                              'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
                                                         required_interface_types=[]),

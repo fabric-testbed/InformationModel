@@ -1175,6 +1175,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         parents = self.get_first_neighbor(node_id=node_id,
                                           rel=ABCPropertyGraph.REL_CONNECTS,
                                           node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
         for parent in parents:  # really should only be one parent interface
             children = self.get_first_neighbor(node_id=parent,
                                                rel=ABCPropertyGraph.REL_CONNECTS,

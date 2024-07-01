@@ -1140,3 +1140,33 @@ class SliceTest(unittest.TestCase):
         n1.layout_data = None
         self.assertIsNone(n1.layout_data)
 
+    def test_SubInterface_NetworkX(self):
+        t = f.ExperimentTopology()
+        n1 = t.add_node(name='Node1', site='RENC')
+        n1_nic1 = n1.add_component(ctype=f.ComponentType.SmartNIC, model='ConnectX-6', name='nic1')
+        n1_nic1_interface1 = n1_nic1.interface_list[0]
+
+        from fim.user.model_element import TopologyException
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child1")
+
+        ch1 = n1_nic1_interface1.add_child_interface(name="child1", labels=f.Labels(vlan="100"))
+
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child1", labels=f.Labels(vlan="200"))
+
+        with self.assertRaises(TopologyException):
+            n1_nic1_interface1.add_child_interface(name="child2", labels=f.Labels(vlan="100"))
+
+        ch2 = n1_nic1_interface1.add_child_interface(name="child2", labels=f.Labels(vlan="200"))
+
+        t.add_network_service(name="net1", nstype=f.ServiceType.L2Bridge, interfaces=[ch1, ch2])
+
+        t.validate()
+        t.network_services["net1"].disconnect_interface(ch1)
+        n1_nic1_interface1.remove_child_interface(name="child1")
+        t.validate()
+        t.remove_network_service("net1")
+        t.validate()
+        n1_nic1_interface1.remove_child_interface(name="child2")
+        t.validate()
