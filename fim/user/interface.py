@@ -33,6 +33,7 @@ from .model_element import ModelElement, ElementType, TopologyException
 from ..slivers.interface_info import InterfaceType, InterfaceSliver
 from ..graph.abc_property_graph import ABCPropertyGraph
 from ..slivers.capacities_labels import Labels
+from ..view_only_dict import ViewOnlyDict
 
 
 class Interface(ModelElement):
@@ -77,19 +78,111 @@ class Interface(ModelElement):
             sliver.set_properties(**kwargs)
 
             self.topo.graph_model.add_interface_sliver(parent_node_id=parent_node_id, interface=sliver)
+            self._interfaces = list()
         else:
             assert node_id is not None
             super().__init__(name=name, node_id=node_id, topo=topo)
             if check_existing and not self.topo.graph_model.check_node_name(node_id=node_id, name=name,
                                                                             label=ABCPropertyGraph.CLASS_ConnectionPoint):
                 raise TopologyException(f"Interface with this id {node_id} and name {name} doesn't exist")
+            # collect a list of interface nodes it attaches to for DedicatedPorts only
+            self._interfaces = list()
+            if self.type == InterfaceType.DedicatedPort:
+                interface_list = self.topo.graph_model.get_all_child_connection_points(interface_id=self.node_id)
+                name_id_tuples = list()
+                # need to look up their names - a bit inefficient, need to think about this /ib
+                for iff in interface_list:
+                    _, props = self.topo.graph_model.get_node_properties(node_id=iff)
+                    name_id_tuples.append((props[ABCPropertyGraph.PROP_NAME], iff))
+                self._interfaces = [Interface(node_id=tup[1], topo=topo, name=tup[0]) for tup in name_id_tuples]
 
     @property
     def type(self):
         return self.get_property('type') if self.__dict__.get('topo', None) is not None else None
 
-    def add_child_interface(self):
-        raise TopologyException("Not implemented")
+    def add_child_interface(self, *, name: str, node_id: str = None, **kwargs):
+        """
+        Add an interface to network service
+        :param name:
+        :param node_id:
+        :param itype: interface type e.g. TrunkPort, AccessPort or VINT
+        :param kwargs: additional parameters
+        :return:
+        """
+        assert name is not None
+        assert self.type is InterfaceType.DedicatedPort
+
+        # check uniqueness
+        all_names = [n.name for n in self._interfaces]
+        if name in all_names:
+            raise TopologyException(f'Sub Interface {name} is not unique within the interface')
+
+        labels = kwargs.get('labels')
+        if not labels or not labels.vlan:
+            raise TopologyException(f'Vlan must be specified for Sub Interface within the interface')
+
+        all_vlans = []
+        for i in self._interfaces:
+            if i.labels and i.labels.vlan:
+                all_vlans.append(i.labels.vlan)
+
+        if labels.vlan in all_vlans:
+            raise TopologyException(f'Vlan in use by another Sub Interface within the interface')
+
+        iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
+                        etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.SubInterface,
+                        **kwargs)
+
+        self._interfaces.append(iff)
+        return iff
+
+    def remove_child_interface(self, *, name: str) -> None:
+        """
+        Remove an ServicePort interface from the network service.
+        :param name:
+        :return:
+        """
+        assert name is not None
+        assert self.type is InterfaceType.DedicatedPort
+
+        # cant use isinstance as it would create circular import dependencies
+        #if str(self.topo.__class__) == "<class 'fim.user.topology.ExperimentTopology'>":
+        #    raise TopologyException("Cannot remove child interface interface from Interface in Experiment topology")
+        node_id = self.topo.graph_model.find_child_connection_point_by_name(parent_node_id=self.node_id,
+                                                                            iname=name)
+
+        self.topo.graph_model.remove_cp_and_links(node_id=node_id)
+
+    def __list_interfaces(self) -> ViewOnlyDict:
+        """
+        List all interfaces of the network service as a dictionary
+        :return:
+        """
+        ret = dict()
+        for intf in self._interfaces:
+            ret[intf.name] = intf
+        return ViewOnlyDict(ret)
+
+    def __list_of_interfaces(self) -> tuple:
+        """
+        Return a list of names of interfaces of network service
+        :return:
+        """
+        return tuple(self._interfaces)
+
+    @property
+    def interface_list(self):
+        """
+        List of names of service interfaces
+        """
+        return self.__list_of_interfaces()
+
+    @property
+    def interfaces(self):
+        """
+        Dictionary name->Interface for all interfaces
+        """
+        return self.__list_interfaces()
 
     @property
     def peer_labels(self):

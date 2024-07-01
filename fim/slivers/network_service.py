@@ -227,7 +227,7 @@ class NetworkServiceSliver(BaseSliver):
                                                         num_interfaces=1, num_sites=1,
                                                         num_instances=NO_LIMIT,
                                                         desc='A port mirroring service in a FABRIC site.',
-                                                        required_properties=['mirror_port', 'mirror_vlan',
+                                                        required_properties=['mirror_port',
                                                                              'mirror_direction', 'site'],
                                                         forbidden_properties=['controller_url'],
                                                         required_interface_types=[]),
@@ -390,6 +390,12 @@ class NetworkServiceSliver(BaseSliver):
                 iB = other_sliver.interface_info.get_interface(iA.resource_name)
                 # compare properties
                 flag = iA.prop_diff(iB)
+
+                if iA.get_type() == InterfaceType.DedicatedPort:
+                    if iA.diff(iB):
+                        print("Added the child interfaces")
+                        flag |= WhatsModifiedFlag.SUB_INTERFACES
+
                 if flag != WhatsModifiedFlag.NONE:
                     ifs_modified.append((iA, flag))
 

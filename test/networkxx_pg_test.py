@@ -329,5 +329,3 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
         json_object = json.loads(graph_string)
         assert(json_object["directed"] is False)
         assert(len(json_object["elements"]["nodes"]) == 17)
-
-

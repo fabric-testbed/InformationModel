@@ -63,6 +63,13 @@ class ModifyTest(unittest.TestCase):
         """
         Define modify actions on the initial topo
         """
+        # add a sub interface to nic1
+        nA = self.topoB.nodes["NodeA"]
+        nic1 = nA.components["nic1"]
+        nic1_interface = nic1.interface_list[0]
+        child1 = nic1_interface.add_child_interface(name="nic1-child1", labels=Labels(vlan="100"))
+        self.diff.added.interfaces.add(child1)
+
         #
         # add a node with components, components won't show up as 'added'
         nB = self.topoB.add_node(name='NodeB', site='UKY')
@@ -330,7 +337,7 @@ class ModifyTest(unittest.TestCase):
         self.assertEqual(len(diff.modified.nodes), 1)
         self.assertEqual(len(diff.modified.services), 0)
         self.assertEqual(len(diff.modified.interfaces), 0)
-        self.assertEqual(len(diff.modified.components), 0)
+        self.assertEqual(len(diff.modified.components), 1)
 
         sA1 = self.topoA.network_services['bridge2']
         sB1 = self.topoB.network_services['bridge2']

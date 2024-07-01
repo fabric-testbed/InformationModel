@@ -189,3 +189,14 @@ class ABCASMPropertyGraph(ABCPropertyGraph, metaclass=ABCMeta):
         raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                           msg=f"Unable to find ConnectionPoint with name {iname}")
 
+    def find_child_connection_point_by_name(self, *, parent_node_id: str, iname: str) -> str:
+
+        assert iname is not None
+
+        if_id_list = self.get_all_child_connection_points(interface_id=parent_node_id)
+        for cid in if_id_list:
+            _, cprops = self.get_node_properties(node_id=cid)
+            if cprops[ABCPropertyGraph.PROP_NAME] == iname:
+                return cid
+        raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
+                                          msg=f"Unable to find ConnectionPoint with name {iname}")
