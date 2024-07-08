@@ -1162,11 +1162,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         for iif in interfaces:
             self.remove_cp_and_links(node_id=iif)
 
-    def remove_cp_and_links(self, node_id: str):
+    def remove_cp_and_links(self, node_id: str, delete_parent: bool = True):
         """
         Remove ConnectionPoint and links. Parent ConnectionPoints and links are removed
         if they have no other children or other connected connection points.
         :param node_id: interface node id
+        :param delete_parent: flag indicating deletion of parent if parent have no other interfaces.
         :return:
         """
         # some interfaces may have parent interfaces, which can be deleted if they only have the
@@ -1180,7 +1181,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             children = self.get_first_neighbor(node_id=parent,
                                                rel=ABCPropertyGraph.REL_CONNECTS,
                                                node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
-            if len(children) == 1:  # if only child, can delete parent
+            if len(children) == 1 and delete_parent:  # if only child, can delete parent
                 interfaces_to_delete.add(parent)
         # interfaces themselves and parent interfaces
         # may be connected to links which can be deleted if nothing

@@ -1160,7 +1160,8 @@ class SliceTest(unittest.TestCase):
 
         ch2 = n1_nic1_interface1.add_child_interface(name="child2", labels=f.Labels(vlan="200"))
 
-        t.add_network_service(name="net1", nstype=f.ServiceType.L2Bridge, interfaces=[ch1, ch2])
+        t.add_network_service(name="net1", nstype=f.ServiceType.L2Bridge, interfaces=[ch1])
+        t.network_services["net1"].connect_interface(ch2)
 
         t.validate()
         t.network_services["net1"].disconnect_interface(ch1)

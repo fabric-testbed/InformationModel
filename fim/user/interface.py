@@ -151,7 +151,7 @@ class Interface(ModelElement):
         node_id = self.topo.graph_model.find_child_connection_point_by_name(parent_node_id=self.node_id,
                                                                             iname=name)
 
-        self.topo.graph_model.remove_cp_and_links(node_id=node_id)
+        self.topo.graph_model.remove_cp_and_links(node_id=node_id, delete_parent=False)
 
     def __list_interfaces(self) -> ViewOnlyDict:
         """
