@@ -139,26 +139,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c4.m384.d10": {
-    "core": 4,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c4.m384.d100": {
-    "core": 4,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c4.m384.d500": {
-    "core": 4,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c4.m384.d1000": {
-    "core": 4,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c6.m4.d10": {
     "core": 6,
     "ram": 4,
@@ -297,26 +277,6 @@
   "fabric.c6.m256.d1000": {
     "core": 6,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c6.m384.d10": {
-    "core": 6,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c6.m384.d100": {
-    "core": 6,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c6.m384.d500": {
-    "core": 6,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c6.m384.d1000": {
-    "core": 6,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c8.m4.d10": {
@@ -459,26 +419,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c8.m384.d10": {
-    "core": 8,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c8.m384.d100": {
-    "core": 8,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c8.m384.d500": {
-    "core": 8,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c8.m384.d1000": {
-    "core": 8,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c10.m4.d10": {
     "core": 10,
     "ram": 4,
@@ -617,26 +557,6 @@
   "fabric.c10.m256.d1000": {
     "core": 10,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c10.m384.d10": {
-    "core": 10,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c10.m384.d100": {
-    "core": 10,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c10.m384.d500": {
-    "core": 10,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c10.m384.d1000": {
-    "core": 10,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c12.m4.d10": {
@@ -779,26 +699,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c12.m384.d10": {
-    "core": 12,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c12.m384.d100": {
-    "core": 12,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c12.m384.d500": {
-    "core": 12,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c12.m384.d1000": {
-    "core": 12,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c14.m4.d10": {
     "core": 14,
     "ram": 4,
@@ -937,26 +837,6 @@
   "fabric.c14.m256.d1000": {
     "core": 14,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c14.m384.d10": {
-    "core": 14,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c14.m384.d100": {
-    "core": 14,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c14.m384.d500": {
-    "core": 14,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c14.m384.d1000": {
-    "core": 14,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c16.m4.d10": {
@@ -1099,26 +979,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c16.m384.d10": {
-    "core": 16,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c16.m384.d100": {
-    "core": 16,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c16.m384.d500": {
-    "core": 16,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c16.m384.d1000": {
-    "core": 16,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c18.m4.d10": {
     "core": 18,
     "ram": 4,
@@ -1257,26 +1117,6 @@
   "fabric.c18.m256.d1000": {
     "core": 18,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c18.m384.d10": {
-    "core": 18,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c18.m384.d100": {
-    "core": 18,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c18.m384.d500": {
-    "core": 18,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c18.m384.d1000": {
-    "core": 18,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c20.m4.d10": {
@@ -1419,26 +1259,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c20.m384.d10": {
-    "core": 20,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c20.m384.d100": {
-    "core": 20,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c20.m384.d500": {
-    "core": 20,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c20.m384.d1000": {
-    "core": 20,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c22.m4.d10": {
     "core": 22,
     "ram": 4,
@@ -1577,26 +1397,6 @@
   "fabric.c22.m256.d1000": {
     "core": 22,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c22.m384.d10": {
-    "core": 22,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c22.m384.d100": {
-    "core": 22,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c22.m384.d500": {
-    "core": 22,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c22.m384.d1000": {
-    "core": 22,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c24.m4.d10": {
@@ -1739,26 +1539,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c24.m384.d10": {
-    "core": 24,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c24.m384.d100": {
-    "core": 24,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c24.m384.d500": {
-    "core": 24,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c24.m384.d1000": {
-    "core": 24,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c26.m4.d10": {
     "core": 26,
     "ram": 4,
@@ -1897,26 +1677,6 @@
   "fabric.c26.m256.d1000": {
     "core": 26,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c26.m384.d10": {
-    "core": 26,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c26.m384.d100": {
-    "core": 26,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c26.m384.d500": {
-    "core": 26,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c26.m384.d1000": {
-    "core": 26,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c28.m4.d10": {
@@ -2059,26 +1819,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c28.m384.d10": {
-    "core": 28,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c28.m384.d100": {
-    "core": 28,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c28.m384.d500": {
-    "core": 28,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c28.m384.d1000": {
-    "core": 28,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c30.m4.d10": {
     "core": 30,
     "ram": 4,
@@ -2217,26 +1957,6 @@
   "fabric.c30.m256.d1000": {
     "core": 30,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c30.m384.d10": {
-    "core": 30,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c30.m384.d100": {
-    "core": 30,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c30.m384.d500": {
-    "core": 30,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c30.m384.d1000": {
-    "core": 30,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c32.m4.d10": {
@@ -2379,26 +2099,7 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c32.m384.d10": {
-    "core": 32,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c32.m384.d100": {
-    "core": 32,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c32.m384.d500": {
-    "core": 32,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c32.m384.d1000": {
-    "core": 32,
-    "ram": 384,
-    "disk": 1000
-  },
+
   "fabric.c34.m4.d10": {
     "core": 34,
     "ram": 4,
@@ -2537,26 +2238,6 @@
   "fabric.c34.m256.d1000": {
     "core": 34,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c34.m384.d10": {
-    "core": 34,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c34.m384.d100": {
-    "core": 34,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c34.m384.d500": {
-    "core": 34,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c34.m384.d1000": {
-    "core": 34,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c36.m4.d10": {
@@ -2699,26 +2380,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c36.m384.d10": {
-    "core": 36,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c36.m384.d100": {
-    "core": 36,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c36.m384.d500": {
-    "core": 36,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c36.m384.d1000": {
-    "core": 36,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c38.m4.d10": {
     "core": 38,
     "ram": 4,
@@ -2857,26 +2518,6 @@
   "fabric.c38.m256.d1000": {
     "core": 38,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c38.m384.d10": {
-    "core": 38,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c38.m384.d100": {
-    "core": 38,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c38.m384.d500": {
-    "core": 38,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c38.m384.d1000": {
-    "core": 38,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c40.m4.d10": {
@@ -3019,26 +2660,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c40.m384.d10": {
-    "core": 40,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c40.m384.d100": {
-    "core": 40,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c40.m384.d500": {
-    "core": 40,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c40.m384.d1000": {
-    "core": 40,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c42.m4.d10": {
     "core": 42,
     "ram": 4,
@@ -3177,26 +2798,6 @@
   "fabric.c42.m256.d1000": {
     "core": 42,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c42.m384.d10": {
-    "core": 42,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c42.m384.d100": {
-    "core": 42,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c42.m384.d500": {
-    "core": 42,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c42.m384.d1000": {
-    "core": 42,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c44.m4.d10": {
@@ -3339,26 +2940,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c44.m384.d10": {
-    "core": 44,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c44.m384.d100": {
-    "core": 44,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c44.m384.d500": {
-    "core": 44,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c44.m384.d1000": {
-    "core": 44,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c46.m4.d10": {
     "core": 46,
     "ram": 4,
@@ -3497,26 +3078,6 @@
   "fabric.c46.m256.d1000": {
     "core": 46,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c46.m384.d10": {
-    "core": 46,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c46.m384.d100": {
-    "core": 46,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c46.m384.d500": {
-    "core": 46,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c46.m384.d1000": {
-    "core": 46,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c48.m4.d10": {
@@ -3659,26 +3220,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c48.m384.d10": {
-    "core": 48,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c48.m384.d100": {
-    "core": 48,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c48.m384.d500": {
-    "core": 48,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c48.m384.d1000": {
-    "core": 48,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c50.m4.d10": {
     "core": 50,
     "ram": 4,
@@ -3817,26 +3358,6 @@
   "fabric.c50.m256.d1000": {
     "core": 50,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c50.m384.d10": {
-    "core": 50,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c50.m384.d100": {
-    "core": 50,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c50.m384.d500": {
-    "core": 50,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c50.m384.d1000": {
-    "core": 50,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c52.m4.d10": {
@@ -3979,26 +3500,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c52.m384.d10": {
-    "core": 52,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c52.m384.d100": {
-    "core": 52,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c52.m384.d500": {
-    "core": 52,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c52.m384.d1000": {
-    "core": 52,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c54.m4.d10": {
     "core": 54,
     "ram": 4,
@@ -4137,26 +3638,6 @@
   "fabric.c54.m256.d1000": {
     "core": 54,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c54.m384.d10": {
-    "core": 54,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c54.m384.d100": {
-    "core": 54,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c54.m384.d500": {
-    "core": 54,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c54.m384.d1000": {
-    "core": 54,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c56.m4.d10": {
@@ -4299,26 +3780,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c56.m384.d10": {
-    "core": 56,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c56.m384.d100": {
-    "core": 56,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c56.m384.d500": {
-    "core": 56,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c56.m384.d1000": {
-    "core": 56,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c58.m4.d10": {
     "core": 58,
     "ram": 4,
@@ -4457,26 +3918,6 @@
   "fabric.c58.m256.d1000": {
     "core": 58,
     "ram": 256,
-    "disk": 1000
-  },
-  "fabric.c58.m384.d10": {
-    "core": 58,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c58.m384.d100": {
-    "core": 58,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c58.m384.d500": {
-    "core": 58,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c58.m384.d1000": {
-    "core": 58,
-    "ram": 384,
     "disk": 1000
   },
   "fabric.c60.m4.d10": {
@@ -4619,26 +4060,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c60.m384.d10": {
-    "core": 60,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c60.m384.d100": {
-    "core": 60,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c60.m384.d500": {
-    "core": 60,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c60.m384.d1000": {
-    "core": 60,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c62.m4.d10": {
     "core": 62,
     "ram": 4,
@@ -4779,26 +4200,6 @@
     "ram": 256,
     "disk": 1000
   },
-  "fabric.c62.m384.d10": {
-    "core": 62,
-    "ram": 384,
-    "disk": 10
-  },
-  "fabric.c62.m384.d100": {
-    "core": 62,
-    "ram": 384,
-    "disk": 100
-  },
-  "fabric.c62.m384.d500": {
-    "core": 62,
-    "ram": 384,
-    "disk": 500
-  },
-  "fabric.c62.m384.d1000": {
-    "core": 62,
-    "ram": 384,
-    "disk": 1000
-  },
   "fabric.c1.m2.d10": {
     "core": 1,
     "ram": 2,
@@ -4884,9 +4285,64 @@
     "ram": 8,
     "disk": 1000
   },
-  "fabric.c64.m384.d1000": {
+  "fabric.c64.m64.d10": {
     "core": 64,
-    "ram": 384,
+    "ram": 64,
+    "disk": 10
+  },
+  "fabric.c64.m64.d100": {
+    "core": 64,
+    "ram": 64,
+    "disk": 100
+  },
+  "fabric.c64.m64.d500": {
+    "core": 64,
+    "ram": 64,
+    "disk": 500
+  },
+  "fabric.c64.m64.d1000": {
+    "core": 64,
+    "ram": 64,
+    "disk": 1000
+  },
+  "fabric.c64.m128.d10": {
+    "core": 64,
+    "ram": 128,
+    "disk": 10
+  },
+  "fabric.c64.m128.d100": {
+    "core": 64,
+    "ram": 128,
+    "disk": 100
+  },
+  "fabric.c64.m128.d500": {
+    "core": 64,
+    "ram": 128,
+    "disk": 500
+  },
+  "fabric.c64.m128.d1000": {
+    "core": 64,
+    "ram": 128,
+    "disk": 1000
+  },
+  "fabric.c64.m256.d10": {
+    "core": 64,
+    "ram": 256,
+    "disk": 10
+  },
+  "fabric.c64.m256.d100": {
+    "core": 64,
+    "ram": 256,
+    "disk": 100
+  },
+  "fabric.c64.m256.d500": {
+    "core": 64,
+    "ram": 256,
+    "disk": 500
+  },
+  "fabric.c64.m256.d1000": {
+    "core": 64,
+    "ram": 256,
     "disk": 1000
   }
 }
