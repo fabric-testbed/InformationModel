@@ -28,6 +28,7 @@ import ipaddress
 from recordclass import recordclass
 
 from fim.slivers.capacities_labels import Location
+from .attached_components import ComponentType
 from .base_sliver import BaseSliver
 from .topology_diff import TopologyDiff, TopologyDiffTuple, TopologyDiffModifiedTuple, WhatsModifiedFlag
 from fim.slivers.maintenance_mode import MaintenanceInfo
@@ -191,6 +192,14 @@ class NodeSliver(BaseSliver):
                 cB = other_sliver.attached_components_info.get_device(cA.resource_name)
                 # compare properties
                 flag = cA.prop_diff(cB)
+
+                # compare child interfaces
+                if cA.get_type() == ComponentType.SmartNIC:
+                    cAns = list(cA.network_service_info.network_services.values())[0]
+                    cBns = list(cB.network_service_info.network_services.values())[0]
+                    if cAns.diff(cBns):
+                        flag |= WhatsModifiedFlag.SUB_INTERFACES
+
                 if flag != WhatsModifiedFlag.NONE:
                     comp_modified.append((cA, flag))
 

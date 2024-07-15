@@ -36,3 +36,14 @@ def dp_port_id(switch: str, port: str) -> str:
     :return:
     """
     return 'port+' + switch + ':' + port
+
+
+def p4_switch_name_id(site: str, ip: str) -> Tuple[str, str]:
+    """
+    Return a tuple of name and id of a p4 switch name and node id
+    :param site:
+    :param ip:
+    :return:
+    """
+    name = site.lower() + '-p4-sw'
+    return name,  'node+' + name + ':ip+' + ip

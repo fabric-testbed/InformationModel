@@ -41,7 +41,7 @@ from fim.slivers.attached_components import ComponentSliver, AttachedComponentsI
 from fim.slivers.capacities_labels import Capacities, Labels, ReservationInfo, \
     StructuralInfo, CapacityHints, Location, Flags
 from fim.slivers.delegations import Delegations, DelegationType
-from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo
+from fim.slivers.interface_info import InterfaceSliver, InterfaceInfo, InterfaceType
 from fim.slivers.base_sliver import BaseSliver
 from fim.slivers.network_node import NodeSliver, CompositeNodeSliver
 from fim.slivers.network_link import NetworkLinkSliver
@@ -100,6 +100,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         "controller_url": ABCPropertyGraphConstants.PROP_CONTROLLER_URL,
         "gateway": ABCPropertyGraphConstants.PROP_GATEWAY,
         "mirror_port": ABCPropertyGraphConstants.PROP_MIRROR_PORT,
+        "mirror_vlan": ABCPropertyGraphConstants.PROP_MIRROR_VLAN,
         "mirror_direction": ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION,
         "peer_labels": ABCPropertyGraphConstants.PROP_PEER_LABELS,
         "mf_data": ABCPropertyGraphConstants.PROP_MEAS_DATA,
@@ -333,6 +334,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         :param node_z:
         :param rel:
         :return:
+        """
+
+    def get_nodes_on_path_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
+        """
+        Get a list of node ids that lie on a path between two nodes with the specified hops. Return empty
+        list if no path can be found. Optionally specify the type of relationship that path
+        should consist of.
+        :param node_a: Starting node ID.
+        :param node_z: Ending node ID.
+        :param hops: List of hops that must be present in the path.
+        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
+        :return: Path with specified hops and no loops exists, empty list otherwise.
         """
 
     @abstractmethod
@@ -624,6 +637,8 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             prop_dict[ABCPropertyGraph.PROP_GATEWAY] = sliver.gateway.to_json()
         if hasattr(sliver, 'mirror_port') and sliver.mirror_port is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_PORT] = sliver.mirror_port
+        if hasattr(sliver, 'mirror_vlan') and sliver.mirror_vlan is not None:
+            prop_dict[ABCPropertyGraph.PROP_MIRROR_VLAN] = sliver.mirror_vlan
         if hasattr(sliver, 'mirror_direction') and sliver.mirror_direction is not None:
             prop_dict[ABCPropertyGraph.PROP_MIRROR_DIRECTION] = str(sliver.mirror_direction)
 
@@ -665,7 +680,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
             if sliver.network_service_info is not None:
                 nss = list()
-                for ns in sliver.network_service_info.list_network_services():
+                for ns in sliver.network_service_info.list_services():
                     nss.append(ABCPropertyGraph.sliver_to_dict(ns))
                 d['network_services'] = nss
 
@@ -693,6 +708,13 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             d = ABCPropertyGraph.link_sliver_to_graph_properties_dict(sliver)
         elif type(sliver) == InterfaceSliver:
             d = ABCPropertyGraph.interface_sliver_to_graph_properties_dict(sliver)
+            # now add deep sliver stuff
+            # interfaces
+            if sliver.interface_info is not None:
+                ii = list()
+                for i in sliver.interface_info.list_interfaces():
+                    ii.append(ABCPropertyGraph.sliver_to_dict(i))
+                d['interfaces'] = ii
         else:
             raise PropertyGraphQueryException(msg=f'JSON Conversion for type {type(sliver)} is not supported.',
                                               graph_id=None, node_id=None)
@@ -810,6 +832,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                           site=d.get(ABCPropertyGraphConstants.PROP_SITE, None),
                           gateway=Gateway.from_json(d.get(ABCPropertyGraphConstants.PROP_GATEWAY, None)),
                           mirror_port=d.get(ABCPropertyGraphConstants.PROP_MIRROR_PORT, None),
+                          mirror_vlan=d.get(ABCPropertyGraphConstants.PROP_MIRROR_VLAN, None),
                           mirror_direction=MirrorDirection.from_string(
                               d.get(ABCPropertyGraphConstants.PROP_MIRROR_DIRECTION, None))
                           )
@@ -825,6 +848,14 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         isl = InterfaceSliver()
         ABCPropertyGraph.set_base_sliver_properties_from_graph_properties_dict(isl, d)
         isl.set_properties(peer_labels=Labels.from_json(d.get(ABCPropertyGraph.PROP_PEER_LABELS, None)))
+        # find interfaces and attach
+        ifs = d.get('interfaces', None)
+        if ifs is not None and len(ifs) > 0:
+            ifi = InterfaceInfo()
+            for i in ifs:
+                ifsl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(i)
+                ifi.add_interface(ifsl)
+            isl.interface_info = ifi
         return isl
 
     def build_deep_node_sliver(self, *, node_id: str) -> NodeSliver:
@@ -853,6 +884,7 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
 
         nss = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_HAS,
                                       node_label=ABCPropertyGraph.CLASS_NetworkService)
+
         if nss is not None and len(nss) > 0:
             nsi = NetworkServiceInfo()
             for s in nss:
@@ -906,11 +938,14 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         # find interfaces and attach
         ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
         if ifs is not None and len(ifs) > 0:
             ifi = InterfaceInfo()
             for i in ifs:
-                _, iprops = self.get_node_properties(node_id=i)
-                ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
+                # Take child interfaces into account
+                ifsl = self.build_deep_interface_sliver(node_id=i)
+                #_, iprops = self.get_node_properties(node_id=i)
+                #ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
                 ifi.add_interface(ifsl)
             nss.interface_info = ifi
         return nss
@@ -988,6 +1023,18 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
                                               msg="Node is not of class Interface")
         # create top-level sliver
         isl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(props)
+
+        # find interfaces and attach
+        if isl.get_type() == InterfaceType.DedicatedPort and not isl.interface_info:
+            ifs = self.get_first_neighbor(node_id=node_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                          node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+            if ifs is not None and len(ifs) > 0:
+                ifi = InterfaceInfo()
+                for i in ifs:
+                    _, iprops = self.get_node_properties(node_id=i)
+                    ifsl = self.interface_sliver_from_graph_properties_dict(iprops)
+                    ifi.add_interface(ifsl)
+                isl.interface_info = ifi
         return isl
 
     @staticmethod
@@ -999,6 +1046,15 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         """
         # create top-level sliver
         isl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(props)
+
+        # find interfaces and attach
+        ifs = props.get('interfaces', None)
+        if ifs is not None and len(ifs) > 0:
+            ifi = InterfaceInfo()
+            for i in ifs:
+                ifsl = ABCPropertyGraph.interface_sliver_from_graph_properties_dict(i)
+                ifi.add_interface(ifsl)
+            isl.interface_info = ifi
         return isl
 
     def build_deep_link_sliver(self, *, node_id: str) -> NetworkLinkSliver:
@@ -1106,11 +1162,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         for iif in interfaces:
             self.remove_cp_and_links(node_id=iif)
 
-    def remove_cp_and_links(self, node_id: str):
+    def remove_cp_and_links(self, node_id: str, delete_parent: bool = True):
         """
         Remove ConnectionPoint and links. Parent ConnectionPoints and links are removed
         if they have no other children or other connected connection points.
         :param node_id: interface node id
+        :param delete_parent: flag indicating deletion of parent if parent have no other interfaces.
         :return:
         """
         # some interfaces may have parent interfaces, which can be deleted if they only have the
@@ -1119,11 +1176,12 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
         parents = self.get_first_neighbor(node_id=node_id,
                                           rel=ABCPropertyGraph.REL_CONNECTS,
                                           node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
         for parent in parents:  # really should only be one parent interface
             children = self.get_first_neighbor(node_id=parent,
                                                rel=ABCPropertyGraph.REL_CONNECTS,
                                                node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
-            if len(children) == 1:  # if only child, can delete parent
+            if len(children) == 1 and delete_parent:  # if only child, can delete parent
                 interfaces_to_delete.add(parent)
         # interfaces themselves and parent interfaces
         # may be connected to links which can be deleted if nothing
@@ -1255,6 +1313,21 @@ class ABCPropertyGraph(ABCPropertyGraphConstants):
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=link_id,
                                               msg="Node type is not Link or a NetworkService")
         return self.get_first_neighbor(node_id=link_id, rel=ABCPropertyGraph.REL_CONNECTS,
+                                       node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
+
+    def get_all_child_connection_points(self, interface_id: str) -> List[str]:
+        """
+        Get child interfaces attached to a Dedicated Interface
+        :param interface_id:
+        :return:
+        """
+        assert interface_id is not None
+        # check this is a link
+        labels, parent_props = self.get_node_properties(node_id=interface_id)
+        if ABCPropertyGraph.CLASS_ConnectionPoint not in labels:
+            raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=interface_id,
+                                              msg="Node type is not ConnectionPoint")
+        return self.get_first_neighbor(node_id=interface_id, rel=ABCPropertyGraph.REL_CONNECTS,
                                        node_label=ABCPropertyGraph.CLASS_ConnectionPoint)
 
     def get_all_node_or_component_connection_points(self, parent_node_id: str) -> List[str]:

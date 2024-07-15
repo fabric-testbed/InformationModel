@@ -40,6 +40,7 @@ class WhatsModifiedFlag(Flag):
     LABELS = auto()
     CAPACITIES = auto()
     USER_DATA = auto()
+    SUB_INTERFACES = auto()
 
 
 @dataclasses.dataclass

@@ -567,6 +567,8 @@ class Location(JSONField):
     """
     def __init__(self, **kwargs):
         self.postal = None
+        self.lat = None
+        self.lon = None
         self._set_fields(**kwargs)
 
     def _set_fields(self, forgiving=False, **kwargs):
@@ -577,7 +579,7 @@ class Location(JSONField):
         """
         for k, v in kwargs.items():
             assert v is not None
-            assert isinstance(v, str)
+            assert isinstance(v, str) or isinstance(v, float)
             try:
                 # will throw exception if field is not defined
                 self.__getattribute__(k)
@@ -596,6 +598,8 @@ class Location(JSONField):
         service.
         :return:
         """
+        if self.lat and self.lon:
+            return self.lat, self.lon
         url = 'https://nominatim.openstreetmap.org/search?q=' + urllib.parse.quote(self.postal) + '&format=json'
         # per terms of service set user agent
         headers = {'User-Agent': 'FABRIC FIM Utility'}
@@ -612,7 +616,9 @@ class Location(JSONField):
         except ValueError:
             raise LocationException(f"Unable to interpret response from OpenStreetmaps for address {self.postal}")
 
-        return float(response_json[0]['lat']), float(response_json[0]['lon'])
+        self.lat = float(response_json[0]['lat'])
+        self.lon = float(response_json[0]['lon'])
+        return self.lat, self.lon
 
 
 class Flags(JSONField):

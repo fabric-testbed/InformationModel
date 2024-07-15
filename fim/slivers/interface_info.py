@@ -28,7 +28,7 @@ import uuid
 import enum
 
 from .base_sliver import BaseSliver
-from .topology_diff import TopologyDiff
+from .topology_diff import TopologyDiff, WhatsModifiedFlag, TopologyDiffTuple, TopologyDiffModifiedTuple
 from .capacities_labels import Labels
 
 
@@ -44,6 +44,7 @@ class InterfaceType(enum.Enum):
     vInt = enum.auto()
     StitchPort = enum.auto()
     FacilityPort = enum.auto()
+    SubInterface = enum.auto()
 
     def help(self) -> str:
         return 'An ' + self.name
@@ -64,6 +65,7 @@ class InterfaceSliver(BaseSliver):
         super().__init__()
         # note that these are used in ASMs, not delegateable
         self.peer_labels = None
+        self.interface_info = None
 
     def set_peer_labels(self, lab: Labels) -> None:
         assert(lab is None or isinstance(lab, Labels))
@@ -81,7 +83,55 @@ class InterfaceSliver(BaseSliver):
                 return t
 
     def diff(self, other_sliver) -> TopologyDiff or None:
-        raise RuntimeError('Not implemented')
+        if not other_sliver:
+            return None
+
+        super().diff(other_sliver)
+
+        ifs_added = set()
+        ifs_removed = set()
+        ifs_modified = list()
+
+        # see if we ourselves have modified properties
+        self_modified = list()
+        self_modified_flags = self.prop_diff(other_sliver)
+        if self.prop_diff(other_sliver) != WhatsModifiedFlag.NONE:
+            self_modified.append((self, self_modified_flags))
+
+        if self.interface_info and other_sliver.interface_info:
+            diff_comps = self._dict_diff(self.interface_info.interfaces,
+                                         other_sliver.interface_info.interfaces)
+            ifs_added = set(diff_comps['added'].values())
+            ifs_removed = set(diff_comps['removed'].values())
+            # there are interfaces in common, so we check if they have been modified
+            ifs_common = self._dict_common(self.interface_info.interfaces,
+                                           other_sliver.interface_info.interfaces)
+            for iA in ifs_common.values():
+                iB = other_sliver.interface_info.get_interface(iA.resource_name)
+                # compare properties
+                flag = iA.prop_diff(iB)
+                if flag != WhatsModifiedFlag.NONE:
+                    ifs_modified.append((iA, flag))
+
+        if not self.interface_info and other_sliver.interface_info:
+            ifs_added = set(other_sliver.interface_info.interfaces.values())
+
+        if self.interface_info and not other_sliver.interface_info:
+            ifs_removed = set(self.interface_info.interfaces.values())
+
+        if len(self_modified) > 0 or len(ifs_added) > 0 or len(ifs_removed) > 0 or len(ifs_modified) > 0:
+            return TopologyDiff(added=TopologyDiffTuple(components=set(), services=set(), interfaces=ifs_added,
+                                                        nodes=set()),
+                                removed=TopologyDiffTuple(components=set(), services=set(),
+                                                          interfaces=ifs_removed, nodes=set()),
+                                modified=TopologyDiffModifiedTuple(
+                                    nodes=list(),
+                                    components=list(),
+                                    services=self_modified,
+                                    interfaces=ifs_modified)
+                                )
+        else:
+            return None
 
 
 class InterfaceInfo:
