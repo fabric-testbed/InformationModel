@@ -129,6 +129,11 @@ class Interface(ModelElement):
         if labels.vlan in all_vlans:
             raise TopologyException(f'Vlan in use by another Sub Interface within the interface')
 
+        if self.labels:
+            labels.local_name = self.labels.local_name
+        else:
+            raise TopologyException(f'Local name for the dedicated interface not available')
+
         iff = Interface(name=name, node_id=node_id, parent_node_id=self.node_id,
                         etype=ElementType.NEW, topo=self.topo, itype=InterfaceType.SubInterface,
                         **kwargs)
