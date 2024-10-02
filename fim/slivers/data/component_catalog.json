@@ -75,5 +75,15 @@
       "p1": "100",
       "p2": "100"
     }
+  },
+  {
+    "Model": "Xilinx-SN1022",
+    "AlsoModels": ["Alveo SN1022"],
+    "Type" : "FPGA",
+    "Details": "Xilinx SN1022 FPGA Dual 100G port accelerator card",
+    "Interfaces": {
+      "p1": "100",
+      "p2": "100"
+    }
   }
 ]

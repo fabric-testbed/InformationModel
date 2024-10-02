@@ -393,7 +393,6 @@ class NetworkServiceSliver(BaseSliver):
 
                 if iA.get_type() == InterfaceType.DedicatedPort:
                     if iA.diff(iB):
-                        print("Added the child interfaces")
                         flag |= WhatsModifiedFlag.SUB_INTERFACES
 
                 if flag != WhatsModifiedFlag.NONE:
