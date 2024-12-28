@@ -147,7 +147,8 @@ class ResourceAuthZAttributes:
             for c in sliver.attached_components_info.list_devices():
                 self._attributes[self.RESOURCE_COMPONENT].append(str(c.get_type()))
 
-    def _collect_attributes_from_ns_sliver(self, sliver: NetworkServiceSliver):
+    def _collect_attributes_from_ns_sliver(self, sliver: NetworkServiceSliver,
+                                           in_slice_ports: set = set()):
         if sliver.capacities:
             self._attributes[self.RESOURCE_BW].append(sliver.capacities.bw)
         if sliver.site:
@@ -162,6 +163,16 @@ class ResourceAuthZAttributes:
             if sliver.site not in self._attributes[resource_name]:
                 self._attributes[resource_name].append(sliver.site)
 
+            # Additional condition for PortMirror to not throw an error if the
+            # port being mirrored is within the same slice
+            if sliver.resource_type == ServiceType.PortMirror and \
+                    sliver.mirror_port in in_slice_ports and \
+                    len(self._attributes[resource_name]):
+                # Specific logic for PortMirror if needed
+                self._attributes[resource_name].pop()
+                if len(self._attributes[resource_name]) == 0:
+                    self._attributes.pop(resource_name)
+
     def _collect_attributes_from_base_sliver(self, sliver: BaseSliver):
         if isinstance(sliver, NetworkServiceSliver):
             self._collect_attributes_from_ns_sliver(sliver)
@@ -171,16 +182,20 @@ class ResourceAuthZAttributes:
     def _collect_attributes_from_topo(self, topo: ExperimentTopology):
         for n in topo.nodes.values():
             self._collect_attributes_from_node(n)
+        in_slice_ports = set()
+        for ifs in topo.interface_list:
+            if ifs.get_peers() and ifs.get_peers()[0] and ifs.get_peers()[0].labels:
+                in_slice_ports.add(ifs.get_peers()[0].labels.local_name)
         for ns in topo.network_services.values():
-            self._collect_attributes_from_ns(ns)
+            self._collect_attributes_from_ns(ns, in_slice_ports)
         for fac in topo.facilities.values():
             self._attributes[self.RESOURCE_FACILITY_PORT].append(fac.name)
 
     def _collect_attributes_from_node(self, node: Node):
         self._collect_attributes_from_node_sliver(node.get_sliver())
 
-    def _collect_attributes_from_ns(self, ns: NetworkService):
-        self._collect_attributes_from_ns_sliver(ns.get_sliver())
+    def _collect_attributes_from_ns(self, ns: NetworkService, in_slice_ports: set = set()):
+        self._collect_attributes_from_ns_sliver(ns.get_sliver(), in_slice_ports)
 
     def _collect_attributes_from_asm(self, asm: NetworkxASM):
         # convert to experiment topology
