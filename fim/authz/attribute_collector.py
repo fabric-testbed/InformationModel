@@ -34,7 +34,7 @@ from datetime import datetime, timedelta, timezone
 import json
 
 from fim.user.topology import ExperimentTopology
-from fim.user.node import Node
+from fim.user.node import Node, NodeType
 from fim.user.network_service import NetworkService, ServiceType
 from fim.graph.slices.networkx_asm import NetworkxASM
 from fim.slivers.base_sliver import BaseSliver
@@ -134,6 +134,8 @@ class ResourceAuthZAttributes:
         return ViewOnlyDict(self._attributes)
 
     def _collect_attributes_from_node_sliver(self, sliver: NodeSliver):
+        if sliver.get_type() == NodeType.Switch:
+            self._attributes[self.RESOURCE_TYPE] = ["switch-p4"]
         if sliver.capacities:
             self._attributes[self.RESOURCE_CPU].append(sliver.capacities.core)
             self._attributes[self.RESOURCE_RAM].append(sliver.capacities.ram)
