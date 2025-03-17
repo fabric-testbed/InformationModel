@@ -279,7 +279,19 @@ class Topology(ABC):
         fac = self._get_node_by_name(name)
         if fac.type != NodeType.Facility:
             raise TopologyException(f'{name} is not a Facility node, cannot remove.')
-        self.remove_node(name)
+
+        for i in self.facilities[name].interface_list:
+            # disconnect if connected to a network service
+            peers = i.get_peers(itype=InterfaceType.ServicePort)
+            if peers:
+                if len(peers) == 1:
+                    # disconnect from its parent service
+                    self.get_parent_element(peers[0]).disconnect_interface(i)
+                else:
+                    raise TopologyException(f'Interface {i.name} has more than one peer, this is a model error.')
+
+        self.graph_model.remove_network_node_with_components_nss_cps_and_links(
+            node_id=self._get_node_by_name(name=name).node_id)
 
     def add_switch(self, *, name: str, node_id: str = None, site: str,
                    nstype: ServiceType = ServiceType.P4, nslabels: Labels or None = None,
