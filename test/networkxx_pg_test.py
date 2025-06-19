@@ -218,6 +218,22 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
 
         assert (len(path) == 0)
 
+    def test_all_paths_with_hops(self):
+        graph_string = self.imp.enumerate_graph_nodes_to_string(graph_file=self.NET_FILE_DEV)
+        net_graph = self.imp.import_graph_from_string(graph_string=graph_string)
+
+        renc_sw_node_id = "node+renc-data-sw:ip+192.168.11.3"
+        lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
+        hops = ["node+uky-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_all_paths_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert(len(path) > 0)
+
+        hops = ["node+max-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_all_paths_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert (len(path) == 0)
+
     def test_first_neighbor(self):
         favs = self._find_favorite_nodes()
         assert((favs.get('Worker1'), None) is not None)

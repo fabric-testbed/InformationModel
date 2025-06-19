@@ -460,6 +460,43 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
                     result = path_node_ids
         return result
 
+    def get_all_paths_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
+        """
+        Get a list of paths containing list of node ids that lie on a path between two nodes with the specified hops.
+        Return empty list if no path can be found.
+        :param node_a: Starting node ID.
+        :param node_z: Ending node ID.
+        :param hops: List of hops that must be present in the path.
+        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
+        :return: List of Paths with specified hops and no loops exists, empty list otherwise.
+        """
+        # extract a graph
+        graph = self.storage.extract_graph(self.graph_id)
+        if graph is None:
+            raise PropertyGraphQueryException(graph_id=self.graph_id,
+                                              msg="Unable to find graph")
+        real_node_a = self._find_node(node_id=node_a)
+        real_node_z = self._find_node(node_id=node_z)
+
+        try:
+            all_paths = nx.all_simple_paths(graph, real_node_a, real_node_z, cutoff=cut_off)
+        except nx.exception.NetworkXNoPath:
+            return list()
+
+        result = []
+        for path in all_paths:
+            subgraph = graph.subgraph(path)
+            # check no cycles
+            cycles = nx.cycle_basis(subgraph)
+            if len(cycles):
+                continue
+            # Extract Node Id for all nodes in Path
+            path_node_ids = self._get_node_ids_for_list(graph, path)
+            # Check all hops are in path
+            if all(hop in path_node_ids for hop in hops):
+                result.append(path)
+        return result
+
     def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List:
         """
         Return a list of ids of nodes of this label related via relationship. List may be empty.
