@@ -482,7 +482,6 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             all_paths = nx.all_simple_paths(graph, real_node_a, real_node_z, cutoff=cut_off)
         except nx.exception.NetworkXNoPath:
             return list()
-
         result = []
         for path in all_paths:
             subgraph = graph.subgraph(path)
@@ -494,7 +493,7 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
             path_node_ids = self._get_node_ids_for_list(graph, path)
             # Check all hops are in path
             if all(hop in path_node_ids for hop in hops):
-                result.append(path)
+                result.append(path_node_ids)
         return result
 
     def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List:
