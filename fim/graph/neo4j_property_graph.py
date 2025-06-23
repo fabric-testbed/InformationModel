@@ -751,7 +751,15 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
                 raise PropertyGraphQueryException(graph_id=self.graph_id,
                                                   node_id=None, msg=f"Unable to property diff with graph "
                                                                     f"{other_graph.graph_id}")
-            return vd[0]['nodes'], vd[0]['nodes1']
+            all_nodes = []
+            all_nodes1 = []
+
+            for result in vd:
+                all_nodes.extend(result['nodes'])
+                all_nodes1.extend(result['nodes1'])
+
+            return all_nodes, all_nodes1
+            #return vd[0]['nodes'], vd[0]['nodes1']
 
 
 class Neo4jGraphImporter(ABCGraphImporter):
