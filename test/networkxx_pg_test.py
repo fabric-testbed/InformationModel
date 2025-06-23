@@ -12,9 +12,9 @@ from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyG
 
 class NetworkXPropertyGraphTests(unittest.TestCase):
 
-    GRAPH_FILE = "test/models/site-2-am-1broker-ad.graphml"
-    NET_FILE_DEV = "test/models/Network-dev.graphml"
-    NET_FILE = "test/models/network-am-ad.graphml"
+    GRAPH_FILE = "./models/site-2-am-1broker-ad.graphml"
+    NET_FILE_DEV = "./models/Network-dev.graphml"
+    NET_FILE = "./models/network-am-ad.graphml"
     FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1', 'NIC1', 'NICSwitchFabric1']
     # this one set in file, should not be overwritten
     GIVEN_NODEID = '43BB2199-8248-48DE-86C5-E94112BFE401'
@@ -215,6 +215,22 @@ class NetworkXPropertyGraphTests(unittest.TestCase):
 
         hops = ["node+max-data-sw:ip+192.168.12.3-ns"]
         path = net_graph.get_nodes_on_path_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert (len(path) == 0)
+
+    def test_all_paths_with_hops(self):
+        graph_string = self.imp.enumerate_graph_nodes_to_string(graph_file=self.NET_FILE_DEV)
+        net_graph = self.imp.import_graph_from_string(graph_string=graph_string)
+
+        renc_sw_node_id = "node+renc-data-sw:ip+192.168.11.3"
+        lbnl_sw_node_id = "node+lbnl-data-sw:ip+192.168.13.3"
+        hops = ["node+uky-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_all_paths_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
+
+        assert(len(path) > 0)
+
+        hops = ["node+max-data-sw:ip+192.168.12.3-ns"]
+        path = net_graph.get_all_paths_with_hops(node_a=renc_sw_node_id, node_z=lbnl_sw_node_id, hops=hops)
 
         assert (len(path) == 0)
 

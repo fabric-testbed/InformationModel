@@ -457,6 +457,43 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
 
         return result
 
+    def get_all_paths_with_hops(self, *, node_a: str, node_z: str, hops: List[str], cut_off: int = 100) -> List:
+        """
+        Get a list of paths containing list of node ids that lie on a path between two nodes with the specified hops.
+        Return empty list if no path can be found.
+        :param node_a: Starting node ID.
+        :param node_z: Ending node ID.
+        :param hops: List of hops that must be present in the path.
+        :param cut_off: Optional Depth to stop the search. Only paths of length <= cutoff are returned.
+        :return: List of Paths with specified hops and no loops exists, empty list otherwise.
+        """
+        assert node_a is not None
+        assert node_z is not None
+
+        query = "MATCH (a:GraphNode {GraphID: $graphId, NodeID: $nodeA}), " \
+                "(z:GraphNode {GraphID: $graphId, NodeID: $nodeZ}) " \
+                "CALL apoc.algo.allSimplePaths(a, z, 'connects|has', $cut_off) " \
+                "YIELD path AS path WITH path, relationships(path) AS rels " \
+                "WHERE size(rels) = size(apoc.coll.toSet(rels)) " \
+                "RETURN [node in nodes(path) | node.NodeID] AS nodeids"
+
+        paths = []
+        with self.driver.session() as session:
+            result = session.run(query, graphId=self.graph_id, nodeA=node_a, nodeZ=node_z, cut_off=cut_off)
+            for record in result:
+                paths.append(record["nodeids"])
+
+        if not len(paths):
+            return []
+
+        result = []
+        for path in paths:
+            # Check all hops are in path
+            if all(hop in path for hop in hops):
+                result.append(path)
+
+        return result
+
     def get_first_neighbor(self, *, node_id: str, rel: str, node_label: str) -> List[str]:
         """
         Return a list of ids of nodes of this label related via relationship. List may be empty.
