@@ -145,7 +145,8 @@ class ResourceAuthZAttributes:
                 self._attributes[self.RESOURCE_SITE].append(sliver.site)
         if sliver.attached_components_info:
             for c in sliver.attached_components_info.list_devices():
-                self._attributes[self.RESOURCE_COMPONENT].append(str(c.get_type()))
+                type_model = f"{c.get_type()}_{c.get_model()}".replace("-", "_")
+                self._attributes[self.RESOURCE_COMPONENT].append(type_model)
 
     def _collect_attributes_from_ns_sliver(self, sliver: NetworkServiceSliver,
                                            in_slice_ports: set = set()):
