@@ -30,6 +30,15 @@
     "Details": "Mellanox ConnectX-6 VPI MCX653 dual port 100Gbps"
   },
   {
+    "Model": "BlueField-2-ConnectX-6",
+    "Type": "SmartNIC",
+    "Interfaces": {
+      "p1": "100",
+      "p2": "100"
+    },
+    "Details": "Mellanox ConnectX-6 MT42822 BlueField-2 dual port 100Gbps"
+  },
+  {
     "Model": "ConnectX-7-400",
     "Type": "SmartNIC",
     "Interfaces": {
