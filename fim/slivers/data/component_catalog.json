@@ -39,6 +39,24 @@
     "Details": "Mellanox ConnectX-6 MT42822 BlueField-2 dual port 100Gbps"
   },
   {
+    "Model": "ConnectX-7-400",
+    "Type": "SmartNIC",
+    "Interfaces": {
+      "p1": "400",
+      "p2": "400"
+    },
+    "Details": "Mellanox ConnectX-7 MT43244 BlueField-3 dual port 400Gbps"
+  },
+  {
+    "Model": "ConnectX-7-100",
+    "Type": "SmartNIC",
+    "Interfaces": {
+      "p1": "100",
+      "p2": "100"
+    },
+    "Details": "Mellanox ConnectX-7 MT4277 BlueField-3 dual port 100Gbps"
+  },
+  {
     "Model": "ConnectX-6",
     "Type": "SmartNIC",
     "Interfaces": {
