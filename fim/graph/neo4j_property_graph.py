@@ -686,10 +686,24 @@ class Neo4jPropertyGraph(ABCPropertyGraph):
         assert other_graph is not None
         assert label is not None
 
-        query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WITH " \
-                f"collect(DISTINCT n) as A, collect(DISTINCT n1) as B, " \
-                f"collect(DISTINCT n.NodeID) as AN, collect(DISTINCT n1.NodeID) as BN " \
-                f"RETURN [x in A WHERE NOT x.NodeID in BN] as AnotB, [x in B WHERE NOT x.NodeID in AN] as BnotA"
+        #query = f"MATCH(n:GraphNode:{label} {{GraphID: $graphIdA}}) WITH n MATCH(n1:GraphNode:{label} {{GraphID: $graphIdB}}) WITH " \
+        #        f"collect(DISTINCT n) as A, collect(DISTINCT n1) as B, " \
+        #        f"collect(DISTINCT n.NodeID) as AN, collect(DISTINCT n1.NodeID) as BN " \
+        #        f"RETURN [x in A WHERE NOT x.NodeID in BN] as AnotB, [x in B WHERE NOT x.NodeID in AN] as BnotA"
+        query = f"""
+            MATCH (n:GraphNode:{label})
+            WHERE n.GraphID IN [$graphIdA, $graphIdB]
+            WITH 
+                [x IN collect(n) WHERE x.GraphID = $graphIdA] AS A,
+                [x IN collect(n) WHERE x.GraphID = $graphIdB] AS B
+            WITH 
+                A, B,
+                [x IN A | x.NodeID] AS AN_IDs,
+                [x IN B | x.NodeID] AS BN_IDs
+            RETURN 
+                [x IN A WHERE NOT x.NodeID IN BN_IDs] AS AnotB,
+                [x IN B WHERE NOT x.NodeID IN AN_IDs] AS BnotA
+        """
         with self.driver.session() as session:
             val = session.run(query, graphIdA=self.graph_id, graphIdB=other_graph.graph_id).single()
             if val is None:
