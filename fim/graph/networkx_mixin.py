@@ -28,6 +28,7 @@ from typing import List, Set, Any
 from abc import ABCMeta
 
 import json
+import time
 import networkx as nx
 import networkx_query as nxq
 
@@ -40,6 +41,28 @@ class NetworkXMixin(metaclass=ABCMeta):
     """
 
     NETWORKX_LABEL = 'Class'
+    MAX_RETRIES = 3
+    RETRY_DELAY = 0.1
+
+    @staticmethod
+    def _search_nodes_safe(graph: nx.Graph, query: dict, max_retries: int = 3, retry_delay: float = 0.1) -> list:
+        """
+        Wrapper around nxq.search_nodes that retries on RuntimeError caused by
+        concurrent graph modification (dictionary keys changed during iteration).
+        :param graph: NetworkX graph to search
+        :param query: networkx_query search query
+        :param max_retries: number of attempts
+        :param retry_delay: delay between retries in seconds
+        :return: list of matching node IDs
+        """
+        for attempt in range(max_retries):
+            try:
+                return list(nxq.search_nodes(graph, query))
+            except RuntimeError:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    raise
 
     def _find_node(self, *, node_id: str, graph_id: str = None) -> int:
         """
@@ -55,12 +78,12 @@ class NetworkXMixin(metaclass=ABCMeta):
         else:
             use_graph_id = graph_id
 
-        query_match = list(nxq.search_nodes(self.storage.get_graph(use_graph_id),
-                                            {'and': [
-                                                {'eq': [ABCPropertyGraph.NODE_ID, node_id]},
-                                                {'eq': [ABCPropertyGraph.GRAPH_ID, use_graph_id]}
-                                                ]}
-                                            ))
+        query_match = self._search_nodes_safe(self.storage.get_graph(use_graph_id),
+                                                {'and': [
+                                                    {'eq': [ABCPropertyGraph.NODE_ID, node_id]},
+                                                    {'eq': [ABCPropertyGraph.GRAPH_ID, use_graph_id]}
+                                                    ]}
+                                                )
         if len(query_match) == 0:
             raise PropertyGraphQueryException(graph_id=use_graph_id,
                                               node_id=node_id, msg="Unable to find node")
@@ -74,8 +97,8 @@ class NetworkXMixin(metaclass=ABCMeta):
         Find all nodes in this graph returning the list of their internal int IDs
         :return:
         """
-        query_match = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
-                                            {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]}))
+        query_match = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
+                                                {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]})
         if len(query_match) == 0:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                               msg="Unable to find graph nodes")

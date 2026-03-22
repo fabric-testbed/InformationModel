@@ -46,12 +46,12 @@ class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
         """
         assert node_name is not None
         my_graph = self.storage.get_graph(self.graph_id)
-        graph_nodes = list(nxq.search_nodes(my_graph,
+        graph_nodes = self._search_nodes_safe(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_NAME, node_name]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
-                                            ]}))
+                                            ]})
         if len(graph_nodes) == 0:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                               msg=f"Unable to find node with name {node_name} class {label}")
@@ -66,13 +66,13 @@ class NetworkxASM(ABCASMPropertyGraph, NetworkXPropertyGraph):
         assert name is not None
         assert label is not None
 
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+        graph_nodes = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_NAME, name]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]},
                                                 {'eq': [ABCPropertyGraph.NODE_ID, node_id]}
-                                            ]}))
+                                            ]})
         return len(graph_nodes) > 0
 
 

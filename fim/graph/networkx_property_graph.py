@@ -314,13 +314,13 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         assert label is not None
         my_graph = self.storage.get_graph(self.graph_id)
         ret = list()
-        graph_nodes = list(nxq.search_nodes(my_graph,
+        graph_nodes = self._search_nodes_safe(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS,
                                                         label]}
                                             ]
-                                            }))
+                                            })
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
         return ret
@@ -329,13 +329,13 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         assert label is not None
         assert ntype is not None
         my_graph = self.storage.get_graph(self.graph_id)
-        graph_nodes = list(nxq.search_nodes(my_graph,
+        graph_nodes = self._search_nodes_safe(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]},
                                                 {'eq': [ABCPropertyGraph.PROP_TYPE, ntype]}
                                             ]
-                                            }))
+                                            })
         ret = list()
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
@@ -390,8 +390,8 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         Does the graph with this ID exist?
         :return:
         """
-        query_match = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
-                                            {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]}))
+        query_match = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
+                                            {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]})
         return len(query_match) > 0
 
     def get_nodes_on_shortest_path(self, *, node_a: str, node_z: str, rel: str = None) -> List:
@@ -601,12 +601,12 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         """
         assert node_id is not None
         assert label is not None
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+        graph_nodes = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.NODE_ID, node_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
-                                            ]}))
+                                            ]})
         if len(graph_nodes) > 1:
             raise PropertyGraphQueryException(node_id=node_id, graph_id=self.graph_id,
                                               msg="Duplicate node found while checking for node uniqueness")
@@ -720,12 +720,12 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
 
     def get_stitch_nodes(self) -> List[str]:
         my_graph = self.storage.get_graph(self.graph_id)
-        graph_nodes = list(nxq.search_nodes(my_graph,
+        graph_nodes = self._search_nodes_safe(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_STITCH_NODE, 'true']}
                                             ]
-                                            }))
+                                            })
         ret = list()
         for n in graph_nodes:
             ret.append(my_graph.nodes[n][ABCPropertyGraph.NODE_ID])
@@ -738,12 +738,12 @@ class NetworkXPropertyGraph(ABCPropertyGraph, NetworkXMixin):
         :param name:
         :return:
         """
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+        graph_nodes = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
                                             {'and': [
                                                 {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraph.PROP_NAME, name]},
                                                 {'eq': [ABCPropertyGraph.PROP_CLASS, label]}
-                                            ]}))
+                                            ]})
         return len(graph_nodes) == 0
 
     def get_graph_diff(self, other_graph, label: str):

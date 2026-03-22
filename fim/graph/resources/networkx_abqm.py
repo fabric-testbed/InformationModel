@@ -65,12 +65,12 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
         """
         assert node_name is not None
         my_graph = self.storage.get_graph(self.graph_id)
-        graph_nodes = list(nxq.search_nodes(my_graph,
+        graph_nodes = self._search_nodes_safe(my_graph,
                                             {'and': [
                                                 {'eq': [ABCPropertyGraphConstants.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraphConstants.PROP_NAME, node_name]},
                                                 {'eq': [ABCPropertyGraphConstants.PROP_CLASS, label]}
-                                            ]}))
+                                            ]})
         if len(graph_nodes) == 0:
             raise PropertyGraphQueryException(graph_id=self.graph_id, node_id=None,
                                               msg=f"Unable to find node with name {node_name} class {label}")
@@ -85,13 +85,13 @@ class NetworkXAggregateBQM(ABCBQMPropertyGraph, NetworkXPropertyGraph):
         assert name is not None
         assert label is not None
 
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
+        graph_nodes = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
                                             {'and': [
                                                 {'eq': [ABCPropertyGraphConstants.GRAPH_ID, self.graph_id]},
                                                 {'eq': [ABCPropertyGraphConstants.PROP_NAME, name]},
                                                 {'eq': [ABCPropertyGraphConstants.PROP_CLASS, label]},
                                                 {'eq': [ABCPropertyGraphConstants.NODE_ID, node_id]}
-                                            ]}))
+                                            ]})
         return len(graph_nodes) > 0
 
 

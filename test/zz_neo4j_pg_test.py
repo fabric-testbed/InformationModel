@@ -1,4 +1,5 @@
 import unittest
+import os
 
 import yaml
 
@@ -12,6 +13,8 @@ from fim.graph.resources.neo4j_arm import Neo4jARMGraph
 from fim.slivers.attached_components import AttachedComponentsInfo, ComponentSliver, ComponentType
 from fim.slivers.network_node import NodeType
 
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class Neo4jTests(unittest.TestCase):
     """
@@ -22,10 +25,10 @@ class Neo4jTests(unittest.TestCase):
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "neo4j/imports",
+             "import_host_dir": os.path.join(_TEST_DIR, "neo4j/imports"),
              "import_dir": "/imports"}
 
-    FIM_CONFIG_YAML = "./fim_config.yml"
+    FIM_CONFIG_YAML = os.path.join(_TEST_DIR, "fim_config.yml")
 
     try:
         with open(FIM_CONFIG_YAML, 'r') as config_file:
@@ -389,7 +392,7 @@ class Neo4jTests(unittest.TestCase):
         self.n4j_imp.delete_all_graphs()
 
         # these are produced by substrate tests
-        site_ads = ['models/RENC.graphml', 'models/UKY.graphml', 'models/LBNL.graphml', 'models/Network-dev.graphml']
+        site_ads = [os.path.join(_TEST_DIR, f'models/{f}') for f in ['RENC.graphml', 'UKY.graphml', 'LBNL.graphml', 'Network-dev.graphml']]
 
         cbm = Neo4jCBMGraph(importer=self.n4j_imp)
 
