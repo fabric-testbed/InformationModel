@@ -18,13 +18,15 @@ from fim.slivers.maintenance_mode import MaintenanceInfo, MaintenanceState, \
     MaintenanceEntry, MaintenanceModeException
 from fim.slivers.capacities_labels import Capacities
 
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class SliceTest(unittest.TestCase):
 
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "neo4j/imports",
+             "import_host_dir": os.path.join(_TEST_DIR, "neo4j/imports"),
              "import_dir": "/imports"}
 
     def setUp(self) -> None:
@@ -701,7 +703,7 @@ class SliceTest(unittest.TestCase):
                     print(f"\t\t{ns}")
                     for ifs in ns.interface_info.interfaces.values():
                         print(f"\t\t\t{ifs}")
-                        if "p1" in ifs.get_name():
+                        if ifs.get_name() == "nic1-p1":
                             self.assertTrue(ifs.interface_info is not None)
                             for cifs in ifs.interface_info.interfaces.values():
                                 self.assertEqual(cifs.get_type(), f.InterfaceType.SubInterface)

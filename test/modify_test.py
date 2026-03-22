@@ -1,5 +1,6 @@
 import unittest
 import uuid
+import os
 from typing import Any
 
 import cProfile
@@ -18,13 +19,15 @@ from fim.slivers.json_data import UserData
 
 WITH_PROFILER = False
 
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class ModifyTest(unittest.TestCase):
 
     neo4j = {"url": "neo4j://0.0.0.0:7687",
              "user": "neo4j",
              "pass": "password",
-             "import_host_dir": "neo4j/imports/",
+             "import_host_dir": os.path.join(_TEST_DIR, "neo4j/imports/"),
              "import_dir": "/imports"}
 
     def initialTopo(self):

@@ -3,18 +3,21 @@ from typing import Dict
 
 import uuid
 import json
+import os
 
 import networkx as nx
 
 import fim.graph.networkx_property_graph as nx_graph
 from fim.graph.abc_property_graph import ABCPropertyGraphConstants, ABCPropertyGraph, GraphFormat
 
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class NetworkXPropertyGraphTests(unittest.TestCase):
 
-    GRAPH_FILE = "./models/site-2-am-1broker-ad.graphml"
-    NET_FILE_DEV = "./models/Network-dev.graphml"
-    NET_FILE = "./models/network-am-ad.graphml"
+    GRAPH_FILE = os.path.join(_TEST_DIR, "models/site-2-am-1broker-ad.graphml")
+    NET_FILE_DEV = os.path.join(_TEST_DIR, "models/Network-dev.graphml")
+    NET_FILE = os.path.join(_TEST_DIR, "models/network-am-ad.graphml")
     FAVORITE_NODES = ['Worker1', 'SwitchFabric1', 'GPU1', 'NIC1', 'NICSwitchFabric1']
     # this one set in file, should not be overwritten
     GIVEN_NODEID = '43BB2199-8248-48DE-86C5-E94112BFE401'

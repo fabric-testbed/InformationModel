@@ -36,6 +36,9 @@ class MyPlugWithParams:
 
 class TestPluggable(unittest.TestCase):
 
+    def setUp(self):
+        PluggableRegistry.instance.clear()
+
     def testRegistrySingleton(self):
         r = PluggableRegistry()
         r1 = PluggableRegistry()
