@@ -70,8 +70,8 @@ class NetworkXPropertyGraphDisjoint(NetworkXPropertyGraph):
         Does the graph with this ID exist?
         :return:
         """
-        graph_nodes = list(nxq.search_nodes(self.storage.get_graph(self.graph_id),
-                                            {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]}))
+        graph_nodes = self._search_nodes_safe(self.storage.get_graph(self.graph_id),
+                                            {'eq': [ABCPropertyGraph.GRAPH_ID, self.graph_id]})
         if graph_nodes is not None and len(graph_nodes) > 0:
             return True
         return False
