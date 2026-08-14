@@ -35,6 +35,7 @@ class MaintenanceState(enum.Enum):
     Active = enum.auto()
     PreMaint = enum.auto()
     Maint = enum.auto()
+    PartMaint = enum.auto()
     Unknown = enum.auto()
 
     def __repr__(self):
