@@ -112,5 +112,13 @@
       "p1": "100",
       "p2": "100"
     }
+  },
+  {
+    "Model": "ConnectX-6-1P",
+    "Type" : "SmartNIC",
+    "Details": "Mellanox ConnectX-6 VPI MCX653 single dedicated 100Gbps port (sibling port in SR-IOV/shared mode)",
+    "Interfaces": {
+      "p1": "100"
+    }
   }
 ]
